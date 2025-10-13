@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Database
+dev.db
+dev.db-journal
+
+# Environment
+.env
+.env.local
+
+# Prisma
+prisma/migrations/**/migration.sql
+
+# Logs
+*.log
+npm-debug.log*

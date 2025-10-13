@@ -1,0 +1,93 @@
+/**
+ * Prisma Schema for Collaborative AI Productivity App
+ * 
+ * Database: SQLite (development) / PostgreSQL (production)
+ * ORM: Prisma 5.7.1
+ * 
+ * Models:
+ * - User: Application users (students, team members, AI agent)
+ * - Team: Collaborative workspaces
+ * - TeamMember: Many-to-many join table for User <-> Team
+ * - Message: Chat messages (text, AI content, files)
+ * 
+ * Conventions:
+ * - All IDs are UUIDs (String @id @default(uuid()))
+ * - Timestamps use DateTime with @default(now())
+ * - Relations use explicit join tables (no implicit many-to-many)
+ * - JSON fields for flexible metadata
+ */
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String        @id @default(uuid())
+  name            String
+  email           String?       @unique
+  avatar          String?
+  role            String        // 'member' | 'admin' | 'agent'
+  createdAt       DateTime      @default(now())
+  
+  teamMemberships TeamMember[]
+  messages        Message[]
+}
+
+model Team {
+  id              String        @id @default(uuid())
+  name            String
+  createdAt       DateTime      @default(now())
+  
+  teamMemberships TeamMember[]
+  messages        Message[]
+  aiInsights      AIInsight[]
+}
+
+model TeamMember {
+  id       String   @id @default(uuid())
+  teamId   String
+  userId   String
+  teamRole String?  // 'owner' | 'admin' | 'member'
+  joinedAt DateTime @default(now())
+  
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([teamId, userId])
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  teamId      String
+  authorId    String
+  content     String
+  contentType String   // 'text' | 'ai_longform' | 'notebook' | 'file'
+  createdAt   DateTime @default(now())
+  metadata    String?  // JSON string for flexible data
+  
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@index([teamId, createdAt])
+}
+
+model AIInsight {
+  id                String   @id @default(uuid())
+  teamId            String
+  type              String   // 'summary' | 'action' | 'suggestion' | 'analysis' | 'code' | 'document'
+  title             String
+  content           String
+  priority          String?  // 'low' | 'medium' | 'high'
+  tags              String?  // JSON array
+  createdAt         DateTime @default(now())
+  relatedMessageIds String?  // JSON array
+  
+  team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  @@index([teamId, createdAt])
+}
