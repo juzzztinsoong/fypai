@@ -3,7 +3,6 @@ import { useChatStore } from '../../stores/chatStore'
 import { useCurrentTeam } from '../../stores/teamStore'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
-import type { Message } from '../../types'
 import { useUserStore } from '../../stores/userStore'
 
 /**
@@ -36,32 +35,43 @@ export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
   // currentTeam: Team | null - active team context
   const currentTeam = useCurrentTeam()
-  // addMessage: (teamId: string, message: Message) => void
-  const { addMessage } = useChatStore()
+  // Use API method instead of direct mutation
+  const sendMessage = useChatStore((state) => state.sendMessage)
   const { user } = useUserStore()
 
-  // handleSend(): sends message if valid
-  const handleSend = () => {
+  // handleSend(): sends message via API
+  const handleSend = async () => {
     if (!newMessage.trim() || !currentTeam) return
 
-    const message: Message = {
-      id: crypto.randomUUID(),
-      teamId: currentTeam.id,
-      authorId: user.id,
-      content: newMessage,
-      contentType: 'text',
-      createdAt: new Date().toISOString(),
+    try {
+      await sendMessage({
+        teamId: currentTeam.id,
+        authorId: user.id,
+        content: newMessage.trim(),
+        contentType: 'text',
+      })
+      setNewMessage('')
+    } catch (error) {
+      console.error('[ChatWindow] Failed to send message:', error)
+      // Could show error toast here
     }
-
-    addMessage(currentTeam.id, message)
-    setNewMessage('')
   }
 
   return (
-    <main className="flex-1 flex flex-col min-h-screen border-x border-gray-200 ml-60">
-      <ChatHeader />
-      <MessageList />
-      <div className="p-4 border-t border-gray-200">
+    <main className="flex-1 flex flex-col h-screen border-x border-gray-200 ml-60">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0">
+        <ChatHeader />
+      </div>
+
+      {/* Scrollable Message Area */}
+      <div className="flex-1 overflow-hidden">
+        <MessageList />
+      </div>
+
+      {/* Fixed Footer - Message Composer */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
+        {/* Message Composer */}
         <div className="flex space-x-2">
           <textarea
             value={newMessage}

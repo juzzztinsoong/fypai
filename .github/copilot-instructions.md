@@ -107,6 +107,34 @@ Place CI actions in `.github/workflows/ci.yml` once stacks are chosen.
 - When asked to implement API endpoints: add routes under `backend/src/routes` and wire the realtime events in `backend/src/realtime`.
 - When unsure about a stack choice: add a brief RFC in `docs/rfcs/` describing pros/cons and next steps.
 
+## Documentation Policy - IMPORTANT
+
+**DO NOT create markdown documentation files after every fix or change unless explicitly requested by the user.**
+
+- Only create documentation when the user specifically asks for it
+- Only create documentation for major features or complex architectural changes
+- Prefer updating existing documentation over creating new files
+- Use inline code comments for explaining specific implementations
+- Answer questions directly in chat instead of creating files
+- Existing documentation files to update when relevant:
+  - `README.md` - project overview and setup
+  - `SETUP_GUIDE.md` - comprehensive setup instructions
+  - `NEXT_STEPS.md` - roadmap and future work
+  - `AI_INTEGRATION_COMPLETE.md` - AI feature documentation
+
+**Examples of when NOT to create documentation:**
+- ❌ After fixing a bug
+- ❌ After applying a code change
+- ❌ After implementing a small feature
+- ❌ After answering a question
+- ❌ After debugging an issue
+
+**Examples of when to create documentation:**
+- ✅ User explicitly asks "can you document this?"
+- ✅ New major feature with complex setup (e.g., new authentication system)
+- ✅ Significant architectural changes that affect multiple systems
+- ✅ User asks for a guide or tutorial
+
 ## Next steps / ask the maintainer
 
 - Please confirm preferred stacks (frontend/backend language, DB choice, vector DB) so I can convert these recommendations into concrete scaffolding (src files, package.json, minimal runnable example).

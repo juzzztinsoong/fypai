@@ -1,47 +1,86 @@
 /**
  * USER STORE (Zustand)
  *
- * Tech Stack: Zustand, TypeScript
+ * Tech Stack: Zustand, TypeScript, @fypai/types
  * Purpose: Manage current user context (ID, name, avatar, role)
  *
  * State:
- *   - user: { id: string, name: string, avatar?: string, role?: string }
+ *   - user: UserDTO - current user with all properties
+ *   - isLoading: boolean - loading state for async operations
+ *   - error: string | null - error message if operation fails
  *
  * Methods & Arguments:
- *   - setUser(user): sets the current user object
- *   - setUserId(id): sets only the user ID
- *   - setUserName(name): sets only the user name
- *   - setUserAvatar(avatar): sets only the avatar
- *   - setUserRole(role): sets only the role
+ *   - fetchUser(userId: string): fetches user from API
+ *   - updateUser(userId: string, updates: UpdateUserRequest): updates user via API
+ *   - setUser(user: UserDTO): sets the complete user object
+ *   - setUserId(id: string): sets only the user ID
+ *   - setUserName(name: string): sets only the user name
+ *   - setUserAvatar(avatar: string | null): sets only the avatar
+ *   - setUserRole(role: UserRoleString): sets only the role
+ *
+ * Architecture:
+ *   - Uses UserDTO from @fypai/types (matches backend API responses)
+ *   - Integrates with userService for all API calls
+ *   - Stores user data with ISO timestamp strings
+ *   - Role is typed as UserRoleString ('member' | 'admin' | 'agent')
  *
  * Exports:
  *   - useUserStore: Zustand hook for user state/methods
  */
 import { create } from 'zustand'
-
-export interface UserContext {
-  id: string
-  name: string
-  avatar?: string
-  role?: string
-}
+import type { UserDTO, UserRoleString, UpdateUserRequest } from '../types'
+import { userService, getErrorMessage } from '@/services'
 
 interface UserState {
-  user: UserContext
-  setUser: (user: UserContext) => void
+  user: UserDTO
+  isLoading: boolean
+  error: string | null
+  fetchUser: (userId: string) => Promise<void>
+  updateUserProfile: (userId: string, updates: UpdateUserRequest) => Promise<void>
+  setUser: (user: UserDTO) => void
   setUserId: (id: string) => void
   setUserName: (name: string) => void
-  setUserAvatar: (avatar: string) => void
-  setUserRole: (role: string) => void
+  setUserAvatar: (avatar: string | null) => void
+  setUserRole: (role: UserRoleString) => void
 }
 
 export const useUserStore = create<UserState>()((set) => ({
   user: {
     id: 'user1',
     name: 'Alice',
-    avatar: undefined,
+    email: null,
+    avatar: null,
     role: 'admin',
+    createdAt: new Date().toISOString(),
   },
+  isLoading: false,
+  error: null,
+
+  // API Methods
+  fetchUser: async (userId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const user = await userService.getUserById(userId);
+      set({ user, isLoading: false });
+    } catch (error) {
+      console.error('[UserStore] Failed to fetch user:', error);
+      set({ error: getErrorMessage(error), isLoading: false });
+    }
+  },
+
+  updateUserProfile: async (userId: string, updates: UpdateUserRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updatedUser = await userService.updateUser(userId, updates);
+      set({ user: updatedUser, isLoading: false });
+    } catch (error) {
+      console.error('[UserStore] Failed to update user:', error);
+      set({ error: getErrorMessage(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  // Internal state setters (keep existing functionality)
   setUser: (user) => set({ user }),
   setUserId: (id) => set((state) => ({ user: { ...state.user, id } })),
   setUserName: (name) => set((state) => ({ user: { ...state.user, name } })),

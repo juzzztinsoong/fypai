@@ -1,106 +1,149 @@
 /**
  * TEAM STORE (Zustand)
  *
- * Tech Stack: Zustand, TypeScript
+ * Tech Stack: Zustand, TypeScript, @fypai/types
  * Purpose: Manage team state, selection, and member management
  *
  * State:
- *   - teams: Team[] - all teams in app
- *   - currentTeamId: string | null - selected team
+ *   - teams: TeamWithMembersDTO[] - all teams with their members
+ *   - currentTeamId: string | null - selected team ID
+ *   - isLoading: boolean - loading state for async operations
+ *   - error: string | null - error message if operation fails
  *
  * Methods & Arguments:
+ *   - fetchTeams(userId: string): fetches teams from API
  *   - setCurrentTeam(teamId: string): sets active team
- *   - setTeams(teams: Team[]): replaces all teams
- *   - addTeam(team: Team): adds a new team
- *   - updateTeam(teamId: string, updates: Partial<Team>): updates team fields
- *   - addMember(teamId: string, member: TeamMember): adds member to team
- *   - removeMember(teamId: string, memberId: string): removes member from team
+ *   - createTeam(data: CreateTeamRequest): creates new team via API
+ *   - addMember(teamId: string, data: AddTeamMemberRequest): adds member via API
+ *   - removeMember(teamId: string, userId: string): removes member via API
+ *   - setTeams(teams: TeamWithMembersDTO[]): replaces all teams (internal)
+ *   - updateTeam(teamId: string, updates: Partial<TeamWithMembersDTO>): updates team fields (internal)
+ *
+ * Architecture:
+ *   - Uses TeamWithMembersDTO from @fypai/types (matches backend API responses)
+ *   - Integrates with teamService for all API calls
+ *   - TeamMemberDTO includes both user role and team role
+ *   - All timestamps are ISO strings
  *
  * Exports:
  *   - useTeamStore: Zustand hook for team state/methods
- *   - useCurrentTeam: Returns currently selected team (Team | null)
+ *   - useCurrentTeam: Returns currently selected team (TeamWithMembersDTO | null)
  */
 import { create } from 'zustand'
-import type { Team, TeamMember } from '../types'
+import type { TeamWithMembersDTO, CreateTeamRequest, AddTeamMemberRequest } from '../types'
 import { useChatStore } from './chatStore'
+import { teamService, getErrorMessage } from '@/services'
 
 interface TeamState {
-  teams: Team[]
+  teams: TeamWithMembersDTO[]
   currentTeamId: string | null
+  isLoading: boolean
+  error: string | null
+  fetchTeams: (userId: string) => Promise<void>
   setCurrentTeam: (teamId: string) => void
-  setTeams: (teams: Team[]) => void
-  addTeam: (team: Team) => void
-  updateTeam: (teamId: string, updates: Partial<Team>) => void
-  addMember: (teamId: string, member: TeamMember) => void
-  removeMember: (teamId: string, memberId: string) => void
+  createTeam: (data: CreateTeamRequest) => Promise<TeamWithMembersDTO>
+  addMember: (teamId: string, data: AddTeamMemberRequest) => Promise<void>
+  removeMember: (teamId: string, userId: string) => Promise<void>
+  setTeams: (teams: TeamWithMembersDTO[]) => void
+  updateTeam: (teamId: string, updates: Partial<TeamWithMembersDTO>) => void
 }
 
-export const useTeamStore = create<TeamState>()((set) => ({
-  teams: [
-    {
-      id: 'team1',
-      name: 'Sample Team',
-      description: 'A team for demo purposes',
-      members: [
-        { id: 'user1', name: 'Alice', role: 'admin' },
-        { id: 'user2', name: 'Bob', role: 'member' },
-        { id: 'agent', name: 'AI Agent', role: 'member' },
-      ],
-    },
-    {
-      id: 'team2',
-      name: 'AI Research',
-      description: 'Team for AI discussions',
-      members: [
-        { id: 'user1', name: 'Alice', role: 'member' },
-        { id: 'user3', name: 'Charlie', role: 'admin' },
-        { id: 'agent', name: 'AI Agent', role: 'member' },
-      ],
-    },
-    {
-      id: 'team3',
-      name: 'Project Alpha',
-      description: 'Frontend development team',
-      members: [
-        { id: 'user1', name: 'Alice', role: 'member' },
-        { id: 'user4', name: 'David', role: 'admin' },
-        { id: 'user5', name: 'Emma', role: 'member' },
-        { id: 'agent', name: 'AI Agent', role: 'member' },
-      ],
-    },
-    {
-      id: 'team4',
-      name: 'Design Sprint',
-      description: 'UI/UX design collaboration',
-      members: [
-        { id: 'user1', name: 'Alice', role: 'admin' },
-        { id: 'user6', name: 'Frank', role: 'member' },
-        { id: 'agent', name: 'AI Agent', role: 'member' },
-      ],
-    },
-    {
-      id: 'team5',
-      name: 'Backend Services',
-      description: 'Backend API development',
-      members: [
-        { id: 'user1', name: 'Alice', role: 'member' },
-        { id: 'user2', name: 'Bob', role: 'admin' },
-        { id: 'user7', name: 'Grace', role: 'member' },
-        { id: 'agent', name: 'AI Agent', role: 'member' },
-      ],
-    },
-    {
-      id: 'team6',
-      name: 'Data Science Lab',
-      description: 'ML and analytics team',
-      members: [
-        { id: 'user3', name: 'Charlie', role: 'admin' },
-        { id: 'user8', name: 'Henry', role: 'member' },
-        { id: 'agent', name: 'AI Agent', role: 'member' },
-      ],
-    },
-  ],
-  currentTeamId: 'team1',
+export const useTeamStore = create<TeamState>()((set, get) => ({
+  teams: [],
+  currentTeamId: null,
+  isLoading: false,
+  error: null,
+
+  /**
+   * Fetch all teams for a user from the API
+   */
+  fetchTeams: async (userId: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      const teams = await teamService.getTeamsForUser(userId)
+      set({ teams, isLoading: false })
+      
+      // Set first team as current if none selected
+      if (!get().currentTeamId && teams.length > 0) {
+        get().setCurrentTeam(teams[0].id)
+      }
+    } catch (error) {
+      console.error('[TeamStore] Failed to fetch teams:', error)
+      set({ 
+        error: getErrorMessage(error), 
+        isLoading: false,
+        teams: [] // Clear teams on error
+      })
+    }
+  },
+
+  /**
+   * Create a new team via API
+   */
+  createTeam: async (data: CreateTeamRequest) => {
+    set({ isLoading: true, error: null })
+    try {
+      const newTeam = await teamService.createTeam(data)
+      set((state) => ({ 
+        teams: [...state.teams, newTeam],
+        isLoading: false 
+      }))
+      return newTeam
+    } catch (error) {
+      console.error('[TeamStore] Failed to create team:', error)
+      set({ 
+        error: getErrorMessage(error), 
+        isLoading: false 
+      })
+      throw error
+    }
+  },
+
+  /**
+   * Add member to team via API
+   */
+  addMember: async (teamId: string, data: AddTeamMemberRequest) => {
+    set({ isLoading: true, error: null })
+    try {
+      const updatedTeam = await teamService.addMemberToTeam(teamId, data)
+      set((state) => ({
+        teams: state.teams.map((t) =>
+          t.id === teamId ? updatedTeam : t
+        ),
+        isLoading: false
+      }))
+    } catch (error) {
+      console.error('[TeamStore] Failed to add member:', error)
+      set({ 
+        error: getErrorMessage(error), 
+        isLoading: false 
+      })
+      throw error
+    }
+  },
+
+  /**
+   * Remove member from team via API
+   */
+  removeMember: async (teamId: string, userId: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      const updatedTeam = await teamService.removeMemberFromTeam(teamId, userId)
+      set((state) => ({
+        teams: state.teams.map((t) =>
+          t.id === teamId ? updatedTeam : t
+        ),
+        isLoading: false
+      }))
+    } catch (error) {
+      console.error('[TeamStore] Failed to remove member:', error)
+      set({ 
+        error: getErrorMessage(error), 
+        isLoading: false 
+      })
+      throw error
+    }
+  },
 
   setCurrentTeam: (teamId: string) => {
     set({ currentTeamId: teamId });
@@ -109,33 +152,12 @@ export const useTeamStore = create<TeamState>()((set) => ({
     chatStore.setCurrentTeamMessages(chatStore.chat[teamId] || []);
   },
 
-  setTeams: (teams: Team[]) => set({ teams }),
+  setTeams: (teams: TeamWithMembersDTO[]) => set({ teams }),
 
-  addTeam: (team: Team) =>
-    set((state) => ({ teams: [...state.teams, team] })),
-
-  updateTeam: (teamId: string, updates: Partial<Team>) =>
+  updateTeam: (teamId: string, updates: Partial<TeamWithMembersDTO>) =>
     set((state) => ({
       teams: state.teams.map((t) =>
         t.id === teamId ? { ...t, ...updates } : t
-      ),
-    })),
-
-  addMember: (teamId: string, member: TeamMember) =>
-    set((state) => ({
-      teams: state.teams.map((t) =>
-        t.id === teamId
-          ? { ...t, members: [...t.members, member] }
-          : t
-      ),
-    })),
-
-  removeMember: (teamId: string, memberId: string) =>
-    set((state) => ({
-      teams: state.teams.map((t) =>
-        t.id === teamId
-          ? { ...t, members: t.members.filter((m) => m.id !== memberId) }
-          : t
       ),
     })),
 }))

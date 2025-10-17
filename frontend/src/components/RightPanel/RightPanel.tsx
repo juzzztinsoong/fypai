@@ -1,15 +1,13 @@
 import { useCurrentTeam } from '../../stores/teamStore';
 import { useAIInsightsStore } from '../../stores/aiInsightsStore';
-import { useState } from 'react';
+import { socketService } from '@/services';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
-import { InsightFilters } from './InsightFilters';
 import { InsightsList } from './InsightsList';
+import { LongFormContentViewer } from './LongFormContentViewer';
 import { AIToggle } from './AIToggle';
 import { ActionButtons } from './ActionButtons';
 import { EmptyState } from './EmptyState';
-import { getInsightTypeCounts } from './insightUtils';
-import { useActionHandlers } from './useActionHandlers';
-import type { AIInsight } from '../../stores/aiInsightsStore';
 
 /**
  * RightPanel Component
@@ -42,79 +40,199 @@ import type { AIInsight } from '../../stores/aiInsightsStore';
 
 export const RightPanel = () => {
   const currentTeam = useCurrentTeam();
-  const { getTeamInsights, isAIEnabled, toggleAI } = useAIInsightsStore();
-  const [selectedType, setSelectedType] = useState<AIInsight['type'] | 'all'>('all');
+  // Extract teamId to use as stable dependency instead of the object
+  const teamId = currentTeam?.id;
+  const teamName = currentTeam?.name || 'Team';
+  
+  const { fetchInsights, isAIEnabled, toggleAI } = useAIInsightsStore();
+  // ✅ Subscribe directly to insights data for real-time updates
+  const allInsights = useAIInsightsStore((state) => state.insights);
+  const [contentFilter, setContentFilter] = useState<'all' | 'summaries' | 'actions' | 'suggestions'>('all');
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get action handlers
-  const actionHandlers = useActionHandlers(currentTeam?.name);
+  // ✅ Join team socket room and fetch insights when team changes (same as MessageList)
+  useEffect(() => {
+    if (teamId) {
+      console.log('[RightPanel] 🚪 Joining team room:', teamId);
+      socketService.joinTeam(teamId);
+      
+      // Fetch insights from database for this team
+      fetchInsights(teamId);
+      console.log('[RightPanel] ✅ Joined team room and fetching insights for:', teamId);
+    }
+    
+    // Leave team room when component unmounts or team changes
+    return () => {
+      if (teamId) {
+        console.log('[RightPanel] 👋 Leaving team room:', teamId);
+        socketService.leaveTeam();
+      }
+    };
+  }, [teamId, fetchInsights]);
 
-  // Get insights for current team
-  const insights = currentTeam ? getTeamInsights(currentTeam.id) : [];
+  // ✅ Get insights from allInsights data (triggers re-render when insights change)
+  const insights = useMemo(() => {
+    if (!teamId) return [];
+    const teamInsights = allInsights[teamId] || [];
+    return teamInsights.sort((a, b) => 
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [teamId, allInsights]);
+
+  // Combine and sort all content by date (oldest first, latest at bottom) - MEMOIZED
+  // Now all content comes from insights store
+  const displayedContent = useMemo(() => {
+    // Filter based on selected tab
+    switch (contentFilter) {
+      case 'summaries':
+        return insights.filter(i => i.type === 'summary' || i.type === 'document');
+      case 'actions':
+        return insights.filter(i => i.type === 'action');
+      case 'suggestions':
+        return insights.filter(i => i.type === 'suggestion');
+      case 'all':
+      default:
+        return insights;
+    }
+  }, [insights, contentFilter]);
+
+  // Auto-scroll to bottom when content changes (stable dependencies only)
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [displayedContent.length, teamId]);
+
+  // Debug: Log when insights change
+  useEffect(() => {
+    console.log('[RightPanel] 🔄 Insights updated, count:', displayedContent.length, 'team:', teamId);
+  }, [displayedContent.length, teamId]);
+
+  // Calculate counts for filter tabs
+  const summaryCount = insights.filter(i => i.type === 'summary' || i.type === 'document').length;
+  const actionCount = insights.filter(i => i.type === 'action').length;
+  const suggestionCount = insights.filter(i => i.type === 'suggestion').length;
+  const totalContent = insights.length;
   
   // Get AI enabled state for current team
-  const isTeamAIEnabled = currentTeam ? isAIEnabled(currentTeam.id) : true;
+  const isTeamAIEnabled = teamId ? isAIEnabled(teamId) : true;
 
   const handleToggleAI = () => {
-    if (currentTeam) {
-      toggleAI(currentTeam.id);
-      console.log('AI Assistant for', currentTeam.name, ':', !isTeamAIEnabled ? 'enabled' : 'disabled');
+    if (teamId) {
+      toggleAI(teamId);
+      console.log('AI Assistant for', teamName, ':', !isTeamAIEnabled ? 'enabled' : 'disabled');
     }
   };
   
-  // Show empty state when no team selected
-  if (!currentTeam) {
+  // Show empty state when no team selected (AFTER all hooks)
+  if (!teamId) {
     return (
       <EmptyState
         isAIEnabled={isTeamAIEnabled}
         onToggleAI={handleToggleAI}
-        onAudioOverview={actionHandlers.handleAudioOverview}
-        onVideoOverview={actionHandlers.handleVideoOverview}
-        onGenerateReport={actionHandlers.handleGenerateReport}
-        onGenerateMindmap={actionHandlers.handleGenerateMindmap}
-        onExportPDF={actionHandlers.handleExportPDF}
-        onShareInsights={actionHandlers.handleShareInsights}
       />
     );
   }
 
-  // Filter insights by selected type
-  const filteredInsights = selectedType === 'all' 
-    ? insights 
-    : insights.filter(i => i.type === selectedType);
-
-  // Calculate type counts for filter tabs
-  const typeCounts = getInsightTypeCounts(insights);
-
   return (
-    <aside className="w-1/2 min-h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
-      {/* Header */}
-      <RightPanelHeader teamName={currentTeam.name} insightCount={insights.length} />
-
-      {/* Filter Tabs */}
-      <InsightFilters
-        selectedType={selectedType}
-        onTypeChange={setSelectedType}
-        typeCounts={typeCounts}
-      />
-
-      {/* Insights List */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <InsightsList insights={filteredInsights} />
+    <aside className="w-1/2 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0">
+        <RightPanelHeader teamName={teamName} insightCount={totalContent} />
       </div>
 
-      {/* Action Buttons Footer */}
-      <div className="border-t border-gray-200 bg-white p-4">
+      {/* Content Type Tabs */}
+      <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+        <div className="flex space-x-1 p-2">
+          <button
+            onClick={() => setContentFilter('all')}
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              contentFilter === 'all'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            All ({totalContent})
+          </button>
+          <button
+            onClick={() => setContentFilter('summaries')}
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              contentFilter === 'summaries'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            📊 Summaries ({summaryCount})
+          </button>
+          <button
+            onClick={() => setContentFilter('actions')}
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              contentFilter === 'actions'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            ✅ Actions ({actionCount})
+          </button>
+          <button
+            onClick={() => setContentFilter('suggestions')}
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              contentFilter === 'suggestions'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            � Suggestions ({suggestionCount})
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable Content Area - Auto-scroll to bottom */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+        {displayedContent.length > 0 ? (
+          displayedContent.map((insight) => {
+            // Render summaries and documents with LongFormContentViewer
+            if (insight.type === 'summary' || insight.type === 'document') {
+              return (
+                <LongFormContentViewer 
+                  key={insight.id} 
+                  messages={[{
+                    id: insight.id,
+                    teamId: insight.teamId,
+                    authorId: 'ai-assistant',
+                    content: insight.content,
+                    createdAt: insight.createdAt,
+                    metadata: {
+                      longFormType: insight.type,
+                      aiGenerated: true,
+                    }
+                  } as any]} 
+                />
+              );
+            } else {
+              // Render other insights (actions, suggestions, etc.) with InsightsList
+              return (
+                <InsightsList 
+                  key={insight.id} 
+                  insights={[insight]} 
+                />
+              );
+            }
+          })
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>No {contentFilter === 'all' ? 'AI content' : contentFilter} yet</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Use the buttons below to generate content
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed Action Buttons Footer */}
+      <div className="flex-shrink-0 border-t border-gray-200 bg-white p-4">
         <AIToggle isEnabled={isTeamAIEnabled} onToggle={handleToggleAI} />
-        <ActionButtons
-          hasInsights={insights.length > 0}
-          teamName={currentTeam.name}
-          onAudioOverview={actionHandlers.handleAudioOverview}
-          onVideoOverview={actionHandlers.handleVideoOverview}
-          onGenerateReport={actionHandlers.handleGenerateReport}
-          onGenerateMindmap={actionHandlers.handleGenerateMindmap}
-          onExportPDF={actionHandlers.handleExportPDF}
-          onShareInsights={actionHandlers.handleShareInsights}
-        />
+        <ActionButtons />
       </div>
     </aside>
   );

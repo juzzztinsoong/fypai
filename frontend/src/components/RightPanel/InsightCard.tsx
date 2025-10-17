@@ -1,10 +1,10 @@
-import type { AIInsight } from '../../stores/aiInsightsStore';
+import type { AIInsightDTO } from '../../types';
 import { InsightTypeIcon } from './InsightTypeIcon';
 import { PriorityBadge } from './PriorityBadge';
 import { getInsightTypeColor } from './insightUtils';
 
 interface InsightCardProps {
-  insight: AIInsight;
+  insight: AIInsightDTO;
 }
 
 export const InsightCard = ({ insight }: InsightCardProps) => {
@@ -25,7 +25,7 @@ export const InsightCard = ({ insight }: InsightCardProps) => {
             </p>
           </div>
         </div>
-        <PriorityBadge priority={insight.metadata?.priority} />
+        <PriorityBadge priority={insight.priority} />
       </div>
 
       {/* Insight Content */}
@@ -40,9 +40,9 @@ export const InsightCard = ({ insight }: InsightCardProps) => {
       </div>
 
       {/* Tags */}
-      {insight.metadata?.tags && insight.metadata.tags.length > 0 && (
+      {insight.tags && insight.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
-          {insight.metadata.tags.map((tag) => (
+          {insight.tags.map((tag: string) => (
             <span
               key={tag}
               className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded"

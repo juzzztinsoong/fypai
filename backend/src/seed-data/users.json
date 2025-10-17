@@ -1,0 +1,56 @@
+[
+  {
+    "id": "user1",
+    "name": "Alice",
+    "email": "alice@example.com",
+    "role": "admin"
+  },
+  {
+    "id": "user2",
+    "name": "Bob",
+    "email": "bob@example.com",
+    "role": "member"
+  },
+  {
+    "id": "user3",
+    "name": "Charlie",
+    "email": "charlie@example.com",
+    "role": "admin"
+  },
+  {
+    "id": "user4",
+    "name": "David",
+    "email": "david@example.com",
+    "role": "admin"
+  },
+  {
+    "id": "user5",
+    "name": "Emma",
+    "email": "emma@example.com",
+    "role": "member"
+  },
+  {
+    "id": "user6",
+    "name": "Frank",
+    "email": "frank@example.com",
+    "role": "member"
+  },
+  {
+    "id": "user7",
+    "name": "Grace",
+    "email": "grace@example.com",
+    "role": "member"
+  },
+  {
+    "id": "user8",
+    "name": "Henry",
+    "email": "henry@example.com",
+    "role": "member"
+  },
+  {
+    "id": "agent",
+    "name": "AI Agent",
+    "email": "ai@example.com",
+    "role": "agent"
+  }
+]

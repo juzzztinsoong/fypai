@@ -1,8 +1,8 @@
-import type { AIInsight } from '../../stores/aiInsightsStore';
+import type { AIInsightDTO } from '../../types';
 import { InsightCard } from './InsightCard';
 
 interface InsightsListProps {
-  insights: AIInsight[];
+  insights: AIInsightDTO[];
 }
 
 export const InsightsList = ({ insights }: InsightsListProps) => {

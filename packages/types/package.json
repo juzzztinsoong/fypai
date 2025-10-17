@@ -1,0 +1,23 @@
+{
+  "name": "@fypai/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for fypai frontend and backend",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "types",
+    "typescript",
+    "shared"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

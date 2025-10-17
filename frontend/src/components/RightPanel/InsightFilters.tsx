@@ -1,12 +1,12 @@
-import type { AIInsight } from '../../stores/aiInsightsStore';
+import type { AIInsightDTO } from '../../types';
 
 interface InsightFiltersProps {
-  selectedType: AIInsight['type'] | 'all';
-  onTypeChange: (type: AIInsight['type'] | 'all') => void;
+  selectedType: AIInsightDTO['type'] | 'all';
+  onTypeChange: (type: AIInsightDTO['type'] | 'all') => void;
   typeCounts: {
     all: number;
     summary: number;
-    'action-item': number;
+    action: number;
     suggestion: number;
     analysis: number;
     code: number;
@@ -40,16 +40,16 @@ export const InsightFilters = ({ selectedType, onTypeChange, typeCounts }: Insig
             Summary ({typeCounts.summary})
           </button>
         )}
-        {typeCounts['action-item'] > 0 && (
+        {typeCounts.action > 0 && (
           <button
-            onClick={() => onTypeChange('action-item')}
+            onClick={() => onTypeChange('action')}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${
-              selectedType === 'action-item'
+              selectedType === 'action'
                 ? 'bg-green-100 text-green-700'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Actions ({typeCounts['action-item']})
+            Actions ({typeCounts.action})
           </button>
         )}
         {typeCounts.suggestion > 0 && (

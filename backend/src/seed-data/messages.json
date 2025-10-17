@@ -1,0 +1,153 @@
+[
+  {
+    "id": "msg1",
+    "teamId": "team1",
+    "authorId": "user1",
+    "content": "Welcome to Sample Team! Let's collaborate.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 60
+  },
+  {
+    "id": "msg2",
+    "teamId": "team1",
+    "authorId": "agent",
+    "content": "Hi, I am your AI assistant. How can I help?",
+    "contentType": "ai_longform",
+    "createdAtMinutesAgo": 58,
+    "metadata": {
+      "suggestions": ["Summarize last meeting", "Draft project plan"]
+    }
+  },
+  {
+    "id": "msg3",
+    "teamId": "team1",
+    "authorId": "user2",
+    "content": "Can we schedule a sync tomorrow?",
+    "contentType": "text",
+    "createdAtMinutesAgo": 30
+  },
+  {
+    "id": "msg4",
+    "teamId": "team2",
+    "authorId": "user3",
+    "content": "Let's discuss the new AI model architecture.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 120
+  },
+  {
+    "id": "msg5",
+    "teamId": "team2",
+    "authorId": "agent",
+    "content": "Here are some research papers you might find useful for transformer models.",
+    "contentType": "ai_longform",
+    "createdAtMinutesAgo": 118,
+    "metadata": {
+      "suggestions": ["Summarize papers", "Generate experiment plan"]
+    }
+  },
+  {
+    "id": "msg6",
+    "teamId": "team2",
+    "authorId": "user1",
+    "content": "Thanks! I'll review these papers.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 60
+  },
+  {
+    "id": "msg7",
+    "teamId": "team3",
+    "authorId": "user4",
+    "content": "Project Alpha kickoff meeting starts now.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 180
+  },
+  {
+    "id": "msg8",
+    "teamId": "team3",
+    "authorId": "user1",
+    "content": "I've completed the component library setup.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 150
+  },
+  {
+    "id": "msg9",
+    "teamId": "team3",
+    "authorId": "user5",
+    "content": "Great work! Let's integrate it with the API.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 120
+  },
+  {
+    "id": "msg10",
+    "teamId": "team3",
+    "authorId": "agent",
+    "content": "I can help generate API integration boilerplate code if needed.",
+    "contentType": "ai_longform",
+    "createdAtMinutesAgo": 90,
+    "metadata": {
+      "suggestions": ["Generate API client", "Create type definitions"]
+    }
+  },
+  {
+    "id": "msg11",
+    "teamId": "team4",
+    "authorId": "user1",
+    "content": "New design sprint starting today! 🎨",
+    "contentType": "text",
+    "createdAtMinutesAgo": 240
+  },
+  {
+    "id": "msg12",
+    "teamId": "team4",
+    "authorId": "user6",
+    "content": "I've uploaded the Figma mockups to the shared drive.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 210
+  },
+  {
+    "id": "msg13",
+    "teamId": "team4",
+    "authorId": "agent",
+    "content": "I can help analyze the design system for consistency and accessibility.",
+    "contentType": "ai_longform",
+    "createdAtMinutesAgo": 180,
+    "metadata": {
+      "suggestions": ["Check color contrast", "Generate component specs"]
+    }
+  },
+  {
+    "id": "msg14",
+    "teamId": "team5",
+    "authorId": "user2",
+    "content": "Backend API v2 is ready for testing.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 300
+  },
+  {
+    "id": "msg15",
+    "teamId": "team5",
+    "authorId": "user1",
+    "content": "Awesome! I'll start integration testing from the frontend.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 270
+  },
+  {
+    "id": "msg16",
+    "teamId": "team5",
+    "authorId": "user7",
+    "content": "Database migrations look good. All tests passing.",
+    "contentType": "text",
+    "createdAtMinutesAgo": 240
+  },
+  {
+    "id": "msg17",
+    "teamId": "team5",
+    "authorId": "agent",
+    "content": "I can help with API documentation generation and test coverage analysis.",
+    "contentType": "ai_longform",
+    "createdAtMinutesAgo": 210,
+    "metadata": {
+      "suggestions": ["Generate OpenAPI spec", "Run coverage report"]
+    }
+  }
+]

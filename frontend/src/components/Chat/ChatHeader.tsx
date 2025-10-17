@@ -37,7 +37,7 @@ export const ChatHeader = () => {
 
   // Count online members from current team
   const onlineMembers = currentTeam.members.filter((member) =>
-    onlineUsers.has(member.id)
+    onlineUsers.has(member.userId)
   );
   const onlineCount = onlineMembers.length;
   const totalMembers = currentTeam.members.length;
@@ -75,7 +75,7 @@ export const ChatHeader = () => {
         <div className="flex items-center -space-x-2">
           {onlineMembers.slice(0, 5).map((member) => {
             // Special styling for AI agent
-            if (member.id === 'agent') {
+            if (member.userId === 'agent') {
               return (
                 <div
                   key={member.id}
@@ -92,7 +92,7 @@ export const ChatHeader = () => {
             }
             
             // Regular user avatars with consistent colors
-            const bgColor = getAvatarBackgroundColor(member.id, currentTeam.members);
+            const bgColor = getAvatarBackgroundColor(member.userId, currentTeam.members);
             return (
               <div
                 key={member.id}

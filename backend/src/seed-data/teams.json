@@ -1,0 +1,64 @@
+[
+  {
+    "id": "team1",
+    "name": "Sample Team",
+    "createdAtDaysAgo": 30,
+    "members": [
+      { "userId": "user1", "teamRole": "admin", "joinedAtDaysAgo": 30 },
+      { "userId": "user2", "teamRole": "member", "joinedAtDaysAgo": 25 },
+      { "userId": "agent", "teamRole": null, "joinedAtDaysAgo": 30 }
+    ]
+  },
+  {
+    "id": "team2",
+    "name": "AI Research",
+    "createdAtDaysAgo": 20,
+    "members": [
+      { "userId": "user1", "teamRole": "member", "joinedAtDaysAgo": 20 },
+      { "userId": "user3", "teamRole": "admin", "joinedAtDaysAgo": 20 },
+      { "userId": "agent", "teamRole": null, "joinedAtDaysAgo": 20 }
+    ]
+  },
+  {
+    "id": "team3",
+    "name": "Project Alpha",
+    "createdAtDaysAgo": 15,
+    "members": [
+      { "userId": "user1", "teamRole": "member", "joinedAtDaysAgo": 15 },
+      { "userId": "user4", "teamRole": "admin", "joinedAtDaysAgo": 15 },
+      { "userId": "user5", "teamRole": "member", "joinedAtDaysAgo": 10 },
+      { "userId": "agent", "teamRole": null, "joinedAtDaysAgo": 15 }
+    ]
+  },
+  {
+    "id": "team4",
+    "name": "Design Sprint",
+    "createdAtDaysAgo": 10,
+    "members": [
+      { "userId": "user1", "teamRole": "admin", "joinedAtDaysAgo": 10 },
+      { "userId": "user6", "teamRole": "member", "joinedAtDaysAgo": 8 },
+      { "userId": "agent", "teamRole": null, "joinedAtDaysAgo": 10 }
+    ]
+  },
+  {
+    "id": "team5",
+    "name": "Backend Services",
+    "createdAtDaysAgo": 25,
+    "members": [
+      { "userId": "user1", "teamRole": "member", "joinedAtDaysAgo": 25 },
+      { "userId": "user2", "teamRole": "admin", "joinedAtDaysAgo": 25 },
+      { "userId": "user7", "teamRole": "member", "joinedAtDaysAgo": 20 },
+      { "userId": "agent", "teamRole": null, "joinedAtDaysAgo": 25 }
+    ]
+  },
+  {
+    "id": "team6",
+    "name": "Data Science Lab",
+    "createdAtDaysAgo": 18,
+    "members": [
+      { "userId": "user3", "teamRole": "admin", "joinedAtDaysAgo": 18 },
+      { "userId": "user8", "teamRole": "member", "joinedAtDaysAgo": 15 },
+      { "userId": "agent", "teamRole": null, "joinedAtDaysAgo": 18 }
+    ]
+  }
+]

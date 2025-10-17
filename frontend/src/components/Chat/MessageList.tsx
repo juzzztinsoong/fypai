@@ -8,6 +8,7 @@
  *   - Differentiate user and agent messages visually
  *   - Show author label and message bubble
  *   - Support multi-line messages
+ *   - Fetch messages from backend when team changes
  *
  * Methods & Arguments:
  *   - MessageList(): No arguments. Uses Zustand store for state.
@@ -19,21 +20,72 @@
  * Usage:
  *   - Used in ChatWindow to display chat history for the active team
  */
+import { useEffect, useRef } from 'react'
 import { useChatStore } from '../../stores/chatStore'
 import { useUserStore } from '../../stores/userStore'
 import { useCurrentTeam } from '../../stores/teamStore'
 import { usePresenceStore } from '../../stores/presenceStore'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
+import { socketService } from '@/services'
 
 export const MessageList = () => {
-  const { messages } = useChatStore()
+  const { messages, fetchMessages, isLoading, error } = useChatStore()
   const { user } = useUserStore()
   const team = useCurrentTeam()
   const { isUserOnline } = usePresenceStore()
   const members = team?.members || []
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages.length])
+
+  // Debug: Log when messages change
+  useEffect(() => {
+    console.log('[MessageList] 🔄 Messages updated, count:', messages.length, 'team:', team?.id)
+  }, [messages, team?.id])
+
+  // Fetch messages and join team room when team changes
+  useEffect(() => {
+    if (team?.id) {
+      console.log('[MessageList] 🚪 Joining team room:', team.id)
+      socketService.joinTeam(team.id)
+      fetchMessages(team.id)
+      console.log('[MessageList] ✅ Joined team room and fetched messages for:', team.id)
+    }
+    
+    // Leave team room when component unmounts or team changes
+    return () => {
+      if (team?.id) {
+        console.log('[MessageList] 👋 Leaving team room:', team.id)
+        socketService.leaveTeam()
+      }
+    }
+  }, [team?.id, fetchMessages])
+
+  // Show loading state
+  if (isLoading && messages.length === 0) {
+    return (
+      <div className="p-4 flex items-center justify-center h-full">
+        <div className="text-gray-500">Loading messages...</div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-4 flex items-center justify-center h-full">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div ref={scrollRef} className="h-full overflow-y-auto p-4 space-y-4">
       {messages.map((message) => {
         // Message alignment and style
         if (message.authorId === user.id) {
@@ -82,7 +134,7 @@ export const MessageList = () => {
           )
         } else {
           // Other users: left, outlined, color per user
-          const member = members.find((m) => m.id === message.authorId)
+          const member = members.find((m) => m.userId === message.authorId)
           const borderColor = getMessageBorderColor(message.authorId, members)
           const avatarBgColor = getAvatarBackgroundColor(message.authorId, members)
           return (

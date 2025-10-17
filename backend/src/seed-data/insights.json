@@ -1,0 +1,116 @@
+[
+  {
+    "id": "insight1",
+    "teamId": "team1",
+    "type": "summary",
+    "title": "Chat Summary",
+    "content": "The team discussed project collaboration and scheduling. Alice welcomed the team, the AI assistant offered help, and Bob requested a sync meeting for tomorrow.",
+    "priority": "medium",
+    "tags": ["meeting", "collaboration"],
+    "createdAtMinutesAgo": 30,
+    "relatedMessageIds": ["msg1", "msg2", "msg3"]
+  },
+  {
+    "id": "insight2",
+    "teamId": "team1",
+    "type": "action",
+    "title": "Action Items",
+    "content": "• Schedule sync meeting for tomorrow\n• Review project plan draft\n• Set up collaboration tools",
+    "priority": "high",
+    "tags": ["action-items", "meeting"],
+    "createdAtMinutesAgo": 28,
+    "relatedMessageIds": null
+  },
+  {
+    "id": "insight3",
+    "teamId": "team1",
+    "type": "suggestion",
+    "title": "AI Suggestions",
+    "content": "Based on the conversation, I recommend:\n\n1. Create a shared project roadmap\n2. Set up recurring weekly syncs\n3. Define clear roles and responsibilities",
+    "priority": "medium",
+    "tags": ["recommendations", "planning"],
+    "createdAtMinutesAgo": 26,
+    "relatedMessageIds": null
+  },
+  {
+    "id": "insight4",
+    "teamId": "team2",
+    "type": "summary",
+    "title": "Research Discussion Summary",
+    "content": "The team is exploring new AI model architectures. Discussion focused on transformer models and relevant research papers.",
+    "priority": "high",
+    "tags": ["research", "ai", "transformers"],
+    "createdAtMinutesAgo": 120,
+    "relatedMessageIds": ["msg4", "msg5", "msg6"]
+  },
+  {
+    "id": "insight5",
+    "teamId": "team2",
+    "type": "document",
+    "title": "Research Papers Collection",
+    "content": "## Key Papers on Transformer Models\n\n1. \"Attention is All You Need\" - Vaswani et al.\n2. \"BERT: Pre-training of Deep Bidirectional Transformers\" - Devlin et al.\n3. \"GPT-3: Language Models are Few-Shot Learners\" - Brown et al.\n\nThese papers provide foundational knowledge for your model architecture discussion.",
+    "priority": "high",
+    "tags": ["research", "papers", "reading-list"],
+    "createdAtMinutesAgo": 118,
+    "relatedMessageIds": null
+  },
+  {
+    "id": "insight6",
+    "teamId": "team3",
+    "type": "summary",
+    "title": "Project Alpha Kickoff",
+    "content": "Team started Project Alpha with component library setup completed by Alice. Discussion about API integration is underway.",
+    "priority": "high",
+    "tags": ["project-alpha", "development"],
+    "createdAtMinutesAgo": 90,
+    "relatedMessageIds": ["msg7", "msg8", "msg9", "msg10"]
+  },
+  {
+    "id": "insight7",
+    "teamId": "team3",
+    "type": "code",
+    "title": "API Integration Boilerplate",
+    "content": "```typescript\n// API Client boilerplate\nimport axios from 'axios';\n\nconst apiClient = axios.create({\n  baseURL: process.env.REACT_APP_API_URL,\n  headers: {\n    'Content-Type': 'application/json',\n  },\n});\n\nexport const fetchData = async (endpoint: string) => {\n  const response = await apiClient.get(endpoint);\n  return response.data;\n};\n```",
+    "priority": null,
+    "tags": ["code", "api"],
+    "createdAtMinutesAgo": 88,
+    "relatedMessageIds": null,
+    "metadata": {
+      "language": "typescript",
+      "filename": "apiClient.ts"
+    }
+  },
+  {
+    "id": "insight8",
+    "teamId": "team4",
+    "type": "analysis",
+    "title": "Design System Analysis",
+    "content": "## Design System Review\n\n**Color Contrast:** All colors pass WCAG AA standards\n**Component Consistency:** 95% consistency across mockups\n**Accessibility Score:** 92/100\n\n**Recommendations:**\n- Add focus states to all interactive elements\n- Increase touch target sizes on mobile\n- Add alt text guidelines for images",
+    "priority": "medium",
+    "tags": ["design", "accessibility", "analysis"],
+    "createdAtMinutesAgo": 180,
+    "relatedMessageIds": ["msg11", "msg12", "msg13"]
+  },
+  {
+    "id": "insight9",
+    "teamId": "team5",
+    "type": "summary",
+    "title": "Backend API v2 Status",
+    "content": "Backend API v2 is ready for testing. Frontend integration testing is starting, and all database migrations have been completed successfully with passing tests.",
+    "priority": "high",
+    "tags": ["backend", "testing", "api"],
+    "createdAtMinutesAgo": 210,
+    "relatedMessageIds": ["msg14", "msg15", "msg16", "msg17"]
+  },
+  {
+    "id": "insight10",
+    "teamId": "team5",
+    "type": "document",
+    "title": "API Documentation",
+    "content": "## API v2 Endpoints\n\n### Authentication\n- `POST /auth/login` - User login\n- `POST /auth/logout` - User logout\n- `POST /auth/refresh` - Refresh token\n\n### Teams\n- `GET /teams` - List all teams\n- `POST /teams` - Create team\n- `GET /teams/:id` - Get team details\n\n### Messages\n- `GET /teams/:id/messages` - Get team messages\n- `POST /teams/:id/messages` - Send message",
+    "priority": "high",
+    "tags": ["api", "documentation", "endpoints"],
+    "createdAtMinutesAgo": 208,
+    "relatedMessageIds": null
+  }
+]

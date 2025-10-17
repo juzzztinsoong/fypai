@@ -17,13 +17,14 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    strictPort: true, // Fail if port 3000 is already in use
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:8000',
+        target: 'ws://localhost:5000',
         ws: true,
       }
     }

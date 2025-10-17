@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presence Tracking Test</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+    h1 {
+      margin-top: 0;
+      text-align: center;
+    }
+    .status {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .status.connected {
+      background: rgba(16, 185, 129, 0.3);
+      border-left: 4px solid #10b981;
+    }
+    .status.disconnected {
+      background: rgba(239, 68, 68, 0.3);
+      border-left: 4px solid #ef4444;
+    }
+    button {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 12px 24px;
+      margin: 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #log {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin-top: 20px;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid transparent;
+    }
+    .log-entry.info {
+      border-left-color: #3b82f6;
+    }
+    .log-entry.success {
+      border-left-color: #10b981;
+    }
+    .log-entry.error {
+      border-left-color: #ef4444;
+    }
+    .online-users {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .user-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-badge .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🟢 Presence Tracking Test</h1>
+    
+    <div id="status" class="status disconnected">
+      <strong>Status:</strong> <span id="statusText">Disconnected</span><br>
+      <strong>Socket ID:</strong> <span id="socketId">-</span><br>
+      <strong>User ID:</strong> <span id="userId">-</span>
+    </div>
+
+    <div class="button-group">
+      <button onclick="connectSocket()">Connect</button>
+      <button onclick="goOnline()" id="onlineBtn" disabled>Go Online</button>
+      <button onclick="goOffline()" id="offlineBtn" disabled>Go Offline</button>
+      <button onclick="getOnlineUsers()" id="listBtn" disabled>Get Online Users</button>
+      <button onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="status">
+      <strong>Online Users (<span id="onlineCount">0</span>):</strong>
+      <div id="onlineUsers" class="online-users"></div>
+    </div>
+
+    <div id="log"></div>
+  </div>
+
+  <script>
+    let socket = null;
+    let currentUserId = `user-${Math.random().toString(36).substr(2, 9)}`;
+    const onlineUsersSet = new Set();
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.insertBefore(entry, logDiv.firstChild);
+    }
+
+    function updateStatus(connected) {
+      const statusDiv = document.getElementById('status');
+      const statusText = document.getElementById('statusText');
+      const socketId = document.getElementById('socketId');
+      const userId = document.getElementById('userId');
+      
+      if (connected) {
+        statusDiv.className = 'status connected';
+        statusText.textContent = 'Connected ✅';
+        socketId.textContent = socket.id;
+        userId.textContent = currentUserId;
+        
+        document.getElementById('onlineBtn').disabled = false;
+        document.getElementById('offlineBtn').disabled = false;
+        document.getElementById('listBtn').disabled = false;
+      } else {
+        statusDiv.className = 'status disconnected';
+        statusText.textContent = 'Disconnected ❌';
+        socketId.textContent = '-';
+        userId.textContent = '-';
+        
+        document.getElementById('onlineBtn').disabled = true;
+        document.getElementById('offlineBtn').disabled = true;
+        document.getElementById('listBtn').disabled = true;
+      }
+    }
+
+    function updateOnlineUsers() {
+      const onlineUsersDiv = document.getElementById('onlineUsers');
+      const onlineCount = document.getElementById('onlineCount');
+      
+      onlineCount.textContent = onlineUsersSet.size;
+      
+      if (onlineUsersSet.size === 0) {
+        onlineUsersDiv.innerHTML = '<em>No users online</em>';
+        return;
+      }
+      
+      onlineUsersDiv.innerHTML = '';
+      onlineUsersSet.forEach(userId => {
+        const badge = document.createElement('div');
+        badge.className = 'user-badge';
+        badge.innerHTML = `<div class="dot"></div><span>${userId}</span>`;
+        onlineUsersDiv.appendChild(badge);
+      });
+    }
+
+    function connectSocket() {
+      if (socket) {
+        log('Already connected!', 'info');
+        return;
+      }
+
+      log('Connecting to server...', 'info');
+      socket = io('http://localhost:5000');
+
+      socket.on('connect', () => {
+        log(`Connected! Socket ID: ${socket.id}`, 'success');
+        updateStatus(true);
+      });
+
+      socket.on('disconnect', () => {
+        log('Disconnected from server', 'error');
+        updateStatus(false);
+        socket = null;
+      });
+
+      socket.on('presence:update', ({ userId, status }) => {
+        if (status === 'online') {
+          onlineUsersSet.add(userId);
+          log(`👤 ${userId} came ONLINE`, 'success');
+        } else {
+          onlineUsersSet.delete(userId);
+          log(`👤 ${userId} went OFFLINE`, 'info');
+        }
+        updateOnlineUsers();
+      });
+
+      socket.on('presence:list', (users) => {
+        log(`📋 Received online users list: ${users.length} users`, 'info');
+        onlineUsersSet.clear();
+        users.forEach(userId => onlineUsersSet.add(userId));
+        updateOnlineUsers();
+      });
+
+      socket.on('connect_error', (error) => {
+        log(`Connection error: ${error.message}`, 'error');
+        updateStatus(false);
+      });
+    }
+
+    function goOnline() {
+      if (!socket || !socket.connected) {
+        log('Not connected to server!', 'error');
+        return;
+      }
+      
+      log(`📢 Announcing online status for ${currentUserId}`, 'info');
+      socket.emit('presence:online', { userId: currentUserId });
+    }
+
+    function goOffline() {
+      if (!socket || !socket.connected) {
+        log('Not connected to server!', 'error');
+        return;
+      }
+      
+      log(`📢 Announcing offline status for ${currentUserId}`, 'info');
+      socket.emit('presence:offline', { userId: currentUserId });
+    }
+
+    function getOnlineUsers() {
+      if (!socket || !socket.connected) {
+        log('Not connected to server!', 'error');
+        return;
+      }
+      
+      log('📡 Requesting online users list...', 'info');
+      socket.emit('presence:get');
+    }
+
+    function disconnect() {
+      if (socket) {
+        log('Disconnecting...', 'info');
+        socket.disconnect();
+        socket = null;
+        updateStatus(false);
+      }
+    }
+
+    // Initial log message
+    log('Welcome to Presence Tracking Test! Click "Connect" to start.', 'info');
+    updateStatus(false);
+  </script>
+</body>
+</html>

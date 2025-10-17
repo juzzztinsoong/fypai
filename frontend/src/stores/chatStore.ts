@@ -1,249 +1,302 @@
 /**
  * CHAT STORE (Zustand)
  *
- * Tech Stack: Zustand, TypeScript
+ * Tech Stack: Zustand, TypeScript, @fypai/types
  * Purpose: Manage per-team chat history and message operations for multi-team chat app
  *
  * State:
- *   - chat: Record<string, Message[]> - all chat histories by teamId
- *   - messages: Message[] - current team's messages (for MessageList compatibility)
+ *   - chat: Record<string, MessageDTO[]> - all chat histories by teamId
+ *   - messages: MessageDTO[] - current team's messages (for MessageList compatibility)
  *
  * Methods & Arguments:
- *   - setMessages(teamId: string, messages: Message[]): sets messages for a team
- *   - addMessage(teamId: string, message: Message): adds message to team chat
- *   - updateMessage(teamId: string, messageId: string, updates: Partial<Message>): updates a message
+ *   - setMessages(teamId: string, messages: MessageDTO[]): sets messages for a team
+ *   - addMessage(teamId: string, message: MessageDTO): adds message to team chat
+ *   - updateMessage(teamId: string, messageId: string, updates: Partial<MessageDTO>): updates a message
  *   - deleteMessage(teamId: string, messageId: string): deletes a message
- *   - setCurrentTeamMessages(messages: Message[]): sets messages for current team (UI sync)
+ *   - setCurrentTeamMessages(messages: MessageDTO[]): sets messages for current team (UI sync)
+ *
+ * Architecture:
+ *   - Uses MessageDTO from @fypai/types (matches backend API responses)
+ *   - Messages include optional author info (for display without extra lookups)
+ *   - Timestamps are ISO strings, metadata is parsed object
  *
  * Exports:
  *   - useChatStore: Zustand hook for chat state/methods
  */
 import { create } from 'zustand';
-import type { Message } from '../types';
+import type { MessageDTO, CreateMessageRequest, UpdateMessageRequest } from '../types';
+import { messageService, getErrorMessage, socketService } from '@/services';
 
 interface ChatState {
-  chat: Record<string, Message[]>;
-  messages: Message[];
-  setMessages: (teamId: string, messages: Message[]) => void;
-  addMessage: (teamId: string, message: Message) => void;
-  updateMessage: (teamId: string, messageId: string, updates: Partial<Message>) => void;
+  chat: Record<string, MessageDTO[]>;
+  messages: MessageDTO[];
+  isLoading: boolean;
+  error: string | null;
+  isSocketListening: boolean;
+  fetchMessages: (teamId: string) => Promise<void>;
+  sendMessage: (data: CreateMessageRequest) => Promise<MessageDTO>;
+  updateMessageById: (messageId: string, updates: UpdateMessageRequest) => Promise<void>;
+  deleteMessageById: (messageId: string) => Promise<void>;
+  setMessages: (teamId: string, messages: MessageDTO[]) => void;
+  addMessage: (teamId: string, message: MessageDTO) => void;
+  updateMessage: (teamId: string, messageId: string, updates: Partial<MessageDTO>) => void;
   deleteMessage: (teamId: string, messageId: string) => void;
-  setCurrentTeamMessages: (messages: Message[]) => void;
+  setCurrentTeamMessages: (messages: MessageDTO[]) => void;
+  initializeSocketListeners: () => void;
+  cleanupSocketListeners: () => void;
+  // Filter helpers for long-form content
+  getLongFormMessages: (teamId: string) => MessageDTO[];
+  getMessagesByType: (teamId: string, longFormType?: 'summary' | 'code' | 'document') => MessageDTO[];
 }
 
-// Pre-populated sample chat history for each team
-const initialChat: Record<string, Message[]> = {
-  team1: [
-    {
-      id: 'msg1',
-      teamId: 'team1',
-      authorId: 'user1',
-      content: 'Welcome to Sample Team! Let\'s collaborate.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: 'msg2',
-      teamId: 'team1',
-      authorId: 'agent',
-      content: 'Hi, I am your AI assistant. How can I help?',
-      contentType: 'ai_longform',
-      createdAt: new Date(Date.now() - 3500000).toISOString(),
-      metadata: { suggestions: ['Summarize last meeting', 'Draft project plan'] },
-    },
-    {
-      id: 'msg3',
-      teamId: 'team1',
-      authorId: 'user2',
-      content: 'Can we schedule a sync tomorrow?',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 1800000).toISOString(),
-    },
-  ],
-  team2: [
-    {
-      id: 'msg3',
-      teamId: 'team2',
-      authorId: 'user3',
-      content: 'Let’s discuss the new AI model.',
-      contentType: 'text',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'msg4',
-      teamId: 'team2',
-      authorId: 'user3',
-      content: 'Let\'s discuss the new AI model architecture.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: 'msg5',
-      teamId: 'team2',
-      authorId: 'agent',
-      content: 'Here are some research papers you might find useful for transformer models.',
-      contentType: 'ai_longform',
-      createdAt: new Date(Date.now() - 7100000).toISOString(),
-      metadata: { suggestions: ['Summarize papers', 'Generate experiment plan'] },
-    },
-    {
-      id: 'msg6',
-      teamId: 'team2',
-      authorId: 'user1',
-      content: 'Thanks! I\'ll review these papers.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-  ],
-  team3: [
-    {
-      id: 'msg7',
-      teamId: 'team3',
-      authorId: 'user4',
-      content: 'Project Alpha kickoff meeting starts now.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 10800000).toISOString(),
-    },
-    {
-      id: 'msg8',
-      teamId: 'team3',
-      authorId: 'user1',
-      content: 'I\'ve completed the component library setup.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 9000000).toISOString(),
-    },
-    {
-      id: 'msg9',
-      teamId: 'team3',
-      authorId: 'user5',
-      content: 'Great work! Let\'s integrate it with the API.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-    {
-      id: 'msg10',
-      teamId: 'team3',
-      authorId: 'agent',
-      content: 'I can help generate API integration boilerplate code if needed.',
-      contentType: 'ai_longform',
-      createdAt: new Date(Date.now() - 5400000).toISOString(),
-      metadata: { suggestions: ['Generate API client', 'Create type definitions'] },
-    },
-  ],
-  team4: [
-    {
-      id: 'msg11',
-      teamId: 'team4',
-      authorId: 'user1',
-      content: 'New design sprint starting today! 🎨',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 14400000).toISOString(),
-    },
-    {
-      id: 'msg12',
-      teamId: 'team4',
-      authorId: 'user6',
-      content: 'I\'ve uploaded the Figma mockups to the shared drive.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 12600000).toISOString(),
-    },
-    {
-      id: 'msg13',
-      teamId: 'team4',
-      authorId: 'agent',
-      content: 'I can help analyze the design system for consistency and accessibility.',
-      contentType: 'ai_longform',
-      createdAt: new Date(Date.now() - 10800000).toISOString(),
-      metadata: { suggestions: ['Check color contrast', 'Generate component specs'] },
-    },
-  ],
-  team5: [
-    {
-      id: 'msg14',
-      teamId: 'team5',
-      authorId: 'user2',
-      content: 'Backend API v2 is ready for testing.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 18000000).toISOString(),
-    },
-    {
-      id: 'msg15',
-      teamId: 'team5',
-      authorId: 'user1',
-      content: 'Awesome! I\'ll start integration testing from the frontend.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 16200000).toISOString(),
-    },
-    {
-      id: 'msg16',
-      teamId: 'team5',
-      authorId: 'user7',
-      content: 'Database migrations look good. All tests passing.',
-      contentType: 'text',
-      createdAt: new Date(Date.now() - 14400000).toISOString(),
-    },
-    {
-      id: 'msg17',
-      teamId: 'team5',
-      authorId: 'agent',
-      content: 'I can help with API documentation generation and test coverage analysis.',
-      contentType: 'ai_longform',
-      createdAt: new Date(Date.now() - 12600000).toISOString(),
-      metadata: { suggestions: ['Generate OpenAPI spec', 'Run coverage report'] },
-    },
-  ],
-};
+// Mock initial chat data (kept for backward compatibility)
+const initialChat: Record<string, MessageDTO[]> = {};
 
-export const useChatStore = create<ChatState>()((set) => ({
+export const useChatStore = create<ChatState>()((set, get) => ({
   chat: initialChat,
-  messages: initialChat['team1'],
+  messages: [],
+  isLoading: false,
+  error: null,
+  isSocketListening: false,
 
+  // API Methods
+  fetchMessages: async (teamId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const messages = await messageService.getMessages(teamId);
+      set((state) => ({
+        chat: { ...state.chat, [teamId]: messages },
+        messages: messages,
+        isLoading: false,
+      }));
+    } catch (error) {
+      console.error('[ChatStore] Failed to fetch messages:', error);
+      set({ error: getErrorMessage(error), isLoading: false });
+    }
+  },
+
+  sendMessage: async (data: CreateMessageRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      // Send message via HTTP API
+      const newMessage = await messageService.createMessage(data);
+      
+      console.log('[ChatStore] 📤 Message created by backend:', newMessage.id);
+      
+      // Optimistically add message for immediate feedback
+      // Backend will also broadcast via socket, but socket listener will check for duplicates
+      const teamId = data.teamId;
+      get().addMessage(teamId, newMessage);
+      console.log('[ChatStore] ✅ Optimistically added message:', newMessage.id);
+      
+      set({ isLoading: false });
+      return newMessage;
+    } catch (error) {
+      console.error('[ChatStore] Failed to send message:', error);
+      set({ error: getErrorMessage(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  updateMessageById: async (messageId: string, updates: UpdateMessageRequest) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updatedMessage = await messageService.updateMessage(messageId, updates);
+      const teamId = updatedMessage.teamId;
+      get().updateMessage(teamId, messageId, updatedMessage);
+      set({ isLoading: false });
+    } catch (error) {
+      console.error('[ChatStore] Failed to update message:', error);
+      set({ error: getErrorMessage(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  deleteMessageById: async (messageId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await messageService.deleteMessage(messageId);
+      // Remove from all teams
+      const state = get();
+      Object.keys(state.chat).forEach((teamId) => {
+        const messageInTeam = state.chat[teamId].find((m) => m.id === messageId);
+        if (messageInTeam) {
+          get().deleteMessage(teamId, messageId);
+        }
+      });
+      set({ isLoading: false });
+    } catch (error) {
+      console.error('[ChatStore] Failed to delete message:', error);
+      set({ error: getErrorMessage(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  // Internal state setters (keep existing functionality)
   setMessages: (teamId, messages) =>
     set((state) => ({
       chat: { ...state.chat, [teamId]: messages },
-      messages: teamId === (state.messages?.[0]?.teamId ?? 'team1') ? messages : state.messages,
+      messages: messages, // Always update messages when explicitly set
     })),
 
   addMessage: (teamId, message) =>
-    set((state) => ({
-      chat: {
+    set((state) => {
+      console.log('[ChatStore] 🔵 addMessage called:', {
+        teamId,
+        messageId: message.id,
+        currentMessagesCount: state.messages.length,
+        currentTeamId: state.messages?.[0]?.teamId,
+        chatTeamMessagesCount: state.chat[teamId]?.length || 0,
+      });
+
+      // Check if message already exists (prevents duplicates from race conditions)
+      const teamMessages = state.chat[teamId] || [];
+      const messageExists = teamMessages.some((m) => m.id === message.id);
+      
+      if (messageExists) {
+        console.log('[ChatStore] ⏭️  Message already exists, skipping add:', message.id);
+        return state; // No state change
+      }
+
+      const newTeamMessages = [...teamMessages, message];
+      const newChat = {
         ...state.chat,
-        [teamId]: [...(state.chat[teamId] || []), message],
-      },
-      messages:
-        teamId === (state.messages?.[0]?.teamId ?? 'team1')
-          ? [...(state.chat[teamId] || []), message]
-          : state.messages,
-    })),
+        [teamId]: newTeamMessages,
+      };
+      
+      // Only update 'messages' if this is for the currently displayed team
+      // Check if the new message's teamId matches the first message in current messages
+      const currentTeamId = state.messages?.[0]?.teamId;
+      const shouldUpdateMessages = !currentTeamId || teamId === currentTeamId;
+      
+      console.log('[ChatStore] 🔵 addMessage decision:', {
+        currentTeamId,
+        incomingTeamId: teamId,
+        shouldUpdateMessages,
+        newMessagesCount: newTeamMessages.length,
+      });
+      
+      const newState = {
+        chat: newChat,
+        messages: shouldUpdateMessages ? newTeamMessages : state.messages,
+      };
+
+      console.log('[ChatStore] 🔵 addMessage result:', {
+        messagesCount: newState.messages.length,
+        messagesTeamId: newState.messages?.[0]?.teamId,
+      });
+
+      return newState;
+    }),
 
   updateMessage: (teamId, messageId, updates) =>
-    set((state) => ({
-      chat: {
+    set((state) => {
+      const updatedTeamMessages = (state.chat[teamId] || []).map((m) =>
+        m.id === messageId ? { ...m, ...updates } : m
+      );
+      
+      const newChat = {
         ...state.chat,
-        [teamId]: (state.chat[teamId] || []).map((m) =>
-          m.id === messageId ? { ...m, ...updates } : m
-        ),
-      },
-      messages:
-        teamId === (state.messages?.[0]?.teamId ?? 'team1')
-          ? (state.chat[teamId] || []).map((m) =>
-              m.id === messageId ? { ...m, ...updates } : m
-            )
-          : state.messages,
-    })),
+        [teamId]: updatedTeamMessages,
+      };
+      
+      // Only update 'messages' if this is for the currently displayed team
+      const currentTeamId = state.messages?.[0]?.teamId;
+      const shouldUpdateMessages = !currentTeamId || teamId === currentTeamId;
+      
+      return {
+        chat: newChat,
+        messages: shouldUpdateMessages ? updatedTeamMessages : state.messages,
+      };
+    }),
 
   deleteMessage: (teamId, messageId) =>
-    set((state) => ({
-      chat: {
+    set((state) => {
+      const filteredTeamMessages = (state.chat[teamId] || []).filter((m) => m.id !== messageId);
+      
+      const newChat = {
         ...state.chat,
-        [teamId]: (state.chat[teamId] || []).filter((m) => m.id !== messageId),
-      },
-      messages:
-        teamId === (state.messages?.[0]?.teamId ?? 'team1')
-          ? (state.chat[teamId] || []).filter((m) => m.id !== messageId)
-          : state.messages,
-    })),
+        [teamId]: filteredTeamMessages,
+      };
+      
+      // Only update 'messages' if this is for the currently displayed team
+      const currentTeamId = state.messages?.[0]?.teamId;
+      const shouldUpdateMessages = !currentTeamId || teamId === currentTeamId;
+      
+      return {
+        chat: newChat,
+        messages: shouldUpdateMessages ? filteredTeamMessages : state.messages,
+      };
+    }),
 
   setCurrentTeamMessages: (messages) => set({ messages }),
-}));
 
+  // Socket Listeners Setup
+  initializeSocketListeners: () => {
+    if (get().isSocketListening) {
+      console.log('[ChatStore] Socket listeners already initialized');
+      return;
+    }
+
+    console.log('[ChatStore] Initializing socket listeners for real-time sync');
+
+    // Listen for new messages from other users or AI
+    socketService.onMessage((message: MessageDTO) => {
+      console.log('[ChatStore] 📨 Received message via socket:', message.id, 'for team:', message.teamId);
+      
+      // addMessage now handles duplicate detection internally
+      get().addMessage(message.teamId, message);
+    });
+
+    // Listen for message edits
+    socketService.onMessageEdit((message: MessageDTO) => {
+      console.log('[ChatStore] Message edited via socket:', message.id);
+      get().updateMessage(message.teamId, message.id, message);
+    });
+
+    // Listen for message deletions
+    socketService.onMessageDelete((data: { messageId: string }) => {
+      console.log('[ChatStore] Message deleted via socket:', data.messageId);
+      // Find which team the message belongs to and delete it
+      const state = get();
+      Object.keys(state.chat).forEach((teamId) => {
+        const messageExists = state.chat[teamId].find((m) => m.id === data.messageId);
+        if (messageExists) {
+          get().deleteMessage(teamId, data.messageId);
+        }
+      });
+    });
+
+    set({ isSocketListening: true });
+  },
+
+  cleanupSocketListeners: () => {
+    console.log('[ChatStore] Cleaning up socket listeners');
+    socketService.off('message:new');
+    socketService.off('message:edited');
+    socketService.off('message:deleted');
+    set({ isSocketListening: false });
+  },
+
+  // Filter helpers for AI long-form content
+  getLongFormMessages: (teamId: string) => {
+    const state = get();
+    const teamMessages = state.chat[teamId] || [];
+    return teamMessages.filter((m) => m.contentType === 'ai_longform');
+  },
+
+  getMessagesByType: (teamId: string, longFormType?: 'summary' | 'code' | 'document') => {
+    const state = get();
+    const teamMessages = state.chat[teamId] || [];
+    
+    if (!longFormType) {
+      // Return all messages (for "All" tab)
+      return teamMessages;
+    }
+    
+    // Filter by long-form type
+    return teamMessages.filter(
+      (m) => m.contentType === 'ai_longform' && m.metadata?.longFormType === longFormType
+    );
+  },
+}));

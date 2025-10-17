@@ -1,0 +1,88 @@
+/**
+ * Message Controller
+ *
+ * Tech Stack: Express, Prisma, @fypai/types
+ * Pattern: Controller handles business logic, routes delegate to controller
+ *
+ * Methods:
+ *   - getMessages(teamId: string): Get all messages for a team (returns MessageDTO[])
+ *   - createMessage(data: CreateMessageRequest): Create new message (returns MessageDTO)
+ *   - updateMessage(id: string, data: UpdateMessageRequest): Update message content (returns MessageDTO)
+ *   - deleteMessage(id: string): Delete message
+ *
+ * Architecture:
+ *   - Uses Prisma entity types for database operations
+ *   - Transforms to DTO types using messageToDTO() before returning
+ *   - Returns API-friendly types with ISO strings and parsed metadata
+ */
+import { prisma } from '../db.js';
+import { messageToDTO } from '../types.js';
+export class MessageController {
+    /**
+     * Get all messages for a team
+     * @param {string} teamId - Team ID
+     * @returns {Promise<MessageDTO[]>} Array of message DTOs with author info
+     */
+    static async getMessages(teamId) {
+        const messages = await prisma.message.findMany({
+            where: { teamId },
+            include: {
+                author: {
+                    select: { id: true, name: true, avatar: true, role: true }
+                }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+        return messages.map(msg => messageToDTO(msg, msg.author));
+    }
+    /**
+     * Create a new message
+     * @param {CreateMessageRequest} data - Message data
+     * @returns {Promise<MessageDTO>} Created message DTO
+     */
+    static async createMessage(data) {
+        const message = await prisma.message.create({
+            data: {
+                teamId: data.teamId,
+                authorId: data.authorId,
+                content: data.content,
+                contentType: data.contentType,
+                metadata: data.metadata ? JSON.stringify(data.metadata) : null
+            },
+            include: {
+                author: {
+                    select: { id: true, name: true, avatar: true, role: true }
+                }
+            }
+        });
+        return messageToDTO(message, message.author);
+    }
+    /**
+     * Update message content
+     * @param {string} id - Message ID
+     * @param {UpdateMessageRequest} data - Update data
+     * @returns {Promise<MessageDTO>} Updated message DTO
+     */
+    static async updateMessage(id, data) {
+        const message = await prisma.message.update({
+            where: { id },
+            data: { content: data.content },
+            include: {
+                author: {
+                    select: { id: true, name: true, avatar: true, role: true }
+                }
+            }
+        });
+        return messageToDTO(message, message.author);
+    }
+    /**
+     * Delete a message
+     * @param {string} id - Message ID
+     * @returns {Promise<void>}
+     */
+    static async deleteMessage(id) {
+        await prisma.message.delete({
+            where: { id }
+        });
+    }
+}

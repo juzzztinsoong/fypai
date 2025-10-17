@@ -39,7 +39,7 @@ const messageBorderColors = [
  * @returns Tailwind CSS class for background color (e.g., 'bg-blue-500')
  */
 export function getAvatarBackgroundColor(userId: string, members: any[]): string {
-  const idx = members.findIndex((m) => m.id === userId);
+  const idx = members.findIndex((m) => m.userId === userId);
   return avatarBackgroundColors[idx % avatarBackgroundColors.length];
 }
 
@@ -50,7 +50,7 @@ export function getAvatarBackgroundColor(userId: string, members: any[]): string
  * @returns Tailwind CSS class for border color (e.g., 'border-blue-500')
  */
 export function getMessageBorderColor(userId: string, members: any[]): string {
-  const idx = members.findIndex((m) => m.id === userId);
+  const idx = members.findIndex((m) => m.userId === userId);
   return messageBorderColors[idx % messageBorderColors.length];
 }
 

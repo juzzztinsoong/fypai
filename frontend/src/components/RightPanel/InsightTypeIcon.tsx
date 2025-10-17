@@ -1,7 +1,7 @@
-import type { AIInsight } from '../../stores/aiInsightsStore';
+import type { AIInsightDTO } from '../../types';
 
 interface InsightTypeIconProps {
-  type: AIInsight['type'];
+  type: AIInsightDTO['type'];
 }
 
 export const InsightTypeIcon = ({ type }: InsightTypeIconProps) => {
@@ -12,7 +12,7 @@ export const InsightTypeIcon = ({ type }: InsightTypeIconProps) => {
           <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
         </svg>
       );
-    case 'action-item':
+    case 'action':
       return (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />

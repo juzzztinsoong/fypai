@@ -1,5 +1,7 @@
 import { useTeamStore } from '../../stores/teamStore'
 import { useUserStore } from '../../stores/userStore'
+import { usePresenceStore } from '../../stores/presenceStore'
+import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils'
 
 export const Sidebar = () => {
   /**
@@ -27,17 +29,51 @@ export const Sidebar = () => {
    * Usage:
    *   - Used in main layout alongside ChatWindow and RightPanel
    */
-  const { teams, currentTeamId, setCurrentTeam } = useTeamStore()
+  const { teams, currentTeamId, setCurrentTeam, isLoading, error } = useTeamStore()
   const { user } = useUserStore()
+  const { isUserOnline } = usePresenceStore()
 
   // Only show teams where current user is a member
   const visibleTeams = teams.filter(team =>
-    team.members.some(m => m.id === user.id)
+    team.members.some(m => m.userId === user.id)
   )
+
+  // Get avatar color for current user
+  const userAvatarColor = teams.length > 0 
+    ? getAvatarBackgroundColor(user.id, teams[0].members) 
+    : 'bg-blue-500'
+
+  console.log('[Sidebar] Current user:', user.id, user.name)
+  console.log('[Sidebar] All teams:', teams.length, teams)
+  console.log('[Sidebar] Visible teams:', visibleTeams.length, visibleTeams)
+  console.log('[Sidebar] Loading:', isLoading, 'Error:', error)
+
+  if (isLoading) {
+    return (
+      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
+        <div className="px-6 py-4 mt-8">
+          <h2 className="text-xl font-semibold text-gray-800">Teams</h2>
+          <div className="mt-6 text-gray-500">Loading teams...</div>
+        </div>
+      </aside>
+    )
+  }
+
+  if (error) {
+    return (
+      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
+        <div className="px-6 py-4 mt-8">
+          <h2 className="text-xl font-semibold text-gray-800">Teams</h2>
+          <div className="mt-6 text-red-500">Error: {error}</div>
+        </div>
+      </aside>
+    )
+  }
 
   return (
     <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
-      <div className="px-6 py-4 mt-8">
+      {/* Teams Section */}
+      <div className="px-6 py-4 mt-8 flex-1">
         <h2 className="text-xl font-semibold text-gray-800">Teams</h2>
         <nav className="mt-6">
           <ul className="space-y-2">
@@ -65,6 +101,27 @@ export const Sidebar = () => {
             ))}
           </ul>
         </nav>
+      </div>
+
+      {/* User Profile Section with Online Indicator */}
+      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <div className={`w-10 h-10 rounded-full ${userAvatarColor} flex items-center justify-center text-white font-semibold`}>
+              {getUserInitials(user.name)}
+            </div>
+            {isUserOnline(user.id) && (
+              <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50"></span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+            <p className="text-xs text-green-600 flex items-center space-x-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+              <span>Online</span>
+            </p>
+          </div>
+        </div>
       </div>
     </aside>
   )
