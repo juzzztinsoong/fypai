@@ -2,6 +2,9 @@
 node_modules/
 package-lock.json
 
+# Build output (TypeScript compilation)
+dist/
+
 # Database
 dev.db
 dev.db-journal

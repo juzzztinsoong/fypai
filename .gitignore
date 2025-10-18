@@ -1,5 +1,8 @@
 /node_modules
 /packages/types/node_modules
 
+# Build output
+**/dist/
+
 *.js.map
 *.ts.map
