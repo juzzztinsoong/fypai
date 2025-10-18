@@ -5,14 +5,17 @@
  * - Posts messages via same message:new flow for unified history
  * - Uses contentType: 'ai_longform' for structured outputs
  * - Links outputs via metadata.parentMessageId
+ * - Evaluates chime rules for autonomous AI responses
  */
 
 import { GitHubModelsClient } from '../ai/llm/githubModelsClient.js';
 import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/llm/prompts.js';
 import { shouldAgentRespond } from '../ai/agent/rules.js';
+import { ChimeEvaluator } from '../ai/agent/chimeRulesEngine.js';
 import { MessageController } from './messageController.js';
 import { TeamController } from './teamController.js';
 import { AIInsightController } from './aiInsightController.js';
+import { ChimeRuleController } from './chimeRuleController.js';
 import { MessageDTO, CreateAIInsightRequest } from '@fypai/types';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -36,6 +39,12 @@ export class AIAgentController {
     try {
       console.log(`[AI Agent] Evaluating message ${message.id} from ${message.authorId}`);
 
+      // 🚨 CRITICAL: Skip AI agent messages to prevent infinite loops
+      if (message.authorId === 'agent') {
+        console.log(`[AI Agent] Skipping agent's own message to prevent loops`);
+        return;
+      }
+
       // 1. Load context
       const [messages, team] = await Promise.all([
         MessageController.getMessages(message.teamId),
@@ -47,49 +56,63 @@ export class AIAgentController {
         return;
       }
 
-      // 2. Decide if agent should respond (chime policy)
-      const decision = shouldAgentRespond(message, {
-        recentMessages: messages,
-        agentLastResponseTime: this.getLastAgentResponseTime(messages),
-        teamSettings: { autoRespond: true, cooldownMinutes: 2 },
-      });
+      // 2. Check if this is an @agent mention (reactive mode)
+      const hasAgentMention = message.content.toLowerCase().includes('@agent');
 
-      if (!decision.should) {
-        console.log(`[AI Agent] Not responding: ${decision.reason}`);
+      if (hasAgentMention) {
+        console.log(`[AI Agent] 🎯 @agent mention detected - responding in reactive mode`);
+        
+        // Decide if agent should respond (cooldown check)
+        const decision = shouldAgentRespond(message, {
+          recentMessages: messages,
+          agentLastResponseTime: this.getLastAgentResponseTime(messages),
+          teamSettings: { autoRespond: true, cooldownMinutes: 2 },
+        });
+
+        if (!decision.should) {
+          console.log(`[AI Agent] Not responding: ${decision.reason}`);
+        } else {
+          console.log(`[AI Agent] Responding due to: ${decision.reason} (rules: ${decision.triggeredRules.join(', ')})`);
+
+          // 3. Generate response
+          const response = await this.generateResponse(messages, team, message);
+
+          // 4. Post as message (unified with regular messages per copilot-instructions.md)
+          const agentMessage = await MessageController.createMessage({
+            teamId: message.teamId,
+            authorId: 'agent',
+            content: response.content,
+            contentType: 'text',
+            metadata: {
+              parentMessageId: message.id,
+              model: response.model,
+              tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+            },
+          });
+
+          console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
+
+          // 5. Broadcast agent message via WebSocket
+          if (this.io) {
+            const roomSize = this.io.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0;
+            this.io.to(`team:${message.teamId}`).emit('message:new', agentMessage);
+            console.log(`[AI Agent] 🤖 Broadcasted AI message to team: ${message.teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
+          } else {
+            console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
+          }
+
+          // 6. Extract insights if needed
+          await this.extractInsights(message.teamId, messages, response.content);
+        }
+        
+        // ⚠️ IMPORTANT: Skip chime evaluation if @agent was mentioned
+        // User explicitly asked for agent help, don't spam with autonomous responses
+        console.log(`[AI Agent] Skipping chime evaluation due to @agent mention`);
         return;
       }
 
-      console.log(`[AI Agent] Responding due to: ${decision.reason} (rules: ${decision.triggeredRules.join(', ')})`);
-
-      // 3. Generate response
-      const response = await this.generateResponse(messages, team, message);
-
-      // 4. Post as message (unified with regular messages per copilot-instructions.md)
-      const agentMessage = await MessageController.createMessage({
-        teamId: message.teamId,
-        authorId: 'agent',
-        content: response.content,
-        contentType: 'text',
-        metadata: {
-          parentMessageId: message.id,
-          model: response.model,
-          tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
-        },
-      });
-
-      console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
-
-      // 5. Broadcast agent message via WebSocket
-      if (this.io) {
-        const roomSize = this.io.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0;
-        this.io.to(`team:${message.teamId}`).emit('message:new', agentMessage);
-        console.log(`[AI Agent] 🤖 Broadcasted AI message to team: ${message.teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
-      } else {
-        console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
-      }
-
-      // 6. Extract insights if needed
-      await this.extractInsights(message.teamId, messages, response.content);
+      // 7. Evaluate chime rules (autonomous mode) - only if NOT an @agent mention
+      await this.evaluateChimeRules(message, messages);
 
     } catch (error) {
       console.error('[AI Agent] Error handling message:', error);
@@ -245,5 +268,179 @@ export class AIAgentController {
     const agentMessages = messages.filter((m) => m.authorId === 'agent');
     if (agentMessages.length === 0) return undefined;
     return new Date(agentMessages[agentMessages.length - 1].createdAt);
+  }
+
+  /**
+   * Evaluate chime rules for autonomous AI responses
+   * Phase 3: Chime Rules Engine Integration
+   */
+  private static async evaluateChimeRules(
+    message: MessageDTO, 
+    messages: MessageDTO[]
+  ): Promise<void> {
+    try {
+      console.log(`[AI Agent] 🔔 Evaluating chime rules for message ${message.id}`);
+      console.log(`[AI Agent] 📝 Message content: "${message.content}"`);
+      console.log(`[AI Agent] 📚 Total messages in context: ${messages.length}`);
+
+      // 1. Get active rules for this team
+      const rules = await ChimeRuleController.getActiveRules(message.teamId);
+      
+      console.log(`[AI Agent] 📋 Found ${rules.length} active chime rules for team ${message.teamId}`);
+      
+      if (rules.length === 0) {
+        console.log('[AI Agent] ⚠️  No active chime rules for this team');
+        return;
+      }
+
+      // Log each rule being evaluated
+      rules.forEach((rule, i) => {
+        console.log(`[AI Agent] Rule ${i + 1}: ${rule.name} (${rule.type}, priority: ${rule.priority})`);
+      });
+
+      // 2. Create evaluator with team's active rules
+      const evaluator = new ChimeEvaluator(rules);
+
+      // 3. Build evaluation context
+      const context = {
+        teamId: message.teamId,
+        recentMessages: messages.slice(-20), // Last 20 messages for context
+        recentInsights: [], // TODO: Fetch recent insights if needed
+        currentTime: new Date(),
+      };
+
+      // 4. Evaluate all rules
+      const decisions = await evaluator.evaluate(context);
+
+      if (decisions.length === 0) {
+        console.log('[AI Agent] No chime rules triggered');
+        return;
+      }
+
+      console.log(`[AI Agent] ✅ ${decisions.length} chime rule(s) triggered`);
+
+      // 🚨 ANTI-SPAM: Only execute the HIGHEST PRIORITY rule to avoid overwhelming the chat
+      // Rules are already sorted by priority (critical > high > medium > low)
+      const topDecision = decisions[0];
+      
+      if (decisions.length > 1) {
+        console.log(`[AI Agent] ⚠️  Multiple rules triggered, executing only highest priority: ${topDecision.rule.name}`);
+        console.log(`[AI Agent] 🔕 Skipped rules: ${decisions.slice(1).map(d => d.rule.name).join(', ')}`);
+      }
+
+      // 5. Execute only the top priority rule
+      await this.executeChime(topDecision, messages);
+
+    } catch (error) {
+      console.error('[AI Agent] Error evaluating chime rules:', error);
+    }
+  }
+
+  /**
+   * Execute a triggered chime rule
+   */
+  private static async executeChime(
+    decision: any, // ChimeDecision type
+    messages: MessageDTO[]
+  ): Promise<void> {
+    try {
+      const { rule, teamId, confidence, triggeringMessageIds } = decision;
+
+      console.log(`[AI Agent] 🎯 Executing chime: ${rule.name} (confidence: ${confidence.toFixed(2)})`);
+
+      // 1. Get team context
+      const team = await TeamController.getTeamById(teamId);
+      if (!team) {
+        throw new Error('Team not found');
+      }
+
+      // 2. Build conversation context from triggering messages
+      const triggeringMessages = messages.filter(m => 
+        triggeringMessageIds.includes(m.id)
+      );
+      const conversationHistory = buildConversationContext(messages, team, 20);
+
+      // 3. Call LLM with rule's prompt template
+      const response = await this.llm.generate({
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPTS.assistant },
+          ...conversationHistory,
+          { role: 'user', content: rule.action.template },
+        ],
+        maxTokens: 2048,
+        temperature: 0.7,
+      });
+
+      // 4. Create insight or message based on rule action type
+      if (rule.action.type === 'insight' || rule.action.type === 'both') {
+        const insight = await AIInsightController.createInsight({
+          teamId,
+          type: rule.action.insightType || 'suggestion',
+          title: `AI ${rule.name}`,
+          content: response.content,
+          priority: rule.priority === 'critical' ? 'high' : rule.priority,
+          tags: ['auto-generated', 'chime', rule.name],
+          relatedMessageIds: triggeringMessageIds,
+          metadata: {
+            chimeRuleName: rule.name,
+            chimeRuleId: rule.id,
+            confidence,
+          },
+        });
+
+        console.log(`[AI Agent] 📊 Created insight ${insight.id} from chime rule`);
+
+        // Log successful execution
+        await ChimeRuleController.logChimeExecution({
+          ruleId: rule.id,
+          teamId,
+          outcome: 'success',
+          confidence,
+          insightId: insight.id,
+        });
+      }
+
+      if (rule.action.type === 'chat_message' || rule.action.type === 'both') {
+        const agentMessage = await MessageController.createMessage({
+          teamId,
+          authorId: 'agent',
+          content: response.content,
+          contentType: 'text',
+          metadata: {
+            chimeRuleName: rule.name,
+            chimeRuleId: rule.id,
+            confidence,
+            parentMessageId: triggeringMessageIds[0],
+          },
+        });
+
+        console.log(`[AI Agent] 💬 Posted chime message ${agentMessage.id}`);
+
+        // Broadcast via WebSocket
+        if (this.io) {
+          this.io.to(`team:${teamId}`).emit('message:new', agentMessage);
+        }
+
+        // Log successful execution
+        await ChimeRuleController.logChimeExecution({
+          ruleId: rule.id,
+          teamId,
+          outcome: 'success',
+          confidence,
+          messageId: agentMessage.id,
+        });
+      }
+
+    } catch (error) {
+      console.error('[AI Agent] Error executing chime:', error);
+      
+      // Log failed execution
+      await ChimeRuleController.logChimeExecution({
+        ruleId: decision.rule.id,
+        teamId: decision.teamId,
+        outcome: 'error',
+        errorMsg: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }

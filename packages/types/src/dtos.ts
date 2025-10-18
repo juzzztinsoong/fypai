@@ -94,6 +94,10 @@ export interface MessageMetadata {
   prompt?: string
   longFormType?: 'summary' | 'code' | 'document'  // Type of long-form AI content
   relatedInsightIds?: string[]  // Linked AI insights
+  // Chime rules metadata (for autonomous AI messages)
+  chimeRuleName?: string  // Name of the rule that triggered this message
+  chimeRuleId?: string  // ID of the rule that triggered this message
+  confidence?: number  // Confidence score (0-1) for the chime trigger
 }
 
 /**
@@ -123,6 +127,10 @@ export interface MessageDTO {
 export interface AIInsightMetadata {
   language?: string  // For code snippets
   filename?: string  // For code/document insights
+  // Chime rules metadata (for autonomous AI insights)
+  chimeRuleName?: string  // Name of the rule that triggered this insight
+  chimeRuleId?: string  // ID of the rule that triggered this insight
+  confidence?: number  // Confidence score (0-1) for the chime trigger
 }
 
 /**

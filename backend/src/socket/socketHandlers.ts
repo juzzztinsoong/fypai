@@ -25,10 +25,16 @@ import { Server, Socket } from 'socket.io'
  */
 export function setupSocketHandlers(io: Server): void {
   io.on('connection', (socket: Socket) => {
-    console.log('[SOCKET] Client connected:', socket.id)
+    const transport = socket.conn.transport.name;
+    console.log(`[SOCKET] Client connected: ${socket.id} (transport: ${transport})`);
+
+    // Log transport upgrades
+    socket.conn.on('upgrade', (transport: any) => {
+      console.log(`[SOCKET] ⬆️  ${socket.id} upgraded to ${transport.name}`);
+    });
 
     // Setup presence tracking handlers
-    setupPresenceHandlers(io, socket)
+    setupPresenceHandlers(io, socket);
 
     /**
      * Join team room for scoped broadcasts

@@ -17,6 +17,7 @@
 
 import { Router } from 'express'
 import { MessageController } from '../controllers/messageController.js'
+import { AIAgentController } from '../controllers/aiAgentController.js'
 import { Request, Response, NextFunction } from 'express'
 import { Server as SocketIOServer } from 'socket.io'
 
@@ -63,6 +64,12 @@ router.post('/', async (req, res, next) => {
     } else {
       console.warn('[MessageRoutes] ⚠️  Socket.IO not available, cannot broadcast message:', message.id)
     }
+    
+    // 🚨 CRITICAL: Trigger AI agent evaluation (reactive + chime rules)
+    // Don't await - let it process asynchronously
+    AIAgentController.handleNewMessage(message).catch(error => {
+      console.error('[MessageRoutes] Error in AI agent handling:', error)
+    })
     
     res.status(201).json(message)
   } catch (error) {

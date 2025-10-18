@@ -34,6 +34,7 @@ import teamRoutes from './routes/teamRoutes.js'
 import messageRoutes, { setSocketIO as setMessageSocketIO } from './routes/messageRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import aiInsightRoutes from './routes/aiInsightRoutes.js'
+import chimeRuleRoutes from './routes/chimeRuleRoutes.js'
 import { AIAgentController } from './controllers/aiAgentController.js'
 import { AIInsightController } from './controllers/aiInsightController.js'
 
@@ -80,6 +81,7 @@ app.use('/api/teams', teamRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/insights', aiInsightRoutes)
+app.use('/api/chime', chimeRuleRoutes)
 
 // Error handler (must be last)
 app.use(errorHandler)

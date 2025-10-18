@@ -18,14 +18,14 @@ export interface AIGenerationResponse {
 }
 
 export class GitHubModelsClient {
-  private client: any;
+  private client: ReturnType<typeof ModelClient>;
   private model: string;
 
   constructor() {
     const token = process.env.GITHUB_TOKEN;
     const endpoint = "https://models.inference.ai.azure.com";
     
-    this.client = new ModelClient(
+    this.client = ModelClient(
       endpoint, 
       new AzureKeyCredential(token!)
     );
@@ -48,7 +48,7 @@ export class GitHubModelsClient {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const result = response.body;
+    const result = response.body as any; // Type assertion for Azure REST client
     const choice = result.choices[0];
 
     return {
@@ -72,7 +72,8 @@ export class GitHubModelsClient {
       }
     });
 
-    for await (const chunk of response.body) {
+    const body = response.body as any; // Type assertion for streaming response
+    for await (const chunk of body) {
       if (chunk.choices && chunk.choices[0]?.delta?.content) {
         yield chunk.choices[0].delta.content;
       }

@@ -76,6 +76,9 @@ export interface MessageMetadata {
     prompt?: string;
     longFormType?: 'summary' | 'code' | 'document';
     relatedInsightIds?: string[];
+    chimeRuleName?: string;
+    chimeRuleId?: string;
+    confidence?: number;
 }
 /**
  * Message DTO
@@ -103,6 +106,9 @@ export interface MessageDTO {
 export interface AIInsightMetadata {
     language?: string;
     filename?: string;
+    chimeRuleName?: string;
+    chimeRuleId?: string;
+    confidence?: number;
 }
 /**
  * AIInsight DTO

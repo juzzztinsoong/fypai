@@ -86,8 +86,44 @@ model AIInsight {
   tags              String?  // JSON array
   createdAt         DateTime @default(now())
   relatedMessageIds String?  // JSON array
+  metadata          String?  // JSON string for chime rule metadata
   
   team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   
   @@index([teamId, createdAt])
+}
+
+model ChimeRule {
+  id              String     @id @default(uuid())
+  name            String
+  type            String     // 'pattern' | 'threshold' | 'semantic' | 'schedule' | 'hybrid'
+  enabled         Boolean    @default(true)
+  priority        String     // 'low' | 'medium' | 'high' | 'critical'
+  cooldownMinutes Int        @default(30)
+  conditions      String     // JSON serialized conditions
+  action          String     // JSON serialized action config
+  teamId          String?    // Optional: team-specific rule (null = global)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  chimeLogs       ChimeLog[]
+  
+  @@index([teamId, enabled])
+}
+
+model ChimeLog {
+  id          String   @id @default(uuid())
+  ruleId      String
+  teamId      String
+  triggeredAt DateTime @default(now())
+  outcome     String   // 'success' | 'cooldown' | 'error'
+  messageId   String?  // ID of message created (if applicable)
+  insightId   String?  // ID of insight created (if applicable)
+  confidence  Float?   // Confidence score of the match
+  errorMsg    String?  // Error message if outcome='error'
+  
+  rule        ChimeRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  
+  @@index([teamId, triggeredAt])
+  @@index([ruleId, triggeredAt])
 }

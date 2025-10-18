@@ -75,12 +75,12 @@ class SocketService {
       console.log(`[SocketService] Connecting to ${serverUrl}...`)
 
       this.socket = io(serverUrl, {
-        transports: ['websocket', 'polling'],
+        transports: ['websocket'], // ✅ WebSocket only - no polling upgrade
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-      })
+      });
 
       // Add global event logger for debugging
       this.socket.onAny((eventName, ...args) => {

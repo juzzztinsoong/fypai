@@ -17,7 +17,7 @@ export const DECISION_DETECTOR: ChimeRule = {
   type: 'pattern',
   enabled: true,
   priority: 'high',
-  cooldownMinutes: 30,
+  cooldownMinutes: 60, // Increased from 30 to reduce spam
   conditions: {
     patterns: [
       'let\\\'?s\\s+go\\s+with',
@@ -53,14 +53,13 @@ export const ACTION_COMMITMENT_TRACKER: ChimeRule = {
   type: 'pattern',
   enabled: true,
   priority: 'high',
-  cooldownMinutes: 15,
+  cooldownMinutes: 30, // Increased from 15 to reduce spam
   conditions: {
     patterns: [
-      '(I\'ll|I\\s+will)\\s+.+\\s+by\\s+(tomorrow|friday|monday|next\\s+week)',
-      'deadline\\s+(is|set\\s+for)',
-      'will\\s+(finish|complete|deliver)',
-      'I\'ll\\s+take\\s+(care\\s+of|on)',
-      'responsible\\s+for'
+      '(I\'ll|I\\s+will)\\s+.+\\s+by\\s+(tomorrow|friday|monday|tuesday|wednesday|thursday|next\\s+week|\\d{4}-\\d{2}-\\d{2})',
+      'deadline\\s+(is|set\\s+for|on)',
+      'will\\s+(finish|complete|deliver).+by',
+      'I\'ll\\s+take\\s+(care\\s+of|on).+by'
     ],
     messageCount: 1
   },
@@ -89,7 +88,7 @@ export const CONFUSION_INTERVENTION: ChimeRule = {
   type: 'hybrid',
   enabled: true,
   priority: 'medium',
-  cooldownMinutes: 10,
+  cooldownMinutes: 20, // Increased from 10 to reduce spam
   conditions: {
     patterns: [
       '(I\'m|I\\s+am)\\s+(confused|lost|not\\s+sure)',
@@ -98,8 +97,8 @@ export const CONFUSION_INTERVENTION: ChimeRule = {
       'don\'t\\s+understand',
       'what\'s\\s+the\\s+difference'
     ],
-    messageCount: 2, // Wait for multiple confusion signals
-    timeWindow: 5 // Within 5 minutes
+    messageCount: 3, // Increased from 2 - need more evidence of confusion
+    timeWindow: 10 // Within 10 minutes
   },
   action: {
     type: 'chat_message',
@@ -122,9 +121,9 @@ export const KNOWLEDGE_GAP_DETECTOR: ChimeRule = {
   id: 'knowledge-004',
   name: 'Knowledge Gap Detected',
   type: 'pattern',
-  enabled: true,
+  enabled: false, // Disabled by default - too noisy
   priority: 'low',
-  cooldownMinutes: 60,
+  cooldownMinutes: 120, // Increased from 60
   conditions: {
     keywords: [
       'what is',
@@ -134,8 +133,8 @@ export const KNOWLEDGE_GAP_DETECTOR: ChimeRule = {
       'unfamiliar with',
       'never heard of'
     ],
-    messageCount: 2,
-    timeWindow: 15
+    messageCount: 3, // Increased from 2 - need more evidence
+    timeWindow: 20 // Increased from 15
   },
   action: {
     type: 'insight',
@@ -161,17 +160,17 @@ export const PROBLEM_DETECTOR: ChimeRule = {
   type: 'pattern',
   enabled: true,
   priority: 'high',
-  cooldownMinutes: 20,
+  cooldownMinutes: 45, // Increased from 20 to reduce spam
   conditions: {
     patterns: [
       '(stuck|blocked)\\s+on',
-      '(issue|problem)\\s+with',
-      '(error|bug|crash)',
-      'not\\s+working',
-      'can\'t\\s+get\\s+.+\\s+to\\s+work'
+      '(serious|critical)\\s+(issue|problem|bug)',
+      'keep\\s+getting\\s+(error|bug)',
+      'can\'t\\s+get\\s+.+\\s+to\\s+work',
+      'nothing\\s+(works|is\\s+working)'
     ],
-    messageCount: 2,
-    timeWindow: 10
+    messageCount: 2, // Need multiple messages about same problem
+    timeWindow: 15 // Within 15 minutes
   },
   action: {
     type: 'insight',
@@ -228,15 +227,15 @@ export const URGENCY_ALERT: ChimeRule = {
   type: 'pattern',
   enabled: true,
   priority: 'critical',
-  cooldownMinutes: 60,
+  cooldownMinutes: 120, // Increased from 60 to reduce spam
   conditions: {
     patterns: [
-      'urgent',
+      'urgent.+(deadline|task|issue)',
       'ASAP',
       'as\\s+soon\\s+as\\s+possible',
-      'by\\s+(EOD|end\\s+of\\s+day)',
-      'deadline\\s+(today|tomorrow)',
-      'time\\s+critical'
+      'by\\s+(EOD|end\\s+of\\s+day|end\\s+of\\s+week)',
+      'critical.+(deadline|task)',
+      'emergency'
     ],
     messageCount: 1
   },
@@ -263,12 +262,12 @@ export const QUESTION_OVERLOAD: ChimeRule = {
   id: 'threshold-008',
   name: 'Question Overload',
   type: 'threshold',
-  enabled: true,
+  enabled: false, // Disabled by default - often triggers on normal conversations
   priority: 'medium',
-  cooldownMinutes: 30,
+  cooldownMinutes: 60, // Increased from 30
   conditions: {
-    messageCount: 5, // At least 5 messages
-    timeWindow: 10 // In last 10 minutes
+    messageCount: 8, // Increased from 5 - need more messages
+    timeWindow: 15 // Increased from 10
     // TODO: Add pattern to count questions with '?'
   },
   action: {
