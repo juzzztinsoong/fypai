@@ -11,12 +11,14 @@
  * - teams.json: Teams and their members
  * - messages.json: Chat messages per team
  * - insights.json: AI-generated insights per team
+ * - defaultRules.ts: Chime rules for autonomous AI behavior (seeded per team)
  */
 
 import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { DEFAULT_RULES } from './ai/agent/defaultRules.js';
 
 const prisma = new PrismaClient();
 
@@ -172,6 +174,45 @@ async function seedInsights() {
   console.log(`✅ Seeded ${insightsData.length} AI insights`);
 }
 
+async function seedChimeRules() {
+  console.log('🌱 Seeding chime rules...');
+  
+  // Seed default rules for each team
+  const teams = await prisma.team.findMany();
+  let totalRulesCreated = 0;
+  
+  for (const team of teams) {
+    for (const rule of DEFAULT_RULES) {
+      await prisma.chimeRule.upsert({
+        where: { id: `${rule.id}-${team.id}` }, // Unique ID per team
+        update: {
+          name: rule.name,
+          type: rule.type,
+          enabled: rule.enabled,
+          priority: rule.priority,
+          cooldownMinutes: rule.cooldownMinutes,
+          conditions: JSON.stringify(rule.conditions),
+          action: JSON.stringify(rule.action),
+        },
+        create: {
+          id: `${rule.id}-${team.id}`,
+          name: rule.name,
+          type: rule.type,
+          enabled: rule.enabled,
+          priority: rule.priority,
+          cooldownMinutes: rule.cooldownMinutes,
+          conditions: JSON.stringify(rule.conditions),
+          action: JSON.stringify(rule.action),
+          teamId: team.id,
+        },
+      });
+      totalRulesCreated++;
+    }
+  }
+  
+  console.log(`✅ Seeded ${totalRulesCreated} chime rules (${DEFAULT_RULES.length} rules per team)`);
+}
+
 async function main() {
   console.log('🚀 Starting database seeding...\n');
 
@@ -181,6 +222,7 @@ async function main() {
     await seedTeams();
     await seedMessages();
     await seedInsights();
+    await seedChimeRules(); // Seed chime rules after teams
 
     console.log('\n✨ Database seeding completed successfully!');
   } catch (error) {

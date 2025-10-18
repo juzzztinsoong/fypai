@@ -51,6 +51,7 @@ export interface ChimeDecision {
 export interface ChimeEvaluationContext {
   teamId: string;
   recentMessages: any[];      // MessageDTO[] - will import from types
+  newMessageId?: string;      // ID of the new message that triggered evaluation
   recentInsights: any[];      // AIInsightDTO[] - will import from types
   currentTime: Date;
 }
@@ -171,6 +172,7 @@ export class ChimeEvaluator {
     const { patterns, keywords, messageCount = 1 } = rule.conditions;
     const matchingMessages: string[] = [];
     let totalMatches = 0;
+    let newMessageMatches = false;
 
     // Check recent messages for pattern matches
     for (const message of context.recentMessages) {
@@ -203,10 +205,19 @@ export class ChimeEvaluator {
       if (messageMatches > 0) {
         matchingMessages.push(message.id);
         totalMatches += messageMatches;
+        
+        // Track if the NEW message matches
+        if (context.newMessageId && message.id === context.newMessageId) {
+          newMessageMatches = true;
+        }
       }
     }
 
-    const triggered = matchingMessages.length >= messageCount;
+    // Rule triggers if:
+    // 1. Enough matching messages (>= messageCount)
+    // 2. The NEW message contributes to the pattern (prevents old messages from triggering)
+    const hasEnoughMatches = matchingMessages.length >= messageCount;
+    const triggered = hasEnoughMatches && (newMessageMatches || !context.newMessageId);
     const confidence = triggered ? Math.min(totalMatches / (messageCount * 2), 1.0) : 0;
 
     return { triggered, confidence, messageIds: matchingMessages };

@@ -4,6 +4,15 @@
  * Clears all data from the database before seeding.
  * Useful for starting fresh with new seed data.
  * 
+ * Clears:
+ * - Chime logs (AI autonomous behavior audit trail)
+ * - Chime rules (AI behavior rules)
+ * - AI insights
+ * - Messages
+ * - Team members
+ * - Teams
+ * - Users
+ * 
  * Usage: npm run db:reset
  */
 
@@ -16,6 +25,15 @@ async function main() {
 
   try {
     // Delete in reverse order of foreign key dependencies
+    
+    // Delete chime logs first (depends on chime rules and teams)
+    await prisma.chimeLog.deleteMany();
+    console.log('✅ Deleted all chime logs');
+
+    // Delete chime rules (depends on teams)
+    await prisma.chimeRule.deleteMany();
+    console.log('✅ Deleted all chime rules');
+
     await prisma.aIInsight.deleteMany();
     console.log('✅ Deleted all AI insights');
 

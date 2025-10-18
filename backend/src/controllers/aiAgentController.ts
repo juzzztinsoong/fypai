@@ -302,12 +302,24 @@ export class AIAgentController {
       const evaluator = new ChimeEvaluator(rules);
 
       // 3. Build evaluation context
+      // STRATEGY: Use recent message window, but only trigger if NEW message contributes to pattern
+      // This prevents:
+      // - False positives from old messages (old messages alone won't trigger)
+      // - Threshold rules never triggering (messageCount > 1 can accumulate)
+      //
+      // The evaluator will check if patterns appear in recent messages,
+      // but we ensure the NEW message is part of the triggering set
+      const recentMessages = messages.slice(-5); // Last 5 messages for context
+      
       const context = {
         teamId: message.teamId,
-        recentMessages: messages.slice(-20), // Last 20 messages for context
-        recentInsights: [], // TODO: Fetch recent insights if needed
+        recentMessages: recentMessages,
+        newMessageId: message.id, // Track which message is new
+        recentInsights: [],
         currentTime: new Date(),
       };
+
+      console.log(`[AI Agent] 🔍 Evaluating with ${recentMessages.length} recent messages, new message: ${message.id}`);
 
       // 4. Evaluate all rules
       const decisions = await evaluator.evaluate(context);
@@ -415,10 +427,13 @@ export class AIAgentController {
         });
 
         console.log(`[AI Agent] 💬 Posted chime message ${agentMessage.id}`);
-
-        // Broadcast via WebSocket
+        
+        // Note: MessageController.createMessage() doesn't broadcast directly
+        // The broadcast happens in messageRoutes.ts, but since we're calling
+        // createMessage() directly here (not via HTTP), we need to broadcast manually
         if (this.io) {
           this.io.to(`team:${teamId}`).emit('message:new', agentMessage);
+          console.log(`[AI Agent] 📤 Broadcasted message:new for chime message`);
         }
 
         // Log successful execution

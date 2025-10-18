@@ -16,7 +16,7 @@ export const DECISION_DETECTOR: ChimeRule = {
   name: 'Decision Detected',
   type: 'pattern',
   enabled: true,
-  priority: 'high',
+  priority: 'medium', // Changed from 'high' to avoid overriding critical/high priority rules
   cooldownMinutes: 60, // Increased from 30 to reduce spam
   conditions: {
     patterns: [
@@ -57,9 +57,9 @@ export const ACTION_COMMITMENT_TRACKER: ChimeRule = {
   conditions: {
     patterns: [
       '(I\'ll|I\\s+will)\\s+.+\\s+by\\s+(tomorrow|friday|monday|tuesday|wednesday|thursday|next\\s+week|\\d{4}-\\d{2}-\\d{2})',
-      'deadline\\s+(is|set\\s+for|on)',
-      'will\\s+(finish|complete|deliver).+by',
-      'I\'ll\\s+take\\s+(care\\s+of|on).+by'
+      '(my|the)\\s+deadline\\s+(is|will\\s+be)\\s+(tomorrow|friday|monday|\\d)',
+      'will\\s+(finish|complete|deliver)\\s+.+\\s+by\\s+(tomorrow|friday|monday|\\d)',
+      'I\'ll\\s+take\\s+(care\\s+of|on)\\s+.+\\s+by\\s+(tomorrow|friday|\\d)'
     ],
     messageCount: 1
   },

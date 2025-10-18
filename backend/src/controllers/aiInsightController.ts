@@ -68,7 +68,15 @@ export class AIInsightController {
       }
     })
 
-    return aiInsightToDTO(insight)
+    const insightDTO = aiInsightToDTO(insight)
+
+    // 🚨 CRITICAL: Broadcast new insight to team via WebSocket
+    if (this.io) {
+      this.io.to(`team:${data.teamId}`).emit('ai:insight:new', insightDTO);
+      console.log(`[AIInsightController] 📊 Broadcasted ai:insight:new to team: ${data.teamId}`);
+    }
+
+    return insightDTO
   }
 
   /**

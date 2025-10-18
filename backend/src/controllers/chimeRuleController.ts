@@ -8,7 +8,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db.js';
 import type { ChimeRule } from '../ai/agent/chimeRulesEngine.js';
-import { getDefaultEnabledRules } from '../ai/agent/defaultRules.js';
+import { DEFAULT_RULES, getDefaultEnabledRules } from '../ai/agent/defaultRules.js';
 
 export class ChimeRuleController {
   /**
@@ -218,12 +218,14 @@ export class ChimeRuleController {
     try {
       const { teamId } = req.body; // Optional
 
-      const defaultRules = getDefaultEnabledRules();
+      // Use DEFAULT_RULES to get ALL rules (including disabled ones)
+      const defaultRules = DEFAULT_RULES;
       const createdRules = [];
 
       for (const rule of defaultRules) {
         const created = await prisma.chimeRule.create({
           data: {
+            id: rule.id, // Include the ID so rules are consistent
             name: rule.name,
             type: rule.type,
             enabled: rule.enabled,
