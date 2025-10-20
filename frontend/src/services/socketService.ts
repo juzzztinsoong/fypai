@@ -166,6 +166,13 @@ class SocketService {
   }
 
   /**
+   * Get the socket instance (for external integrations like Socket Bridge)
+   */
+  getSocket(): Socket | null {
+    return this.socket
+  }
+
+  /**
    * Join a team room
    * @param teamId - Team ID to join
    */

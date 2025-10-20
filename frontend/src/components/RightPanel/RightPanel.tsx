@@ -1,6 +1,6 @@
 import { useCurrentTeam } from '../../stores/teamStore';
 import { useAIInsightsStore } from '../../stores/aiInsightsStore';
-import { socketService } from '@/services';
+import { useRealtimeStore } from '@/core/eventBus/RealtimeStore';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
 import { InsightsList } from './InsightsList';
@@ -12,8 +12,13 @@ import { EmptyState } from './EmptyState';
 /**
  * RightPanel Component
  *
- * Tech Stack: React (Vite), Zustand for state, Tailwind CSS for styling
+ * Tech Stack: React (Vite), RealtimeStore for data, Zustand for UI state, Tailwind CSS
  * Purpose: Display AI-generated insights, summaries, and content for current team
+ *
+ * Architecture:
+ *   - Subscribes directly to RealtimeStore for insight data
+ *   - Uses aiInsightsStore only for UI state (AI toggle, loading)
+ *   - No direct socket dependencies (handled by Socket Bridge)
  *
  * Features:
  *   - Shows AI insights organized by type (summary, action items, suggestions, etc.)
@@ -44,40 +49,35 @@ export const RightPanel = () => {
   const teamId = currentTeam?.id;
   const teamName = currentTeam?.name || 'Team';
   
-  const { fetchInsights, isAIEnabled, toggleAI } = useAIInsightsStore();
-  // ✅ Subscribe directly to insights data for real-time updates
-  const allInsights = useAIInsightsStore((state) => state.insights);
+  // UI state from aiInsightsStore - extract only what we need
+  const fetchInsights = useAIInsightsStore((state) => state.fetchInsights);
+  const isAIEnabled = useAIInsightsStore((state) => state.isAIEnabled);
+  const toggleAI = useAIInsightsStore((state) => state.toggleAI);
+  
+  // Subscribe to this team's insights array directly
+  // Returns stable EMPTY_INSIGHTS_ARRAY if no insights exist for this team
+  const teamInsights = useRealtimeStore((state) => state.getInsights(teamId || ''));
+  
   const [contentFilter, setContentFilter] = useState<'all' | 'summaries' | 'actions' | 'suggestions'>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Join team socket room and fetch insights when team changes (same as MessageList)
+  // ✅ Fetch insights when team changes (publishes to Event Bus → RealtimeStore)
   useEffect(() => {
     if (teamId) {
-      console.log('[RightPanel] 🚪 Joining team room:', teamId);
-      socketService.joinTeam(teamId);
-      
-      // Fetch insights from database for this team
+      console.log('[RightPanel] Fetching insights for team:', teamId);
       fetchInsights(teamId);
-      console.log('[RightPanel] ✅ Joined team room and fetching insights for:', teamId);
     }
-    
-    // Leave team room when component unmounts or team changes
-    return () => {
-      if (teamId) {
-        console.log('[RightPanel] 👋 Leaving team room:', teamId);
-        socketService.leaveTeam();
-      }
-    };
-  }, [teamId, fetchInsights]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId]); // Only re-fetch when teamId changes, not when fetchInsights reference changes
 
-  // ✅ Get insights from allInsights data (triggers re-render when insights change)
+  // ✅ Sort insights by date (memoized to avoid re-sorting on every render)
   const insights = useMemo(() => {
-    if (!teamId) return [];
-    const teamInsights = allInsights[teamId] || [];
-    return teamInsights.sort((a, b) => 
+    console.log('[RightPanel] Insights from RealtimeStore, count:', teamInsights.length, 'team:', teamId);
+    // CRITICAL: Use slice() to create new array before sorting (avoid mutating original)
+    return [...teamInsights].sort((a, b) => 
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-  }, [teamId, allInsights]);
+  }, [teamInsights, teamId]);
 
   // Combine and sort all content by date (oldest first, latest at bottom) - MEMOIZED
   // Now all content comes from insights store

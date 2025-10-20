@@ -33,6 +33,7 @@ import { create } from 'zustand'
 import type { TeamWithMembersDTO, CreateTeamRequest, AddTeamMemberRequest } from '../types'
 import { useChatStore } from './chatStore'
 import { teamService, getErrorMessage } from '@/services'
+import { socketService } from '@/services/socketService'
 
 interface TeamState {
   teams: TeamWithMembersDTO[]
@@ -147,9 +148,14 @@ export const useTeamStore = create<TeamState>()((set, get) => ({
 
   setCurrentTeam: (teamId: string) => {
     set({ currentTeamId: teamId });
-    // Also update the chat store to show messages for this team
+    
+    // Join socket room for real-time updates
+    console.log('[TeamStore] 🚪 Joining socket room for team:', teamId);
+    socketService.joinTeam(teamId);
+    
+    // Update chatStore's currentTeamId (no need to copy messages, they're in RealtimeStore)
     const chatStore = useChatStore.getState();
-    chatStore.setCurrentTeamMessages(chatStore.chat[teamId] || []);
+    chatStore.setCurrentTeam(teamId);
   },
 
   setTeams: (teams: TeamWithMembersDTO[]) => set({ teams }),

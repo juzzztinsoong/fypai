@@ -1,21 +1,23 @@
 /**
  * MessageList Component
  *
- * Tech Stack: React (Vite), Zustand for state, Tailwind CSS for styling
- * Patterns: Stateless functional component, state-driven rendering
+ * Tech Stack: React (Vite), RealtimeStore for data, Zustand for UI state, Tailwind CSS
+ * Patterns: Stateless functional component, Event Bus architecture
  * Requirements:
- *   - Display all messages for the current team
+ *   - Display all messages for the current team from RealtimeStore
  *   - Differentiate user and agent messages visually
  *   - Show author label and message bubble
  *   - Support multi-line messages
  *   - Fetch messages from backend when team changes
  *
+ * Architecture:
+ *   - Subscribes directly to RealtimeStore for message data
+ *   - Uses chatStore only for loading/error UI state
+ *   - No direct socket dependencies (handled by Socket Bridge)
+ *
  * Methods & Arguments:
- *   - MessageList(): No arguments. Uses Zustand store for state.
+ *   - MessageList(): No arguments. Uses stores for state.
  *     - Returns: JSX.Element (list of messages)
- *   - useChatStore(): Returns store object with 'messages' array (Message[])
- *   - messages.map((message)): Iterates over Message[]
- *     - message: Message object with id, authorId, content, etc.
  *
  * Usage:
  *   - Used in ChatWindow to display chat history for the active team
@@ -25,46 +27,49 @@ import { useChatStore } from '../../stores/chatStore'
 import { useUserStore } from '../../stores/userStore'
 import { useCurrentTeam } from '../../stores/teamStore'
 import { usePresenceStore } from '../../stores/presenceStore'
+import { useRealtimeStore } from '@/core/eventBus/RealtimeStore'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
-import { socketService } from '@/services'
 
 export const MessageList = () => {
-  const { messages, fetchMessages, isLoading, error } = useChatStore()
-  const { user } = useUserStore()
   const team = useCurrentTeam()
+  const teamId = team?.id || ''
+  
+  // Subscribe to this team's messages array directly
+  // Returns stable EMPTY_ARRAY if no messages exist for this team
+  const messages = useRealtimeStore((state) => state.getMessages(teamId))
+  
+  console.log('[MessageList] 🎨 Component rendering, teamId:', teamId, 'messages count:', messages.length)
+  
+  // UI state from chatStore - extract only what we need
+  const fetchMessages = useChatStore((state) => state.fetchMessages)
+  const isLoading = useChatStore((state) => state.isLoading)
+  const error = useChatStore((state) => state.error)
+  
+  const { user } = useUserStore()
   const { isUserOnline } = usePresenceStore()
   const members = team?.members || []
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Fetch messages when team changes (publishes to Event Bus → RealtimeStore)
+  useEffect(() => {
+    if (team?.id) {
+      console.log('[MessageList] Fetching messages for team:', team.id)
+      fetchMessages(team.id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team?.id]) // Only re-fetch when teamId changes, not when fetchMessages reference changes
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages.length])
+  }, [messages.length, team?.id])
 
   // Debug: Log when messages change
   useEffect(() => {
-    console.log('[MessageList] 🔄 Messages updated, count:', messages.length, 'team:', team?.id)
-  }, [messages, team?.id])
-
-  // Fetch messages and join team room when team changes
-  useEffect(() => {
-    if (team?.id) {
-      console.log('[MessageList] 🚪 Joining team room:', team.id)
-      socketService.joinTeam(team.id)
-      fetchMessages(team.id)
-      console.log('[MessageList] ✅ Joined team room and fetched messages for:', team.id)
-    }
-    
-    // Leave team room when component unmounts or team changes
-    return () => {
-      if (team?.id) {
-        console.log('[MessageList] 👋 Leaving team room:', team.id)
-        socketService.leaveTeam()
-      }
-    }
-  }, [team?.id, fetchMessages])
+    console.log('[MessageList] � Messages from RealtimeStore, count:', messages.length, 'team:', team?.id)
+  }, [messages.length, team?.id])
 
   // Show loading state
   if (isLoading && messages.length === 0) {
