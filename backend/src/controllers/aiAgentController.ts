@@ -22,6 +22,7 @@ import { Server as SocketIOServer } from 'socket.io';
 export class AIAgentController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
+  private static teamAIEnabled: Map<string, boolean> = new Map(); // In-memory cache for AI enabled state
 
   /**
    * Set Socket.IO instance for broadcasting
@@ -29,6 +30,21 @@ export class AIAgentController {
   static setSocketIO(io: SocketIOServer): void {
     this.io = io;
     console.log('[AIAgentController] ✅ Socket.IO instance configured for AI broadcasts');
+  }
+
+  /**
+   * Set AI enabled state for a team
+   */
+  static setAIEnabled(teamId: string, enabled: boolean): void {
+    this.teamAIEnabled.set(teamId, enabled);
+    console.log(`[AIAgentController] 🤖 AI ${enabled ? 'enabled' : 'disabled'} for team: ${teamId}`);
+  }
+
+  /**
+   * Get AI enabled state for a team (default: true)
+   */
+  static isAIEnabled(teamId: string): boolean {
+    return this.teamAIEnabled.get(teamId) ?? true;
   }
 
   /**
@@ -74,6 +90,15 @@ export class AIAgentController {
         } else {
           console.log(`[AI Agent] Responding due to: ${decision.reason} (rules: ${decision.triggeredRules.join(', ')})`);
 
+          // Emit typing indicator - agent is generating
+          if (this.io) {
+            this.io.to(`team:${message.teamId}`).emit('typing:start', { 
+              teamId: message.teamId, 
+              userId: 'agent' 
+            });
+            console.log(`[AI Agent] ⌨️  Emitted typing:start for agent`);
+          }
+
           // 3. Generate response
           const response = await this.generateResponse(messages, team, message);
 
@@ -91,6 +116,15 @@ export class AIAgentController {
           });
 
           console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
+
+          // Stop typing indicator - agent finished generating
+          if (this.io) {
+            this.io.to(`team:${message.teamId}`).emit('typing:stop', { 
+              teamId: message.teamId, 
+              userId: 'agent' 
+            });
+            console.log(`[AI Agent] ⌨️  Emitted typing:stop for agent`);
+          }
 
           // 5. Broadcast agent message via WebSocket
           if (this.io) {
@@ -283,6 +317,12 @@ export class AIAgentController {
       console.log(`[AI Agent] 📝 Message content: "${message.content}"`);
       console.log(`[AI Agent] 📚 Total messages in context: ${messages.length}`);
 
+      // 0. Check if AI is enabled for this team
+      if (!this.isAIEnabled(message.teamId)) {
+        console.log(`[AI Agent] 🚫 AI disabled for team ${message.teamId}, skipping chime evaluation`);
+        return;
+      }
+
       // 1. Get active rules for this team
       const rules = await ChimeRuleController.getActiveRules(message.teamId);
       
@@ -372,6 +412,15 @@ export class AIAgentController {
       );
       const conversationHistory = buildConversationContext(messages, team, 20);
 
+      // Emit typing indicator - agent is generating chime response
+      if (this.io) {
+        this.io.to(`team:${teamId}`).emit('typing:start', { 
+          teamId, 
+          userId: 'agent' 
+        });
+        console.log(`[AI Agent] ⌨️  Emitted typing:start for chime rule: ${rule.name}`);
+      }
+
       // 3. Call LLM with rule's prompt template
       const response = await this.llm.generate({
         messages: [
@@ -382,6 +431,15 @@ export class AIAgentController {
         maxTokens: 2048,
         temperature: 0.7,
       });
+
+      // Stop typing indicator - agent finished generating
+      if (this.io) {
+        this.io.to(`team:${teamId}`).emit('typing:stop', { 
+          teamId, 
+          userId: 'agent' 
+        });
+        console.log(`[AI Agent] ⌨️  Emitted typing:stop for chime rule: ${rule.name}`);
+      }
 
       // 4. Create insight or message based on rule action type
       if (rule.action.type === 'insight' || rule.action.type === 'both') {

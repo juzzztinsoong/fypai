@@ -15,6 +15,7 @@
 
 import type { Socket } from 'socket.io-client'
 import { eventBus, EventTransformer } from '@/core/eventBus'
+import { useRealtimeStore } from '@/core/eventBus/RealtimeStore'
 import type { MessageDTO, AIInsightDTO } from '@fypai/types'
 
 /**
@@ -126,6 +127,13 @@ export function initializeSocketBridge(socket: Socket): () => void {
     eventBus.publish(event)
   }
 
+  const handleAIToggle = (data: { teamId: string; enabled: boolean }) => {
+    console.log('[SocketBridge] 🤖 Socket: ai:toggle ->', data.teamId, 'enabled:', data.enabled)
+    
+    // Update RealtimeStore directly (no need for Event Bus for settings)
+    useRealtimeStore.getState().setAIEnabled(data.teamId, data.enabled)
+  }
+
   // Register all socket listeners
   socket.on('message:new', handleMessageNew)
   socket.on('message:edited', handleMessageEdited)
@@ -136,8 +144,9 @@ export function initializeSocketBridge(socket: Socket): () => void {
   socket.on('presence:list', handlePresenceList)
   socket.on('typing:start', handleTypingStart)
   socket.on('typing:stop', handleTypingStop)
+  socket.on('ai:toggle', handleAIToggle)
 
-  console.log('[SocketBridge] ✅ Socket bridge initialized (9 event handlers)')
+  console.log('[SocketBridge] ✅ Socket bridge initialized (10 event handlers)')
 
   // Return cleanup function
   return () => {
@@ -152,6 +161,7 @@ export function initializeSocketBridge(socket: Socket): () => void {
     socket.off('presence:list', handlePresenceList)
     socket.off('typing:start', handleTypingStart)
     socket.off('typing:stop', handleTypingStop)
+    socket.off('ai:toggle', handleAIToggle)
   }
 }
 

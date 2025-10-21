@@ -82,7 +82,7 @@ export function setupSocketHandlers(io: Server): void {
      * Payload: { teamId, userId }
      */
     socket.on('typing:start', ({ teamId, userId }) => {
-      socket.to(`team:${teamId}`).emit('typing:start', { userId })
+      socket.to(`team:${teamId}`).emit('typing:start', { teamId, userId })
       console.log(`[SOCKET] User ${userId} started typing in team:${teamId}`)
     })
 
@@ -91,7 +91,7 @@ export function setupSocketHandlers(io: Server): void {
      * Payload: { teamId, userId }
      */
     socket.on('typing:stop', ({ teamId, userId }) => {
-      socket.to(`team:${teamId}`).emit('typing:stop', { userId })
+      socket.to(`team:${teamId}`).emit('typing:stop', { teamId, userId })
       console.log(`[SOCKET] User ${userId} stopped typing in team:${teamId}`)
     })
 
@@ -102,6 +102,20 @@ export function setupSocketHandlers(io: Server): void {
     socket.on('presence:typing', ({ teamId, userId, isTyping }) => {
       socket.to(`team:${teamId}`).emit('presence:typing', { userId, isTyping })
     })
+
+    /**
+     * AI Toggle - Enable/disable chime mode for a team
+     * Broadcast to all team members to sync UI state
+     * Payload: { teamId, enabled }
+     */
+    socket.on('ai:toggle', ({ teamId, enabled }) => {
+      // Update AI agent controller state
+      AIAgentController.setAIEnabled(teamId, enabled);
+      
+      // Broadcast to all OTHER team members (sender already updated locally)
+      socket.to(`team:${teamId}`).emit('ai:toggle', { teamId, enabled });
+      console.log(`[SOCKET] AI ${enabled ? 'enabled' : 'disabled'} for team:${teamId}`);
+    });
 
     /**
      * Message edit event

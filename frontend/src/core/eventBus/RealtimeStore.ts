@@ -33,6 +33,10 @@ interface PresenceState {
   typingUsers: Map<string, Set<string>> // teamId -> Set<userId>
 }
 
+interface TeamSettingsState {
+  aiEnabled: Map<string, boolean> // teamId -> boolean
+}
+
 interface RealtimeState {
   // Messages organized by team
   messages: Record<string, MessageDTO[]>
@@ -42,6 +46,9 @@ interface RealtimeState {
 
   // Presence state
   presence: PresenceState
+
+  // Team settings
+  settings: TeamSettingsState
 
   // Message Operations
   setMessages: (teamId: string, messages: MessageDTO[]) => void
@@ -66,6 +73,10 @@ interface RealtimeState {
   setUserTyping: (teamId: string, userId: string, isTyping: boolean) => void
   getTypingUsers: (teamId: string) => string[]
 
+  // Team Settings Operations
+  setAIEnabled: (teamId: string, enabled: boolean) => void
+  isAIEnabled: (teamId: string) => boolean
+
   // Utility
   clear: () => void
 }
@@ -77,6 +88,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
   presence: {
     onlineUsers: new Set(['agent']), // Agent is always online
     typingUsers: new Map(),
+  },
+  settings: {
+    aiEnabled: new Map(), // teamId -> boolean, default true if not set
   },
 
   // === Message Operations ===
@@ -253,8 +267,10 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       const teamTyping = typingUsers.get(teamId) || new Set()
 
       if (isTyping) {
+        console.log('[RealtimeStore] ⌨️  User started typing', { teamId, userId })
         teamTyping.add(userId)
       } else {
+        console.log('[RealtimeStore] ⌨️  User stopped typing', { teamId, userId })
         teamTyping.delete(userId)
       }
 
@@ -263,6 +279,8 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       } else {
         typingUsers.set(teamId, teamTyping)
       }
+
+      console.log('[RealtimeStore] 📊 Current typing users in team', teamId, ':', Array.from(teamTyping))
 
       return {
         presence: {
@@ -277,6 +295,27 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
     return teamTyping ? Array.from(teamTyping) : []
   },
 
+  // === Team Settings ===
+
+  setAIEnabled: (teamId, enabled) =>
+    set((state) => {
+      const aiEnabled = new Map(state.settings.aiEnabled)
+      aiEnabled.set(teamId, enabled)
+      console.log('[RealtimeStore] 🤖 AI toggle for team', teamId, ':', enabled ? 'enabled' : 'disabled')
+      
+      return {
+        settings: {
+          ...state.settings,
+          aiEnabled,
+        },
+      }
+    }),
+
+  isAIEnabled: (teamId) => {
+    const enabled = get().settings.aiEnabled.get(teamId)
+    return enabled ?? true // Default to enabled if not set
+  },
+
   // === Utility ===
 
   clear: () =>
@@ -286,6 +325,9 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
       presence: {
         onlineUsers: new Set(['agent']),
         typingUsers: new Map(),
+      },
+      settings: {
+        aiEnabled: new Map(),
       },
     }),
 }))

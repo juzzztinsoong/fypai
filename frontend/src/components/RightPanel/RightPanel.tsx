@@ -1,6 +1,7 @@
 import { useCurrentTeam } from '../../stores/teamStore';
 import { useAIInsightsStore } from '../../stores/aiInsightsStore';
 import { useRealtimeStore } from '@/core/eventBus/RealtimeStore';
+import { socketService } from '@/services';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
 import { InsightsList } from './InsightsList';
@@ -51,8 +52,9 @@ export const RightPanel = () => {
   
   // UI state from aiInsightsStore - extract only what we need
   const fetchInsights = useAIInsightsStore((state) => state.fetchInsights);
-  const isAIEnabled = useAIInsightsStore((state) => state.isAIEnabled);
-  const toggleAI = useAIInsightsStore((state) => state.toggleAI);
+  
+  // Get AI enabled state from RealtimeStore (synced across all team members)
+  const isTeamAIEnabled = useRealtimeStore((state) => state.isAIEnabled(teamId || ''));
   
   // Subscribe to this team's insights array directly
   // Returns stable EMPTY_INSIGHTS_ARRAY if no insights exist for this team
@@ -60,6 +62,7 @@ export const RightPanel = () => {
   
   const [contentFilter, setContentFilter] = useState<'all' | 'summaries' | 'actions' | 'suggestions'>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const toggleTimeoutRef = useRef<number | null>(null);
 
   // ✅ Fetch insights when team changes (publishes to Event Bus → RealtimeStore)
   useEffect(() => {
@@ -113,16 +116,33 @@ export const RightPanel = () => {
   const actionCount = insights.filter(i => i.type === 'action').length;
   const suggestionCount = insights.filter(i => i.type === 'suggestion').length;
   const totalContent = insights.length;
-  
-  // Get AI enabled state for current team
-  const isTeamAIEnabled = teamId ? isAIEnabled(teamId) : true;
 
   const handleToggleAI = () => {
-    if (teamId) {
-      toggleAI(teamId);
-      console.log('AI Assistant for', teamName, ':', !isTeamAIEnabled ? 'enabled' : 'disabled');
+    if (!teamId) return;
+
+    // Optimistic update - update local state immediately
+    const newState = !isTeamAIEnabled;
+    useRealtimeStore.getState().setAIEnabled(teamId, newState);
+
+    // Debounce socket emission to prevent race conditions (500ms delay)
+    if (toggleTimeoutRef.current) {
+      clearTimeout(toggleTimeoutRef.current);
     }
+
+    toggleTimeoutRef.current = window.setTimeout(() => {
+      socketService.toggleTeamAI(teamId, newState);
+      console.log('[RightPanel] 🤖 AI toggled for team', teamId, ':', newState ? 'enabled' : 'disabled');
+    }, 500);
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Show empty state when no team selected (AFTER all hooks)
   if (!teamId) {

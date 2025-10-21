@@ -220,9 +220,13 @@ class SocketService {
    * @param isTyping - True if user is typing, false if stopped
    */
   sendTypingIndicator(teamId: string, userId: string, isTyping: boolean): void {
-    if (!this.socket?.connected) return
+    if (!this.socket?.connected) {
+      console.warn('[SocketService] ⚠️  Cannot send typing indicator - socket not connected')
+      return
+    }
 
     const event = isTyping ? 'typing:start' : 'typing:stop'
+    console.log(`[SocketService] ⌨️  Emitting ${event}`, { teamId, userId, socketId: this.socket.id })
     this.socket.emit(event, { teamId, userId })
   }
 
@@ -233,6 +237,21 @@ class SocketService {
     if (!this.socket?.connected) return
 
     this.socket.emit('presence:get')
+  }
+
+  /**
+   * Toggle AI assistant for a team (broadcast to all team members)
+   * @param teamId - Team ID
+   * @param enabled - True to enable AI, false to disable
+   */
+  toggleTeamAI(teamId: string, enabled: boolean): void {
+    if (!this.socket?.connected) {
+      console.warn('[SocketService] ⚠️  Cannot toggle AI - socket not connected')
+      return
+    }
+
+    console.log(`[SocketService] 🤖 Emitting ai:toggle`, { teamId, enabled, socketId: this.socket.id })
+    this.socket.emit('ai:toggle', { teamId, enabled })
   }
 
   /**

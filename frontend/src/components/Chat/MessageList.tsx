@@ -22,12 +22,13 @@
  * Usage:
  *   - Used in ChatWindow to display chat history for the active team
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { useChatStore } from '../../stores/chatStore'
 import { useUserStore } from '../../stores/userStore'
 import { useCurrentTeam } from '../../stores/teamStore'
 import { usePresenceStore } from '../../stores/presenceStore'
 import { useRealtimeStore } from '@/core/eventBus/RealtimeStore'
+import { TypingIndicator } from './TypingIndicator'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
 
 export const MessageList = () => {
@@ -37,6 +38,15 @@ export const MessageList = () => {
   // Subscribe to this team's messages array directly
   // Returns stable EMPTY_ARRAY if no messages exist for this team
   const messages = useRealtimeStore((state) => state.getMessages(teamId))
+  
+  // Subscribe to the typing users Map directly (stable reference)
+  const typingUsersMap = useRealtimeStore((state) => state.presence.typingUsers)
+  
+  // Convert the Set to an array in useMemo (only re-runs when Set changes)
+  const typingUserIds = useMemo(() => {
+    const teamTyping = typingUsersMap.get(teamId)
+    return teamTyping ? Array.from(teamTyping) : []
+  }, [typingUsersMap, teamId])
   
   console.log('[MessageList] 🎨 Component rendering, teamId:', teamId, 'messages count:', messages.length)
   
@@ -49,6 +59,25 @@ export const MessageList = () => {
   const { isUserOnline } = usePresenceStore()
   const members = team?.members || []
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Map typing user IDs to names and filter out current user
+  const typingUserNames = useMemo(() => {
+    if (!typingUserIds || typingUserIds.length === 0) return []
+    
+    return typingUserIds
+      .filter((id) => id !== user.id) // Don't show "You are typing"
+      .map((id) => {
+        if (id === 'agent') return null // Handle agent separately
+        const member = members.find((m) => m.userId === id)
+        return member?.name || null
+      })
+      .filter((name): name is string => name !== null)
+  }, [typingUserIds, user.id, members])
+
+  // Check if agent is typing
+  const isAgentTyping = useMemo(() => {
+    return typingUserIds?.includes('agent') || false
+  }, [typingUserIds])
 
   // Fetch messages when team changes (publishes to Event Bus → RealtimeStore)
   useEffect(() => {
@@ -102,7 +131,7 @@ export const MessageList = () => {
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-500 mb-1">You</span>
                   <div className="bg-blue-600 text-white rounded-lg p-3 max-w-[70%]">
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                   </div>
                 </div>
                 <div className="relative">
@@ -123,7 +152,7 @@ export const MessageList = () => {
               <div className="flex flex-col items-center">
                 <span className="text-xs text-purple-700 mb-1 font-bold">AI Assistant</span>
                 <div className="bg-purple-500 text-white rounded-xl p-3 max-w-[70%] shadow-lg animate-pulse">
-                  <p className="whitespace-pre-wrap font-semibold">{message.content}</p>
+                  <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere font-semibold">{message.content}</p>
                 </div>
                 <div className="mt-2 relative">
                   <svg className="w-8 h-8 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
@@ -156,7 +185,7 @@ export const MessageList = () => {
                 <div className="flex flex-col items-start">
                   <span className="text-xs text-gray-500 mb-1">{member?.name || 'User'}</span>
                   <div className={`border-2 ${borderColor} rounded-lg p-3 max-w-[70%] bg-white text-gray-900`}> 
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
                   </div>
                 </div>
               </div>
@@ -164,6 +193,11 @@ export const MessageList = () => {
           )
         }
       })}
+      
+      {/* Typing indicator */}
+      {(typingUserNames.length > 0 || isAgentTyping) && (
+        <TypingIndicator userNames={typingUserNames} isAgentTyping={isAgentTyping} />
+      )}
     </div>
   )
 }

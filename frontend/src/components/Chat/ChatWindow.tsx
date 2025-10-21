@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useChatStore } from '../../stores/chatStore'
 import { useCurrentTeam } from '../../stores/teamStore'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
 import { useUserStore } from '../../stores/userStore'
+import { socketService } from '@/services/socketService'
 
 /**
  * ChatWindow Component
@@ -38,10 +39,61 @@ export const ChatWindow = () => {
   // Use API method instead of direct mutation
   const sendMessage = useChatStore((state) => state.sendMessage)
   const { user } = useUserStore()
+  
+  // Track typing state to avoid spamming socket events
+  const isTypingRef = useRef(false)
+  const typingTimeoutRef = useRef<number | null>(null)
+
+  // Send typing indicator (debounced)
+  const handleTypingStart = useCallback(() => {
+    if (!currentTeam || isTypingRef.current) return
+    
+    isTypingRef.current = true
+    socketService.sendTypingIndicator(currentTeam.id, user.id, true)
+    console.log('[ChatWindow] 👆 Typing started')
+  }, [currentTeam, user.id])
+
+  const handleTypingStop = useCallback(() => {
+    if (!currentTeam || !isTypingRef.current) return
+    
+    isTypingRef.current = false
+    socketService.sendTypingIndicator(currentTeam.id, user.id, false)
+    console.log('[ChatWindow] 👇 Typing stopped')
+  }, [currentTeam, user.id])
+
+  // Handle input change with typing indicators
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewMessage(e.target.value)
+    
+    // Start typing if not already
+    if (e.target.value.length > 0 && !isTypingRef.current) {
+      handleTypingStart()
+    }
+    
+    // Reset timeout - stop typing after 3s of inactivity
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+    
+    if (e.target.value.length > 0) {
+      typingTimeoutRef.current = setTimeout(() => {
+        handleTypingStop()
+      }, 3000)
+    } else {
+      // Empty input = stop typing immediately
+      handleTypingStop()
+    }
+  }
 
   // handleSend(): sends message via API
   const handleSend = async () => {
     if (!newMessage.trim() || !currentTeam) return
+
+    // Stop typing indicator before sending
+    handleTypingStop()
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
 
     try {
       await sendMessage({
@@ -75,7 +127,7 @@ export const ChatWindow = () => {
         <div className="flex space-x-2">
           <textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
