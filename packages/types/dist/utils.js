@@ -67,7 +67,9 @@ export function teamToDTO(team) {
     return {
         id: team.id,
         name: team.name,
+        isChimeEnabled: team.isChimeEnabled,
         createdAt: dateToISOString(team.createdAt),
+        updatedAt: dateToISOString(team.updatedAt),
     };
 }
 export function messageToDTO(message, author) {
@@ -110,7 +112,9 @@ export function teamWithMembersToDTO(team, teamMembers) {
     return {
         id: team.id,
         name: team.name,
+        isChimeEnabled: team.isChimeEnabled,
         createdAt: dateToISOString(team.createdAt),
+        updatedAt: dateToISOString(team.updatedAt),
         members: teamMembers.map(({ teamMember, user }) => ({
             id: teamMember.id,
             userId: user.id,

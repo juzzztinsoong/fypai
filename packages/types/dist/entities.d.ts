@@ -32,7 +32,9 @@ export interface User {
 export interface Team {
     id: string;
     name: string;
+    isChimeEnabled: boolean;
     createdAt: Date;
+    updatedAt: Date;
 }
 /**
  * TeamMember Entity

@@ -1,74 +1,96 @@
 /**
- * CHAT STORE (Zustand)
+ * CHAT STORE (Zustand) - REFACTORED for Event Bus Architecture
  *
- * Tech Stack: Zustand, TypeScript, @fypai/types
- * Purpose: Manage per-team chat history and message operations for multi-team chat app
+ * Tech Stack: Zustand, TypeScript, @fypai/types, Event Bus
+ * Purpose: Manage UI state for chat (loading, errors) and delegate data to RealtimeStore
  *
  * State:
- *   - chat: Record<string, MessageDTO[]> - all chat histories by teamId
- *   - messages: MessageDTO[] - current team's messages (for MessageList compatibility)
+ *   - isLoading: boolean - API request loading state
+ *   - error: string | null - Last error message
+ *   - currentTeamId: string | null - Currently selected team (for filtering)
  *
  * Methods & Arguments:
- *   - setMessages(teamId: string, messages: MessageDTO[]): sets messages for a team
- *   - addMessage(teamId: string, message: MessageDTO): adds message to team chat
- *   - updateMessage(teamId: string, messageId: string, updates: Partial<MessageDTO>): updates a message
- *   - deleteMessage(teamId: string, messageId: string): deletes a message
- *   - setCurrentTeamMessages(messages: MessageDTO[]): sets messages for current team (UI sync)
+ *   - fetchMessages(teamId: string): fetch messages from API (publishes to Event Bus)
+ *   - sendMessage(data: CreateMessageRequest): send message via API (publishes to Event Bus)
+ *   - updateMessageById(messageId: string, updates: UpdateMessageRequest): update message via API
+ *   - deleteMessageById(messageId: string): delete message via API
+ *   - setCurrentTeam(teamId: string): sets current team for filtering
+ *   - getMessages(teamId: string): reads messages from RealtimeStore
+ *   - getCurrentMessages(): reads current team's messages from RealtimeStore
  *
  * Architecture:
- *   - Uses MessageDTO from @fypai/types (matches backend API responses)
- *   - Messages include optional author info (for display without extra lookups)
- *   - Timestamps are ISO strings, metadata is parsed object
+ *   - NO LONGER stores messages directly (delegated to RealtimeStore)
+ *   - Services publish to Event Bus → Event Bridge → RealtimeStore updates
+ *   - This store reads from RealtimeStore via selectors
+ *   - Socket Bridge handles real-time events (no direct socket listeners here)
+ *   - Backward compatible: provides same interface for components
+ *
+ * Migration Notes:
+ *   - Old: chatStore.messages → New: chatStore.getCurrentMessages() or read from RealtimeStore
+ *   - Old: chatStore.chat[teamId] → New: chatStore.getMessages(teamId)
+ *   - Socket listeners removed (handled by Socket Bridge → Event Bus)
  *
  * Exports:
- *   - useChatStore: Zustand hook for chat state/methods
+ *   - useChatStore: Zustand hook for chat UI state/methods
  */
 import { create } from 'zustand';
 import type { MessageDTO, CreateMessageRequest, UpdateMessageRequest } from '../types';
-import { messageService, getErrorMessage, socketService } from '@/services';
+import { messageService, getErrorMessage } from '@/services';
+import { useRealtimeStore } from '@/core/eventBus/RealtimeStore';
 
 interface ChatState {
-  chat: Record<string, MessageDTO[]>;
-  messages: MessageDTO[];
+  // UI State only
   isLoading: boolean;
   error: string | null;
-  isSocketListening: boolean;
+  currentTeamId: string | null;
+  
+  // API Methods (trigger Event Bus publications)
   fetchMessages: (teamId: string) => Promise<void>;
   sendMessage: (data: CreateMessageRequest) => Promise<MessageDTO>;
   updateMessageById: (messageId: string, updates: UpdateMessageRequest) => Promise<void>;
   deleteMessageById: (messageId: string) => Promise<void>;
+  
+  // UI State Methods
+  setCurrentTeam: (teamId: string) => void;
+  
+  // Data Readers (delegate to RealtimeStore)
+  getMessages: (teamId: string) => MessageDTO[];
+  getCurrentMessages: () => MessageDTO[];
+  
+  // DEPRECATED (kept for backward compatibility during migration)
+  messages: MessageDTO[]; // Getter property that delegates to RealtimeStore
+  chat: Record<string, MessageDTO[]>; // Getter property that delegates to RealtimeStore
   setMessages: (teamId: string, messages: MessageDTO[]) => void;
-  addMessage: (teamId: string, message: MessageDTO) => void;
-  updateMessage: (teamId: string, messageId: string, updates: Partial<MessageDTO>) => void;
-  deleteMessage: (teamId: string, messageId: string) => void;
   setCurrentTeamMessages: (messages: MessageDTO[]) => void;
   initializeSocketListeners: () => void;
   cleanupSocketListeners: () => void;
-  // Filter helpers for long-form content
-  getLongFormMessages: (teamId: string) => MessageDTO[];
-  getMessagesByType: (teamId: string, longFormType?: 'summary' | 'code' | 'document') => MessageDTO[];
 }
 
-// Mock initial chat data (kept for backward compatibility)
-const initialChat: Record<string, MessageDTO[]> = {};
-
 export const useChatStore = create<ChatState>()((set, get) => ({
-  chat: initialChat,
-  messages: [],
+  // UI State
   isLoading: false,
   error: null,
-  isSocketListening: false,
+  currentTeamId: null,
 
-  // API Methods
+  // DEPRECATED - Backward compatibility getters (delegate to RealtimeStore)
+  get messages(): MessageDTO[] {
+    const { currentTeamId } = get();
+    if (!currentTeamId) return [];
+    return get().getMessages(currentTeamId);
+  },
+  get chat(): Record<string, MessageDTO[]> {
+    return useRealtimeStore.getState().messages;
+  },
+
+  // API Methods - these now trigger Event Bus publications via services
   fetchMessages: async (teamId: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, currentTeamId: teamId });
     try {
-      const messages = await messageService.getMessages(teamId);
-      set((state) => ({
-        chat: { ...state.chat, [teamId]: messages },
-        messages: messages,
-        isLoading: false,
-      }));
+      // messageService.getMessages publishes 'messages:fetched' event to Event Bus
+      // Event Bridge → RealtimeStore updates automatically
+      await messageService.getMessages(teamId);
+      set({ isLoading: false });
+      console.log('[ChatStore] ✅ Messages fetched for team:', teamId);
     } catch (error) {
       console.error('[ChatStore] Failed to fetch messages:', error);
       set({ error: getErrorMessage(error), isLoading: false });
@@ -78,16 +100,10 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   sendMessage: async (data: CreateMessageRequest) => {
     set({ isLoading: true, error: null });
     try {
-      // Send message via HTTP API
+      // messageService.createMessage publishes 'message:created' event to Event Bus with requestId
+      // Event Bridge → RealtimeStore handles both REST response and socket event (deduplication)
       const newMessage = await messageService.createMessage(data);
-      
-      console.log('[ChatStore] 📤 Message created by backend:', newMessage.id);
-      
-      // Optimistically add message for immediate feedback
-      // Backend will also broadcast via socket, but socket listener will check for duplicates
-      const teamId = data.teamId;
-      get().addMessage(teamId, newMessage);
-      console.log('[ChatStore] ✅ Optimistically added message:', newMessage.id);
+      console.log('[ChatStore] ✅ Message sent:', newMessage.id);
       
       set({ isLoading: false });
       return newMessage;
@@ -101,9 +117,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   updateMessageById: async (messageId: string, updates: UpdateMessageRequest) => {
     set({ isLoading: true, error: null });
     try {
-      const updatedMessage = await messageService.updateMessage(messageId, updates);
-      const teamId = updatedMessage.teamId;
-      get().updateMessage(teamId, messageId, updatedMessage);
+      // messageService.updateMessage publishes 'message:updated' event to Event Bus
+      await messageService.updateMessage(messageId, updates);
+      console.log('[ChatStore] ✅ Message updated:', messageId);
       set({ isLoading: false });
     } catch (error) {
       console.error('[ChatStore] Failed to update message:', error);
@@ -115,15 +131,26 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   deleteMessageById: async (messageId: string) => {
     set({ isLoading: true, error: null });
     try {
-      await messageService.deleteMessage(messageId);
-      // Remove from all teams
-      const state = get();
-      Object.keys(state.chat).forEach((teamId) => {
-        const messageInTeam = state.chat[teamId].find((m) => m.id === messageId);
-        if (messageInTeam) {
-          get().deleteMessage(teamId, messageId);
+      // Find teamId from RealtimeStore
+      const realtimeMessages = useRealtimeStore.getState().messages;
+      let teamId: string | null = null;
+      
+      for (const tid of Object.keys(realtimeMessages)) {
+        const messageExists = realtimeMessages[tid]?.find((m: MessageDTO) => m.id === messageId);
+        if (messageExists) {
+          teamId = tid;
+          break;
         }
-      });
+      }
+      
+      if (!teamId) {
+        throw new Error(`Message ${messageId} not found in any team`);
+      }
+      
+      // messageService.deleteMessage publishes 'message:deleted' event to Event Bus
+      await messageService.deleteMessage(messageId, teamId);
+      console.log('[ChatStore] ✅ Message deleted:', messageId);
+      
       set({ isLoading: false });
     } catch (error) {
       console.error('[ChatStore] Failed to delete message:', error);
@@ -132,171 +159,40 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     }
   },
 
-  // Internal state setters (keep existing functionality)
-  setMessages: (teamId, messages) =>
-    set((state) => ({
-      chat: { ...state.chat, [teamId]: messages },
-      messages: messages, // Always update messages when explicitly set
-    })),
+  // UI State Methods
+  setCurrentTeam: (teamId: string) => {
+    set({ currentTeamId: teamId });
+    console.log('[ChatStore] Current team set to:', teamId);
+  },
 
-  addMessage: (teamId, message) =>
-    set((state) => {
-      console.log('[ChatStore] 🔵 addMessage called:', {
-        teamId,
-        messageId: message.id,
-        currentMessagesCount: state.messages.length,
-        currentTeamId: state.messages?.[0]?.teamId,
-        chatTeamMessagesCount: state.chat[teamId]?.length || 0,
-      });
+  // Data Readers - delegate to RealtimeStore
+  getMessages: (teamId: string) => {
+    const realtimeMessages = useRealtimeStore.getState().messages;
+    return realtimeMessages[teamId] || [];
+  },
 
-      // Check if message already exists (prevents duplicates from race conditions)
-      const teamMessages = state.chat[teamId] || [];
-      const messageExists = teamMessages.some((m) => m.id === message.id);
-      
-      if (messageExists) {
-        console.log('[ChatStore] ⏭️  Message already exists, skipping add:', message.id);
-        return state; // No state change
-      }
+  getCurrentMessages: () => {
+    const { currentTeamId } = get();
+    if (!currentTeamId) return [];
+    return get().getMessages(currentTeamId);
+  },
 
-      const newTeamMessages = [...teamMessages, message];
-      const newChat = {
-        ...state.chat,
-        [teamId]: newTeamMessages,
-      };
-      
-      // Only update 'messages' if this is for the currently displayed team
-      // Check if the new message's teamId matches the first message in current messages
-      const currentTeamId = state.messages?.[0]?.teamId;
-      const shouldUpdateMessages = !currentTeamId || teamId === currentTeamId;
-      
-      console.log('[ChatStore] 🔵 addMessage decision:', {
-        currentTeamId,
-        incomingTeamId: teamId,
-        shouldUpdateMessages,
-        newMessagesCount: newTeamMessages.length,
-      });
-      
-      const newState = {
-        chat: newChat,
-        messages: shouldUpdateMessages ? newTeamMessages : state.messages,
-      };
+  // DEPRECATED (no-op stubs for backward compatibility during migration)
+  setMessages: (_teamId: string, _messages: MessageDTO[]) => {
+    console.log('[ChatStore] ⚠️ DEPRECATED: setMessages() - data now managed by RealtimeStore');
+    // No-op: RealtimeStore handles this via Event Bus
+  },
 
-      console.log('[ChatStore] 🔵 addMessage result:', {
-        messagesCount: newState.messages.length,
-        messagesTeamId: newState.messages?.[0]?.teamId,
-      });
+  setCurrentTeamMessages: (_messages: MessageDTO[]) => {
+    console.log('[ChatStore] ⚠️ DEPRECATED: setCurrentTeamMessages() - data now managed by RealtimeStore');
+    // No-op: RealtimeStore handles this via Event Bus
+  },
 
-      return newState;
-    }),
-
-  updateMessage: (teamId, messageId, updates) =>
-    set((state) => {
-      const updatedTeamMessages = (state.chat[teamId] || []).map((m) =>
-        m.id === messageId ? { ...m, ...updates } : m
-      );
-      
-      const newChat = {
-        ...state.chat,
-        [teamId]: updatedTeamMessages,
-      };
-      
-      // Only update 'messages' if this is for the currently displayed team
-      const currentTeamId = state.messages?.[0]?.teamId;
-      const shouldUpdateMessages = !currentTeamId || teamId === currentTeamId;
-      
-      return {
-        chat: newChat,
-        messages: shouldUpdateMessages ? updatedTeamMessages : state.messages,
-      };
-    }),
-
-  deleteMessage: (teamId, messageId) =>
-    set((state) => {
-      const filteredTeamMessages = (state.chat[teamId] || []).filter((m) => m.id !== messageId);
-      
-      const newChat = {
-        ...state.chat,
-        [teamId]: filteredTeamMessages,
-      };
-      
-      // Only update 'messages' if this is for the currently displayed team
-      const currentTeamId = state.messages?.[0]?.teamId;
-      const shouldUpdateMessages = !currentTeamId || teamId === currentTeamId;
-      
-      return {
-        chat: newChat,
-        messages: shouldUpdateMessages ? filteredTeamMessages : state.messages,
-      };
-    }),
-
-  setCurrentTeamMessages: (messages) => set({ messages }),
-
-  // Socket Listeners Setup
   initializeSocketListeners: () => {
-    if (get().isSocketListening) {
-      console.log('[ChatStore] Socket listeners already initialized');
-      return;
-    }
-
-    console.log('[ChatStore] Initializing socket listeners for real-time sync');
-
-    // Listen for new messages from other users or AI
-    socketService.onMessage((message: MessageDTO) => {
-      console.log('[ChatStore] 📨 Received message via socket:', message.id, 'for team:', message.teamId);
-      
-      // addMessage now handles duplicate detection internally
-      get().addMessage(message.teamId, message);
-    });
-
-    // Listen for message edits
-    socketService.onMessageEdit((message: MessageDTO) => {
-      console.log('[ChatStore] Message edited via socket:', message.id);
-      get().updateMessage(message.teamId, message.id, message);
-    });
-
-    // Listen for message deletions
-    socketService.onMessageDelete((data: { messageId: string }) => {
-      console.log('[ChatStore] Message deleted via socket:', data.messageId);
-      // Find which team the message belongs to and delete it
-      const state = get();
-      Object.keys(state.chat).forEach((teamId) => {
-        const messageExists = state.chat[teamId].find((m) => m.id === data.messageId);
-        if (messageExists) {
-          get().deleteMessage(teamId, data.messageId);
-        }
-      });
-    });
-
-    set({ isSocketListening: true });
+    console.log('[ChatStore] ⚠️ DEPRECATED: Socket listeners now handled by Socket Bridge');
   },
 
   cleanupSocketListeners: () => {
-    console.log('[ChatStore] Cleaning up socket listeners');
-    socketService.off('message:new');
-    socketService.off('message:edited');
-    socketService.off('message:deleted');
-    set({ isSocketListening: false });
-  },
-
-  // Filter helpers for AI long-form content
-  getLongFormMessages: (teamId: string) => {
-    const state = get();
-    const teamMessages = state.chat[teamId] || [];
-    return teamMessages.filter((m) => m.contentType === 'ai_longform');
-  },
-
-  getMessagesByType: (teamId: string, longFormType?: 'summary' | 'code' | 'document') => {
-    const state = get();
-    const teamMessages = state.chat[teamId] || [];
-    
-    if (!longFormType) {
-      // Return all messages (for "All" tab)
-      return teamMessages;
-    }
-    
-    // Filter by long-form type
-    return teamMessages.filter(
-      (m) => m.contentType === 'ai_longform' && m.metadata?.longFormType === longFormType
-    );
+    console.log('[ChatStore] ⚠️ DEPRECATED: Socket cleanup now handled by Socket Bridge');
   },
 }));

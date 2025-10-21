@@ -5,18 +5,12 @@ import { RightPanel } from './components/RightPanel/RightPanel'
 // import { RightPanelTest1, RightPanelTest2, RightPanelTest3, RightPanelTest4, RightPanelTest5, RightPanelTest6, RightPanelTest7 } from './components/RightPanel/RightPanel.test'
 import { useTeamStore } from './stores/teamStore'
 import { useUserStore } from './stores/userStore'
-import { usePresenceStore } from './stores/presenceStore'
-import { useChatStore } from './stores/chatStore'
-import { useAIInsightsStore } from './stores/aiInsightsStore'
 
 function App() {
   const fetchTeams = useTeamStore((state) => state.fetchTeams)
   const teams = useTeamStore((state) => state.teams)
   const fetchUser = useUserStore((state) => state.fetchUser)
   const user = useUserStore((state) => state.user)
-  const { connect, disconnect } = usePresenceStore()
-  const { initializeSocketListeners, cleanupSocketListeners } = useChatStore()
-  const { initializeInsightListeners, cleanupInsightListeners } = useAIInsightsStore()
 
   useEffect(() => {
     // Initialize the application by fetching user and teams
@@ -34,30 +28,13 @@ function App() {
         // Fetch teams for the user
         await fetchTeams(userId)
         console.log('[App] Teams fetched')
-        
-        // Connect to WebSocket for real-time updates (WAIT for connection)
-        await connect(userId)
-        console.log('[App] ✅ WebSocket connected and ready')
-        
-        // NOW initialize socket listeners (socket is connected)
-        initializeSocketListeners()
-        console.log('[App] ✅ Chat socket listeners initialized')
-        
-        initializeInsightListeners()
-        console.log('[App] ✅ Insight socket listeners initialized')
+        console.log('[App] ✅ Application initialized')
       } catch (error) {
         console.error('[App] Failed to initialize:', error)
       }
     }
 
     initializeApp()
-
-    // Cleanup on unmount
-    return () => {
-      cleanupSocketListeners()
-      cleanupInsightListeners()
-      disconnect()
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only run once on mount
 
