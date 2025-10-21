@@ -146,6 +146,20 @@ export class TeamController {
   }
 
   /**
+   * Update team AI enabled state (for chime toggle)
+   * @param {string} id - Team ID
+   * @param {boolean} enabled - AI enabled state
+   * @returns {Promise<void>}
+   */
+  static async updateTeamAIEnabled(id: string, enabled: boolean): Promise<void> {
+    await prisma.team.update({
+      where: { id },
+      data: { isChimeEnabled: enabled }
+    })
+    console.log(`[TeamController] 🤖 Updated AI enabled for team ${id}:`, enabled)
+  }
+
+  /**
    * Delete a team (cascade deletes members and messages)
    * @param {string} id - Team ID
    * @returns {Promise<void>}

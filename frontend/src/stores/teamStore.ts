@@ -64,6 +64,13 @@ export const useTeamStore = create<TeamState>()((set, get) => ({
       const teams = await teamService.getTeamsForUser(userId)
       set({ teams, isLoading: false })
       
+      // Sync AI enabled state from team data to RealtimeStore
+      const { useRealtimeStore } = await import('@/core/eventBus/RealtimeStore')
+      teams.forEach(team => {
+        useRealtimeStore.getState().setAIEnabled(team.id, team.isChimeEnabled)
+      })
+      console.log('[TeamStore] 🤖 Synced AI toggle state from server for', teams.length, 'teams')
+      
       // Set first team as current if none selected
       if (!get().currentTeamId && teams.length > 0) {
         get().setCurrentTeam(teams[0].id)

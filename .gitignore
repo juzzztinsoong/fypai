@@ -3,6 +3,9 @@
 
 # Build output
 **/dist/
+/packages/types/dist
 
 *.js.map
 *.ts.map
+
+

@@ -16,6 +16,7 @@
 
 import { MessageController } from '../controllers/messageController.js'
 import { AIAgentController } from '../controllers/aiAgentController.js'
+import { TeamController } from '../controllers/teamController.js'
 import { setupPresenceHandlers } from './presenceHandler.js'
 import { Server, Socket } from 'socket.io'
 
@@ -108,13 +109,21 @@ export function setupSocketHandlers(io: Server): void {
      * Broadcast to all team members to sync UI state
      * Payload: { teamId, enabled }
      */
-    socket.on('ai:toggle', ({ teamId, enabled }) => {
-      // Update AI agent controller state
-      AIAgentController.setAIEnabled(teamId, enabled);
-      
-      // Broadcast to all OTHER team members (sender already updated locally)
-      socket.to(`team:${teamId}`).emit('ai:toggle', { teamId, enabled });
-      console.log(`[SOCKET] AI ${enabled ? 'enabled' : 'disabled'} for team:${teamId}`);
+    socket.on('ai:toggle', async ({ teamId, enabled }) => {
+      try {
+        // Persist to database
+        await TeamController.updateTeamAIEnabled(teamId, enabled);
+        
+        // Update AI agent controller state
+        AIAgentController.setAIEnabled(teamId, enabled);
+        
+        // Broadcast to all OTHER team members (sender already updated locally)
+        socket.to(`team:${teamId}`).emit('ai:toggle', { teamId, enabled });
+        console.log(`[SOCKET] 🤖 AI ${enabled ? 'enabled' : 'disabled'} for team:${teamId} (persisted to DB)`);
+      } catch (error) {
+        console.error('[SOCKET] ai:toggle error:', error);
+        socket.emit('error', { message: 'Failed to toggle AI' });
+      }
     });
 
     /**

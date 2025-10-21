@@ -62,14 +62,8 @@ interface AIInsightsState {
 }
 
 export const useAIInsightsStore = create<AIInsightsState>()((set, get) => ({
-  // UI State
-  aiEnabled: {
-    team1: true,
-    team2: true,
-    team3: true,
-    team4: true,
-    team5: true,
-  },
+  // UI State (DEPRECATED - now delegated to RealtimeStore)
+  aiEnabled: {},  // Legacy field - now reads from RealtimeStore.isAIEnabled()
   isLoading: false,
   error: null,
 

@@ -313,7 +313,7 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
 
   isAIEnabled: (teamId) => {
     const enabled = get().settings.aiEnabled.get(teamId)
-    return enabled ?? true // Default to enabled if not set
+    return enabled ?? false // Default to disabled until loaded from server
   },
 
   // === Utility ===
