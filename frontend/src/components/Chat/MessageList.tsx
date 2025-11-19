@@ -1,104 +1,106 @@
 /**
  * MessageList Component
  *
- * Tech Stack: React (Vite), RealtimeStore for data, Zustand for UI state, Tailwind CSS
- * Patterns: Stateless functional component, Event Bus architecture
- * Requirements:
- *   - Display all messages for the current team from RealtimeStore
- *   - Differentiate user and agent messages visually
- *   - Show author label and message bubble
- *   - Support multi-line messages
- *   - Fetch messages from backend when team changes
+ * Per Refactoring Guide Section 1.3:
+ * - Uses EntityStore for messages (normalized data)
+ * - Uses UIStore for current team context
+ * - Uses SessionStore for current user and typing indicators
+ * - No Event Bus, no RealtimeStore
  *
- * Architecture:
- *   - Subscribes directly to RealtimeStore for message data
- *   - Uses chatStore only for loading/error UI state
- *   - No direct socket dependencies (handled by Socket Bridge)
- *
- * Methods & Arguments:
- *   - MessageList(): No arguments. Uses stores for state.
- *     - Returns: JSX.Element (list of messages)
- *
- * Usage:
- *   - Used in ChatWindow to display chat history for the active team
+ * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
  */
 import { useEffect, useRef, useMemo } from 'react'
-import { useChatStore } from '../../stores/chatStore'
-import { useUserStore } from '../../stores/userStore'
-import { useCurrentTeam } from '../../stores/teamStore'
-import { usePresenceStore } from '../../stores/presenceStore'
-import { useRealtimeStore } from '@/core/eventBus/RealtimeStore'
+import { useEntityStore } from '@/stores/entityStore'
+import { useUIStore } from '@/stores/uiStore'
+import { useSessionStore } from '@/stores/sessionStore'
+import { getMessages } from '@/services/messageService'
 import { TypingIndicator } from './TypingIndicator'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
 
+const EMPTY_ARRAY: readonly string[] = Object.freeze([])
+
 export const MessageList = () => {
-  const team = useCurrentTeam()
-  const teamId = team?.id || ''
+  // Get current team from UIStore
+  const currentTeamId = useUIStore((state) => state.currentTeamId)
+  console.log('[MessageList] currentTeamId:', currentTeamId)
   
-  // Subscribe to this team's messages array directly
-  // Returns stable EMPTY_ARRAY if no messages exist for this team
-  const messages = useRealtimeStore((state) => state.getMessages(teamId))
+  // FIXED: Subscribe directly to the relationship array (reactive)
+  const messageIds = useEntityStore((state) => 
+    state.relationships.teamMessages[currentTeamId || ''] || EMPTY_ARRAY
+  )
+  const messagesById = useEntityStore((state) => state.entities.messages)
+  const usersById = useEntityStore((state) => state.entities.users)
   
-  // Subscribe to the typing users Map directly (stable reference)
-  const typingUsersMap = useRealtimeStore((state) => state.presence.typingUsers)
+  // Map to data in useMemo to prevent re-renders
+  const messages = useMemo(() => {
+    return (messageIds as string[])
+      .map(id => messagesById[id])
+      .filter(Boolean)
+      .map(message => ({
+        ...message,
+        author: usersById[message.authorId] || { id: '', name: 'Unknown', email: null, avatar: null, role: 'member' as const, createdAt: new Date().toISOString() }
+      }))
+  }, [messageIds, messagesById, usersById])
   
-  // Convert the Set to an array in useMemo (only re-runs when Set changes)
-  const typingUserIds = useMemo(() => {
-    const teamTyping = typingUsersMap.get(teamId)
-    return teamTyping ? Array.from(teamTyping) : []
-  }, [typingUsersMap, teamId])
+  // Get typing users from SessionStore
+  const typingUserIds = useSessionStore((state) => 
+    state.getTypingUsers(currentTeamId || '')
+  )
   
-  console.log('[MessageList] 🎨 Component rendering, teamId:', teamId, 'messages count:', messages.length)
+  // Get current user from SessionStore
+  const currentUser = useSessionStore((state) => state.currentUser)
   
-  // UI state from chatStore - extract only what we need
-  const fetchMessages = useChatStore((state) => state.fetchMessages)
-  const isLoading = useChatStore((state) => state.isLoading)
-  const error = useChatStore((state) => state.error)
+  // Get loading/error states from UIStore
+  const isLoading = useUIStore((state) => state.getLoading('messages'))
+  const error = useUIStore((state) => state.getError('messages'))
   
-  const { user } = useUserStore()
-  const { isUserOnline } = usePresenceStore()
-  const members = team?.members || []
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Map typing user IDs to names and filter out current user
+  // Map typing user IDs to names (filter out current user)
   const typingUserNames = useMemo(() => {
-    if (!typingUserIds || typingUserIds.length === 0) return []
+    if (!typingUserIds || typingUserIds.length === 0 || !currentUser) return []
     
     return typingUserIds
-      .filter((id) => id !== user.id) // Don't show "You are typing"
+      .filter((id) => id !== currentUser.id && id !== 'agent')
       .map((id) => {
-        if (id === 'agent') return null // Handle agent separately
-        const member = members.find((m) => m.userId === id)
-        return member?.name || null
+        const user = useEntityStore.getState().getUser(id)
+        return user?.name || null
       })
       .filter((name): name is string => name !== null)
-  }, [typingUserIds, user.id, members])
+  }, [typingUserIds, currentUser])
 
   // Check if agent is typing
   const isAgentTyping = useMemo(() => {
     return typingUserIds?.includes('agent') || false
   }, [typingUserIds])
 
-  // Fetch messages when team changes (publishes to Event Bus → RealtimeStore)
+  // Fetch messages when team changes
   useEffect(() => {
-    if (team?.id) {
-      console.log('[MessageList] Fetching messages for team:', team.id)
-      fetchMessages(team.id)
+    console.log('[MessageList] 🔄 useEffect[currentTeamId] fired, teamId:', currentTeamId)
+    if (currentTeamId) {
+      console.log('[MessageList] Fetching messages for team:', currentTeamId)
+      getMessages(currentTeamId)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team?.id]) // Only re-fetch when teamId changes, not when fetchMessages reference changes
+  }, [currentTeamId])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages.length, team?.id])
+  }, [messages.length, currentTeamId])
 
-  // Debug: Log when messages change
-  useEffect(() => {
-    console.log('[MessageList] � Messages from RealtimeStore, count:', messages.length, 'team:', team?.id)
-  }, [messages.length, team?.id])
+  // Get current team and members from EntityStore
+  const team = useEntityStore((state) => 
+    currentTeamId ? state.getTeam(currentTeamId) : null
+  )
+  
+  const members = team?.members || []
+  
+  // Get online status function from SessionStore
+  const isUserOnline = (userId: string) => {
+    return useSessionStore.getState().presence.onlineUsers.includes(userId)
+  }
 
   // Show loading state
   if (isLoading && messages.length === 0) {
@@ -122,9 +124,9 @@ export const MessageList = () => {
     <div ref={scrollRef} className="h-full overflow-y-auto p-4 space-y-4">
       {messages.map((message) => {
         // Message alignment and style
-        if (message.authorId === user.id) {
+        if (message.authorId === currentUser?.id) {
           // Current user: right - use consistent color from team position
-          const userBgColor = getAvatarBackgroundColor(user.id, members);
+          const userBgColor = getAvatarBackgroundColor(currentUser.id, members);
           return (
             <div key={message.id} className="flex justify-end">
               <div className="flex items-center space-x-2">
@@ -136,9 +138,9 @@ export const MessageList = () => {
                 </div>
                 <div className="relative">
                   <div className={`w-8 h-8 rounded-full ${userBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
-                    {getUserInitials(user.name)}
+                    {getUserInitials(currentUser.name)}
                   </div>
-                  {isUserOnline(user.id) && (
+                  {isUserOnline(currentUser.id) && (
                     <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
                   )}
                 </div>

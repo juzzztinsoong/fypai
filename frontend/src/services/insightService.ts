@@ -1,24 +1,25 @@
 /**
  * AI Insight Service
  * 
- * Handles all AI insight-related API operations using shared DTOs
- * Publishes events to Event Bus for unified real-time updates
+ * Per Refactoring Guide Section 1.1:
+ * - Removed Event Bus (call EntityStore directly)
+ * - Handles all AI insight-related API operations
  * 
- * Tech Stack: Axios, Event Bus
+ * Tech Stack: Axios, EntityStore
  * Types: @fypai/types (AIInsightDTO, CreateAIInsightRequest)
  * 
  * Operations:
- * - Get insights for a team (publishes insights:fetched event)
- * - Create new insight (publishes insight:created event)
- * - Delete insight (publishes insight:deleted event)
- * - Generate summary (publishes insight:created event)
- * - Generate report (publishes insight:created event)
+ * - Get insights for a team
+ * - Create new insight
+ * - Delete insight
+ * - Generate summary
+ * - Generate report
  */
 
 import { api, getErrorMessage } from './api'
 import type { AIInsightDTO, CreateAIInsightRequest } from '@fypai/types'
-import { eventBus } from '@/core/eventBus'
-import { EventTransformer } from '@/core/eventBus/EventTransformer'
+import { useEntityStore } from '@/stores/entityStore'
+import { useUIStore } from '@/stores/uiStore'
 
 /**
  * Get all AI insights for a team
@@ -27,39 +28,49 @@ import { EventTransformer } from '@/core/eventBus/EventTransformer'
  * @returns Array of AI insights
  */
 export async function getInsights(teamId: string): Promise<AIInsightDTO[]> {
+  const uiStore = useUIStore.getState()
+  const entityStore = useEntityStore.getState()
+  
+  uiStore.setLoading('insights', true)
+  
   try {
     const response = await api.get<AIInsightDTO[]>('/insights', {
       params: { teamId },
     })
     
-    // Publish to Event Bus for unified updates
-    const event = EventTransformer.insightsFetched(teamId, response.data, 'rest')
-    eventBus.publish(event)
-    console.log('[InsightService] 📤 Published insights:fetched event for team:', teamId)
+    // Add to EntityStore (per guide: call store directly)
+    response.data.forEach(insight => entityStore.addInsight(insight))
+    
+    uiStore.clearError('insights')
+    console.log('[InsightService] ✅ Fetched insights for team:', teamId)
     
     return response.data
   } catch (error) {
-    console.error(`[InsightService] Failed to fetch insights for team ${teamId}:`, getErrorMessage(error))
+    const errorMsg = getErrorMessage(error)
+    uiStore.setError('insights', errorMsg)
+    console.error(`[InsightService] Failed to fetch insights for team ${teamId}:`, errorMsg)
     throw error
+  } finally {
+    uiStore.setLoading('insights', false)
   }
 }
 
 /**
  * Create a new AI insight
  * POST /insights
- * @param data - Insight creation data (teamId, type, priority, content, tags, relatedMessageIds, metadata)
+ * @param data - Insight creation data
  * @returns Newly created insight
  */
 export async function createInsight(data: CreateAIInsightRequest): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+  
   try {
     const response = await api.post<AIInsightDTO>('/insights', data)
-    console.log('[InsightService] Insight created:', response.data.id)
     
-    // Publish to Event Bus with requestId for deduplication
-    const event = EventTransformer.insightCreated(response.data, 'rest')
-    eventBus.publish(event)
-    console.log('[InsightService] 📤 Published insight:created event:', response.data.id)
+    // Add to EntityStore (socket will also broadcast, but that's OK)
+    entityStore.addInsight(response.data)
     
+    console.log('[InsightService] ✅ Insight created:', response.data.id)
     return response.data
   } catch (error) {
     console.error('[InsightService] Failed to create insight:', getErrorMessage(error))
@@ -74,15 +85,15 @@ export async function createInsight(data: CreateAIInsightRequest): Promise<AIIns
  * @returns Deleted insight confirmation
  */
 export async function deleteInsight(insightId: string, teamId: string): Promise<{ id: string }> {
+  const entityStore = useEntityStore.getState()
+  
   try {
     const response = await api.delete<{ id: string }>(`/insights/${insightId}`)
-    console.log('[InsightService] Insight deleted:', insightId)
     
-    // Publish to Event Bus
-    const event = EventTransformer.insightDeleted(insightId, teamId, 'rest')
-    eventBus.publish(event)
-    console.log('[InsightService] 📤 Published insight:deleted event:', insightId)
+    // Remove from EntityStore
+    entityStore.deleteInsight(insightId, teamId)
     
+    console.log('[InsightService] ✅ Insight deleted:', insightId)
     return response.data
   } catch (error) {
     console.error(`[InsightService] Failed to delete insight ${insightId}:`, getErrorMessage(error))
@@ -97,15 +108,15 @@ export async function deleteInsight(insightId: string, teamId: string): Promise<
  * @returns Newly created summary insight
  */
 export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+  
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/summary', { teamId })
-    console.log('[InsightService] Summary generated:', response.data.id)
     
-    // Publish to Event Bus (backend also broadcasts via socket, will be deduplicated)
-    const event = EventTransformer.insightCreated(response.data, 'rest')
-    eventBus.publish(event)
-    console.log('[InsightService] 📤 Published insight:created event (summary):', response.data.id)
+    // Add to EntityStore (backend socket will also broadcast)
+    entityStore.addInsight(response.data)
     
+    console.log('[InsightService] ✅ Summary generated:', response.data.id)
     return response.data
   } catch (error) {
     console.error(`[InsightService] Failed to generate summary for team ${teamId}:`, getErrorMessage(error))
@@ -117,19 +128,19 @@ export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
  * Generate AI-powered discussion report as insight
  * POST /insights/generate/report
  * @param teamId - Team ID to generate report for
- * @param prompt - Optional custom prompt for report generation
+ * @param prompt - Optional custom prompt
  * @returns Newly created report insight
  */
 export async function generateReport(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+  
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/report', { teamId, prompt })
-    console.log('[InsightService] Report generated:', response.data.id)
     
-    // Publish to Event Bus (backend also broadcasts via socket, will be deduplicated)
-    const event = EventTransformer.insightCreated(response.data, 'rest')
-    eventBus.publish(event)
-    console.log('[InsightService] 📤 Published insight:created event (report):', response.data.id)
+    // Add to EntityStore (backend socket will also broadcast)
+    entityStore.addInsight(response.data)
     
+    console.log('[InsightService] ✅ Report generated:', response.data.id)
     return response.data
   } catch (error) {
     console.error(`[InsightService] Failed to generate report for team ${teamId}:`, getErrorMessage(error))

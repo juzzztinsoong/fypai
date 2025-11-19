@@ -37,6 +37,7 @@ import type {
   MessageDTO,
   AIInsightDTO,
 } from '@fypai/types'
+import { useSessionStore } from '../stores/sessionStore'
 
 /**
  * WebSocket Service Class
@@ -48,6 +49,18 @@ class SocketService {
   private currentTeamId: string | null = null
   private reconnectAttempts = 0
   private readonly maxReconnectAttempts = 5
+  private connectionPromise: Promise<void> | null = null
+  
+  // Phase 2.2: Heartbeat system
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null
+  private readonly heartbeatIntervalMs = 30000 // 30 seconds
+  
+  // Phase 2.2: Exponential backoff
+  private reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null
+  private readonly baseReconnectDelay = 1000 // 1 second
+  
+  // Phase 2.2: Offline queue constants
+  private readonly maxOfflineQueueAgeMs = 5 * 60 * 1000 // 5 minutes (max queue size enforced in SessionStore)
 
   /**
    * Get WebSocket server URL from environment
@@ -62,25 +75,51 @@ class SocketService {
    * @returns Promise that resolves when connected
    */
   connect(userId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.socket?.connected) {
-        console.log('[SocketService] Already connected')
-        resolve()
-        return
-      }
+    // Already connected - return immediately
+    if (this.socket?.connected) {
+      console.log('[SocketService] Already connected, resolving immediately')
+      return Promise.resolve()
+    }
 
-      this.currentUserId = userId
-      const serverUrl = this.getServerUrl()
+    // Connection in progress - return existing promise
+    if (this.connectionPromise) {
+      console.log('[SocketService] Connection in progress, returning existing promise')
+      return this.connectionPromise
+    }
 
-      console.log(`[SocketService] Connecting to ${serverUrl}...`)
+    // Socket exists but not connected - try to reconnect
+    if (this.socket && !this.socket.connected) {
+      console.log('[SocketService] Socket exists but disconnected, attempting reconnect...')
+      this.connectionPromise = new Promise((resolve, reject) => {
+        this.socket!.once('connect', () => {
+          console.log('[SocketService] ✅ Reconnected:', this.socket?.id)
+          this.connectionPromise = null
+          resolve()
+        })
+        
+        this.socket!.once('connect_error', (error: Error) => {
+          console.error('[SocketService] Reconnect failed:', error.message)
+          this.connectionPromise = null
+          reject(error)
+        })
+        
+        this.socket!.connect()
+      })
+      return this.connectionPromise
+    }
 
+    // Create new socket connection
+    this.currentUserId = userId
+    const serverUrl = this.getServerUrl()
+
+    console.log(`[SocketService] Connecting to ${serverUrl}...`)
+
+    this.connectionPromise = new Promise((resolve, reject) => {
       this.socket = io(serverUrl, {
-        transports: ['websocket'], // ✅ WebSocket only - no polling upgrade
-        reconnection: true,
-        reconnectionAttempts: this.maxReconnectAttempts,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-      });
+        transports: ['websocket'],
+        reconnection: false, // Phase 2.2: Manual reconnection with exponential backoff
+        autoConnect: true,
+      })
 
       // Add global event logger for debugging
       this.socket.onAny((eventName, ...args) => {
@@ -91,16 +130,31 @@ class SocketService {
       this.socket.once('connect', () => {
         console.log('[SocketService] ✅ Connected and ready:', this.socket?.id)
         this.reconnectAttempts = 0
+        this.connectionPromise = null
+        
+        // Phase 2.2: Update SessionStore
+        useSessionStore.getState().setConnectionState('connected')
+        useSessionStore.getState().resetReconnectAttempts()
+        
+        // Phase 2.2: Start heartbeat
+        this.startHeartbeat()
 
         // Register user presence
         if (this.currentUserId) {
           this.registerPresence(this.currentUserId)
+          
+          // Request current list of online users for state sync
+          console.log('[SocketService] 📋 Requesting current online users list')
+          this.getOnlineUsers()
         }
 
         // Rejoin team if was in one
         if (this.currentTeamId) {
           this.joinTeam(this.currentTeamId)
         }
+        
+        // Phase 2.2: Flush offline queue
+        this.flushOfflineQueue()
 
         resolve()
       })
@@ -108,15 +162,23 @@ class SocketService {
       // Reject on connection error
       this.socket.once('connect_error', (error: Error) => {
         console.error('[SocketService] Initial connection failed:', error.message)
+        this.connectionPromise = null
+        
+        // Phase 2.2: Update SessionStore
+        useSessionStore.getState().setConnectionState('failed')
+        
         reject(error)
       })
 
       this.setupListeners()
     })
+
+    return this.connectionPromise
   }
 
   /**
    * Setup core socket event listeners
+   * Phase 2.2: Enhanced with exponential backoff and SessionStore updates
    */
   private setupListeners(): void {
     if (!this.socket) return
@@ -125,36 +187,169 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('[SocketService] Reconnected:', this.socket?.id)
       this.reconnectAttempts = 0
+      
+      // Phase 2.2: Update SessionStore
+      useSessionStore.getState().setConnectionState('connected')
+      useSessionStore.getState().resetReconnectAttempts()
+      
+      // Phase 2.2: Start heartbeat
+      this.startHeartbeat()
 
       // Register user presence
       if (this.currentUserId) {
         this.registerPresence(this.currentUserId)
+        
+        // Request current list of online users for state sync
+        console.log('[SocketService] 📋 Requesting current online users list (reconnect)')
+        this.getOnlineUsers()
       }
 
       // Rejoin team if was in one
       if (this.currentTeamId) {
         this.joinTeam(this.currentTeamId)
       }
+      
+      // Phase 2.2: Flush offline queue
+      this.flushOfflineQueue()
     })
 
     this.socket.on('disconnect', (reason: string) => {
       console.log('[SocketService] Disconnected:', reason)
+      
+      // Phase 2.2: Stop heartbeat
+      this.stopHeartbeat()
+      
+      // Phase 2.2: Update SessionStore
+      useSessionStore.getState().setConnectionState('disconnected')
+      
+      // Phase 2.2: Auto-reconnect with exponential backoff (unless manual disconnect)
+      if (reason !== 'io client disconnect') {
+        this.scheduleReconnect()
+      }
     })
 
     this.socket.on('connect_error', (error: Error) => {
-      this.reconnectAttempts++
       console.error('[SocketService] Connection error:', error.message)
-
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('[SocketService] Max reconnection attempts reached')
-      }
+      
+      // Phase 2.2: Update SessionStore
+      useSessionStore.getState().incrementReconnectAttempts()
+      
+      // Phase 2.2: Schedule exponential backoff reconnect
+      this.scheduleReconnect()
     })
 
     this.socket.on('error', (error: Error) => {
       console.error('[SocketService] Socket error:', error)
     })
+    
+    // Phase 2.2: Heartbeat pong listener
+    this.socket.on('pong', () => {
+      const now = Date.now()
+      useSessionStore.getState().updatePongTime(now)
+      console.log('[SocketService] 💓 Pong received')
+    })
   }
 
+  /**
+   * Phase 2.2: Schedule reconnection with exponential backoff
+   */
+  private scheduleReconnect(): void {
+    // Clear any existing reconnect timeout
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId)
+      this.reconnectTimeoutId = null
+    }
+    
+    // Check if max attempts reached
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[SocketService] ❌ Max reconnection attempts reached')
+      useSessionStore.getState().setConnectionState('failed')
+      return
+    }
+    
+    // Calculate exponential backoff: 1s, 2s, 4s, 8s, 16s
+    const delay = this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts)
+    this.reconnectAttempts++
+    
+    console.log(`[SocketService] 🔄 Scheduling reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`)
+    
+    // Update SessionStore
+    useSessionStore.getState().setConnectionState('reconnecting')
+    useSessionStore.getState().incrementReconnectAttempts()
+    
+    // Schedule reconnect
+    this.reconnectTimeoutId = setTimeout(() => {
+      console.log('[SocketService] 🔄 Attempting reconnect...')
+      this.socket?.connect()
+    }, delay)
+  }
+  
+  /**
+   * Phase 2.2: Start heartbeat interval
+   */
+  private startHeartbeat(): void {
+    // Clear existing interval
+    this.stopHeartbeat()
+    
+    console.log('[SocketService] 💓 Starting heartbeat (30s interval)')
+    
+    this.heartbeatInterval = setInterval(() => {
+      if (this.socket?.connected) {
+        const now = Date.now()
+        useSessionStore.getState().updatePingTime(now)
+        this.socket.emit('ping')
+        console.log('[SocketService] 💓 Ping sent')
+      }
+    }, this.heartbeatIntervalMs)
+  }
+  
+  /**
+   * Phase 2.2: Stop heartbeat interval
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
+      console.log('[SocketService] 💓 Heartbeat stopped')
+    }
+  }
+  
+  /**
+   * Phase 2.2: Flush offline queue
+   */
+  private flushOfflineQueue(): void {
+    const sessionStore = useSessionStore.getState()
+    const queue = sessionStore.getOfflineQueue()
+    
+    if (queue.length === 0) return
+    
+    console.log(`[SocketService] 📤 Flushing ${queue.length} queued messages`)
+    
+    // Remove messages older than 5 minutes
+    sessionStore.removeOldQueuedMessages(this.maxOfflineQueueAgeMs)
+    
+    // Send queued messages in order
+    const validQueue = sessionStore.getOfflineQueue()
+    validQueue.forEach(({ event, data }) => {
+      if (this.socket?.connected) {
+        console.log(`[SocketService] 📤 Sending queued ${event}`)
+        this.socket.emit(event, data)
+      }
+    })
+    
+    // Clear queue
+    sessionStore.clearOfflineQueue()
+    console.log('[SocketService] ✅ Offline queue flushed')
+  }
+  
+  /**
+   * Phase 2.2: Queue message for offline sending
+   */
+  private queueForOffline(event: string, data: any): void {
+    console.log(`[SocketService] 📥 Queuing ${event} for offline send`)
+    useSessionStore.getState().queueOfflineMessage(event, data)
+  }
+  
   /**
    * Register user presence with server
    */
@@ -201,11 +396,13 @@ class SocketService {
 
   /**
    * Send a message (emits to server, server broadcasts)
+   * Phase 2.2: Uses offline queue when disconnected
    * @param message - Message to send
    */
   sendMessage(message: MessageDTO): void {
     if (!this.socket?.connected) {
-      console.warn('[SocketService] Cannot send message - not connected')
+      console.warn('[SocketService] ⚠️  Not connected - queuing message for offline send')
+      this.queueForOffline('message:new', message)
       return
     }
 
@@ -376,12 +573,29 @@ class SocketService {
   }
 
   /**
+   * Check if socket is connected
+   */
+  isConnected(): boolean {
+    return this.socket?.connected === true
+  }
+
+  /**
    * Disconnect from server
+   * Phase 2.2: Cleans up timers and updates SessionStore
    */
   disconnect(): void {
     if (!this.socket) return
 
     console.log('[SocketService] Disconnecting...')
+    
+    // Phase 2.2: Stop heartbeat
+    this.stopHeartbeat()
+    
+    // Phase 2.2: Clear reconnect timeout
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId)
+      this.reconnectTimeoutId = null
+    }
     
     // Leave current team
     this.leaveTeam()
@@ -390,15 +604,12 @@ class SocketService {
     this.socket.disconnect()
     this.socket = null
     this.currentUserId = null
+    this.connectionPromise = null
     this.currentTeamId = null
     this.reconnectAttempts = 0
-  }
-
-  /**
-   * Check if socket is connected
-   */
-  isConnected(): boolean {
-    return this.socket?.connected ?? false
+    
+    // Phase 2.2: Update SessionStore
+    useSessionStore.getState().setConnectionState('disconnected')
   }
 
   /**

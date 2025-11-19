@@ -76,6 +76,7 @@ export interface TeamMemberDTO {
 export interface TeamWithMembersDTO {
   id: string
   name: string
+  isChimeEnabled: boolean  // AI assistant enabled state
   createdAt: string  // ISO string
   members: TeamMemberDTO[]
 }

@@ -36,9 +36,7 @@ export interface UserDTO {
 export interface TeamDTO {
     id: string;
     name: string;
-    isChimeEnabled: boolean;
     createdAt: string;
-    updatedAt: string;
 }
 /**
  * TeamMember DTO
@@ -64,7 +62,6 @@ export interface TeamWithMembersDTO {
     name: string;
     isChimeEnabled: boolean;
     createdAt: string;
-    updatedAt: string;
     members: TeamMemberDTO[];
 }
 /**

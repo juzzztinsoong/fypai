@@ -19,6 +19,7 @@
 import { prisma } from '../db.js'
 import { Message } from '@prisma/client'
 import { MessageDTO, CreateMessageRequest, UpdateMessageRequest, messagesToDTO, messageToDTO } from '../types.js'
+import { CacheService } from '../services/cacheService.js'
 
 export class MessageController {
   /**
@@ -62,6 +63,9 @@ export class MessageController {
         }
       }
     })
+
+    // Invalidate conversation context cache for this team
+    await CacheService.invalidateTeamCache(data.teamId)
 
     return messageToDTO(message, message.author)
   }
