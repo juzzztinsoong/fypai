@@ -1,6 +1,16 @@
-import { useCurrentTeam } from '../../stores/teamStore';
-import { useAIInsightsStore } from '../../stores/aiInsightsStore';
-import { useRealtimeStore } from '@/core/eventBus/RealtimeStore';
+/**
+ * RightPanel Component
+ *
+ * Per Refactoring Guide Section 1.3:
+ * - Uses EntityStore for insights data (normalized)
+ * - Uses UIStore for current team context and view state (filters)
+ * - Uses SessionStore for AI toggle state
+ * - No aiInsightsStore, no teamStore, no RealtimeStore
+ *
+ * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
+ */
+import { useEntityStore } from '@/stores/entityStore';
+import { useUIStore } from '@/stores/uiStore';
 import { socketService } from '@/services';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
@@ -9,78 +19,54 @@ import { LongFormContentViewer } from './LongFormContentViewer';
 import { AIToggle } from './AIToggle';
 import { ActionButtons } from './ActionButtons';
 import { EmptyState } from './EmptyState';
+import { getInsights } from '@/services/insightService';
 
-/**
- * RightPanel Component
- *
- * Tech Stack: React (Vite), RealtimeStore for data, Zustand for UI state, Tailwind CSS
- * Purpose: Display AI-generated insights, summaries, and content for current team
- *
- * Architecture:
- *   - Subscribes directly to RealtimeStore for insight data
- *   - Uses aiInsightsStore only for UI state (AI toggle, loading)
- *   - No direct socket dependencies (handled by Socket Bridge)
- *
- * Features:
- *   - Shows AI insights organized by type (summary, action items, suggestions, etc.)
- *   - Filters insights per team/chat
- *   - Displays different insight types with appropriate styling
- *   - Supports code highlighting and markdown content
- *   - Shows priority badges and tags
- *   - Action buttons for audio, video, reports, mindmap, export, and share
- *   - Per-team AI toggle for enabling/disabling AI assistant
- *
- * Components:
- *   - RightPanelHeader: Team name and insight count
- *   - InsightFilters: Filter tabs for insight types
- *   - InsightsList: List of insight cards with empty state
- *   - InsightCard: Individual insight display
- *   - AIToggle: Toggle AI assistant per team
- *   - ActionButtons: Contextual action buttons
- *   - EmptyState: Display when no team selected
- *
- * Usage:
- *   - Used in main layout alongside ChatWindow
- *   - Updates automatically when team switches
- */
+let rightPanelRenderCount = 0
 
 export const RightPanel = () => {
-  const currentTeam = useCurrentTeam();
-  // Extract teamId to use as stable dependency instead of the object
-  const teamId = currentTeam?.id;
+  rightPanelRenderCount++
+  console.log('[RightPanel] 🎨 Render #' + rightPanelRenderCount)
+  
+  // Get current team from UIStore
+  const currentTeamId = useUIStore((state) => state.currentTeamId);
+  console.log('[RightPanel] currentTeamId:', currentTeamId);
+  const currentTeam = useEntityStore((state) => 
+    currentTeamId ? state.getTeam(currentTeamId) : null
+  );
   const teamName = currentTeam?.name || 'Team';
   
-  // UI state from aiInsightsStore - extract only what we need
-  const fetchInsights = useAIInsightsStore((state) => state.fetchInsights);
+  // Get insight IDs (stable array reference)
+  const insightIds = useEntityStore((state) => state.getTeamInsights(currentTeamId || ''));
+  const insightsById = useEntityStore((state) => state.entities.insights);
   
-  // Get AI enabled state from RealtimeStore (synced across all team members)
-  const isTeamAIEnabled = useRealtimeStore((state) => state.isAIEnabled(teamId || ''));
+  // Map to data in useMemo to prevent re-renders
+  const teamInsights = useMemo(() => {
+    console.log('[RightPanel] useMemo recalculating teamInsights')
+    return (insightIds as string[])
+      .map(id => insightsById[id])
+      .filter(Boolean);
+  }, [insightIds, insightsById]);
   
-  // Subscribe to this team's insights array directly
-  // Returns stable EMPTY_INSIGHTS_ARRAY if no insights exist for this team
-  const teamInsights = useRealtimeStore((state) => state.getInsights(teamId || ''));
+  // AI enabled state from team settings
+  const isTeamAIEnabled = currentTeam?.isChimeEnabled ?? true;
   
   const [contentFilter, setContentFilter] = useState<'all' | 'summaries' | 'actions' | 'suggestions'>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const toggleTimeoutRef = useRef<number | null>(null);
 
-  // ✅ Fetch insights when team changes (publishes to Event Bus → RealtimeStore)
+  // Fetch insights when team changes
   useEffect(() => {
-    if (teamId) {
-      console.log('[RightPanel] Fetching insights for team:', teamId);
-      fetchInsights(teamId);
+    if (currentTeamId) {
+      console.log('[RightPanel] Fetching insights for team:', currentTeamId);
+      getInsights(currentTeamId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId]); // Only re-fetch when teamId changes, not when fetchInsights reference changes
+  }, [currentTeamId]);
 
-  // ✅ Sort insights by date (memoized to avoid re-sorting on every render)
+  // Sort insights by date (memoized)
   const insights = useMemo(() => {
-    console.log('[RightPanel] Insights from RealtimeStore, count:', teamInsights.length, 'team:', teamId);
-    // CRITICAL: Use slice() to create new array before sorting (avoid mutating original)
     return [...teamInsights].sort((a, b) => 
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-  }, [teamInsights, teamId]);
+  }, [teamInsights, currentTeamId]);
 
   // Combine and sort all content by date (oldest first, latest at bottom) - MEMOIZED
   // Now all content comes from insights store
@@ -99,17 +85,12 @@ export const RightPanel = () => {
     }
   }, [insights, contentFilter]);
 
-  // Auto-scroll to bottom when content changes (stable dependencies only)
+  // Auto-scroll to bottom when content changes
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [displayedContent.length, teamId]);
-
-  // Debug: Log when insights change
-  useEffect(() => {
-    console.log('[RightPanel] 🔄 Insights updated, count:', displayedContent.length, 'team:', teamId);
-  }, [displayedContent.length, teamId]);
+  }, [displayedContent.length, currentTeamId]);
 
   // Calculate counts for filter tabs
   const summaryCount = insights.filter(i => i.type === 'summary' || i.type === 'document').length;
@@ -118,34 +99,21 @@ export const RightPanel = () => {
   const totalContent = insights.length;
 
   const handleToggleAI = () => {
-    if (!teamId) return;
+    if (!currentTeamId) return;
 
-    // Optimistic update - update local state immediately
+    // Toggle based on current state
     const newState = !isTeamAIEnabled;
-    useRealtimeStore.getState().setAIEnabled(teamId, newState);
 
-    // Debounce socket emission to prevent race conditions (500ms delay)
-    if (toggleTimeoutRef.current) {
-      clearTimeout(toggleTimeoutRef.current);
-    }
+    // Update local state optimistically (will be confirmed by socket broadcast)
+    useEntityStore.getState().updateTeam(currentTeamId, { isChimeEnabled: newState });
 
-    toggleTimeoutRef.current = window.setTimeout(() => {
-      socketService.toggleTeamAI(teamId, newState);
-      console.log('[RightPanel] 🤖 AI toggled for team', teamId, ':', newState ? 'enabled' : 'disabled');
-    }, 500);
+    // Emit socket event to persist and broadcast to other clients
+    socketService.toggleTeamAI(currentTeamId, newState);
+    console.log('[RightPanel] 🤖 AI toggled for team', currentTeamId, ':', newState ? 'enabled' : 'disabled');
   };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (toggleTimeoutRef.current) {
-        clearTimeout(toggleTimeoutRef.current);
-      }
-    };
-  }, []);
   
   // Show empty state when no team selected (AFTER all hooks)
-  if (!teamId) {
+  if (!currentTeamId) {
     return (
       <EmptyState
         isAIEnabled={isTeamAIEnabled}

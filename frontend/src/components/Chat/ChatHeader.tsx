@@ -1,26 +1,25 @@
-import { useCurrentTeam } from '../../stores/teamStore';
-import { usePresenceStore } from '../../stores/presenceStore';
-import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils';
-
 /**
  * ChatHeader Component
  *
- * Tech Stack: React (Vite), Zustand for state, Tailwind CSS for styling
- * Purpose: Display team name, member count, and online user count
+ * Per Refactoring Guide Section 1.3:
+ * - Uses UIStore for current team context
+ * - Uses EntityStore for team data
+ * - Uses SessionStore for online users presence
+ * - No teamStore, no presenceStore
  *
- * Features:
- *   - Shows current team name
- *   - Displays total member count
- *   - Shows online user count with green indicator
- *   - Calculates online members from the current team only
- *
- * Usage:
- *   - Used at the top of ChatWindow component
+ * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
  */
+import { useUIStore } from '@/stores/uiStore';
+import { useEntityStore } from '@/stores/entityStore';
+import { useSessionStore } from '@/stores/sessionStore';
+import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils';
 
 export const ChatHeader = () => {
-  const currentTeam = useCurrentTeam();
-  const { onlineUsers } = usePresenceStore();
+  const currentTeamId = useUIStore((state) => state.currentTeamId);
+  const currentTeam = useEntityStore((state) => 
+    currentTeamId ? state.getTeam(currentTeamId) : null
+  );
+  const onlineUsers = useSessionStore((state) => state.presence.onlineUsers);
 
   if (!currentTeam) {
     return (
@@ -36,9 +35,13 @@ export const ChatHeader = () => {
   }
 
   // Count online members from current team
-  const onlineMembers = currentTeam.members.filter((member) =>
-    onlineUsers.has(member.userId)
-  );
+  // AI agent is always considered online when any user is connected
+  const onlineMembers = currentTeam.members.filter((member) => {
+    // AI agent is always online
+    if (member.userId === 'agent') return true;
+    // Regular users must be in onlineUsers list
+    return onlineUsers.includes(member.userId);
+  });
   const onlineCount = onlineMembers.length;
   const totalMembers = currentTeam.members.length;
 

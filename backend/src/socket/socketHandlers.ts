@@ -38,6 +38,15 @@ export function setupSocketHandlers(io: Server): void {
     setupPresenceHandlers(io, socket);
 
     /**
+     * Phase 2.2: Heartbeat ping/pong handler
+     * Client sends 'ping', server responds with 'pong'
+     */
+    socket.on('ping', () => {
+      socket.emit('pong')
+      console.log(`[SOCKET] 💓 Ping received from ${socket.id}, sent pong`)
+    })
+
+    /**
      * Join team room for scoped broadcasts
      * Payload: { teamId: string }
      */
@@ -79,30 +88,9 @@ export function setupSocketHandlers(io: Server): void {
     })
 
     /**
-     * Typing indicator - start typing
-     * Payload: { teamId, userId }
-     */
-    socket.on('typing:start', ({ teamId, userId }) => {
-      socket.to(`team:${teamId}`).emit('typing:start', { teamId, userId })
-      console.log(`[SOCKET] User ${userId} started typing in team:${teamId}`)
-    })
-
-    /**
-     * Typing indicator - stop typing
-     * Payload: { teamId, userId }
-     */
-    socket.on('typing:stop', ({ teamId, userId }) => {
-      socket.to(`team:${teamId}`).emit('typing:stop', { teamId, userId })
-      console.log(`[SOCKET] User ${userId} stopped typing in team:${teamId}`)
-    })
-
-    /**
      * Legacy typing indicator (for backward compatibility)
-     * Payload: { teamId, userId, isTyping }
+     * Phase 2.3: Removed - now handled in presenceHandler.ts
      */
-    socket.on('presence:typing', ({ teamId, userId, isTyping }) => {
-      socket.to(`team:${teamId}`).emit('presence:typing', { userId, isTyping })
-    })
 
     /**
      * AI Toggle - Enable/disable chime mode for a team

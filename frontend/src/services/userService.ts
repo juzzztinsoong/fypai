@@ -1,21 +1,19 @@
 /**
  * User Service
  * 
- * Handles all user-related API operations using shared DTOs
+ * Per Refactoring Guide Section 1.3:
+ * - Handles all user-related API operations
+ * - Updates EntityStore and SessionStore after API calls
+ * - No Event Bus, direct store updates
  * 
- * Tech Stack: Axios
+ * Tech Stack: Axios, EntityStore, SessionStore
  * Types: @fypai/types (UserDTO, CreateUserRequest, UpdateUserRequest)
- * 
- * Operations:
- * - Get all users
- * - Get user by ID
- * - Create new user
- * - Update user
- * - Delete user
  */
 
 import { api, getErrorMessage } from './api'
 import type { UserDTO, CreateUserRequest, UpdateUserRequest } from '@fypai/types'
+import { useEntityStore } from '@/stores/entityStore'
+import { useSessionStore } from '@/stores/sessionStore'
 
 /**
  * Get all users
@@ -25,6 +23,12 @@ import type { UserDTO, CreateUserRequest, UpdateUserRequest } from '@fypai/types
 export async function getUsers(): Promise<UserDTO[]> {
   try {
     const response = await api.get<UserDTO[]>('/users')
+    
+    // Update EntityStore
+    response.data.forEach(user => {
+      useEntityStore.getState().addUser(user)
+    })
+    
     return response.data
   } catch (error) {
     console.error('[UserService] Failed to fetch users:', getErrorMessage(error))
@@ -41,6 +45,13 @@ export async function getUsers(): Promise<UserDTO[]> {
 export async function getUserById(userId: string): Promise<UserDTO> {
   try {
     const response = await api.get<UserDTO>(`/users/${userId}`)
+    
+    // Update EntityStore
+    useEntityStore.getState().addUser(response.data)
+    
+    // If this is the current user (userId matches), update SessionStore
+    useSessionStore.getState().setCurrentUser(response.data)
+    
     return response.data
   } catch (error) {
     console.error(`[UserService] Failed to fetch user ${userId}:`, getErrorMessage(error))

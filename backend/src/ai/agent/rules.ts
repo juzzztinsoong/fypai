@@ -30,16 +30,26 @@ export interface ChimeContext {
 export const CHIME_RULES: ChimeRule[] = [
   {
     name: 'direct_mention',
-    description: 'User explicitly mentions the agent',
+    description: 'User explicitly mentions the agent (no cooldown)',
     priority: 100,
-    shouldRespond: (msg) => {
+    shouldRespond: (msg, context) => {
       const mentionPatterns = [
         /@agent/i,
         /hey ai/i,
         /ai help/i,
         /can you help/i,
       ];
-      return mentionPatterns.some((pattern) => pattern.test(msg.content));
+      const hasMention = mentionPatterns.some((pattern) => pattern.test(msg.content));
+      
+      // Direct mentions bypass cooldown - always respond
+      if (hasMention) {
+        // Override cooldown for this specific message
+        if (context.teamSettings) {
+          context.teamSettings.cooldownMinutes = 0;
+        }
+        return true;
+      }
+      return false;
     },
   },
   {
@@ -89,7 +99,7 @@ export const CHIME_RULES: ChimeRule[] = [
     shouldRespond: (msg, context) => {
       if (!context.agentLastResponseTime) return true;
       
-      const cooldownMs = (context.teamSettings?.cooldownMinutes || 2) * 60 * 1000;
+      const cooldownMs = (context.teamSettings?.cooldownMinutes || 0.5) * 60 * 1000; // Changed to 30 seconds for testing
       const timeSinceLastResponse = Date.now() - context.agentLastResponseTime.getTime();
       
       return timeSinceLastResponse > cooldownMs;

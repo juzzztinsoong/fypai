@@ -1,14 +1,10 @@
 /**
  * Realtime Provider
  * 
- * Wraps the app to initialize Event Bus and Socket connections before rendering.
- * This ensures all real-time infrastructure is ready before components mount.
- * 
- * Architecture:
- * 1. Initialize Event Bus bridge (Event Bus → RealtimeStore)
- * 2. Connect to WebSocket
- * 3. Initialize Socket Bridge (Socket → Event Bus)
- * 4. Render children only after setup complete
+ * Simplified architecture per React 18 remount fix:
+ * - Socket lifecycle managed OUTSIDE React (in realtimeInit.ts)
+ * - Component only manages UI state (isReady, error)
+ * - Handlers registered once globally, persist across remounts
  * 
  * Usage:
  * ```tsx
@@ -18,13 +14,9 @@
  * ```
  */
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { initializeEventBridge } from '@/core/eventBus/bridge'
-import { eventBus } from '@/core/eventBus'
-import { initializeSocketBridge } from '@/services/realtime/socketBridge'
-import { socketService } from '@/services/socketService'
-import { usePresenceStore } from '@/stores/presenceStore'
+import { initializeRealtime, isRealtimeInitialized } from '@/services/realtimeInit'
 
 interface RealtimeProviderProps {
   children: ReactNode
@@ -32,70 +24,59 @@ interface RealtimeProviderProps {
 }
 
 export const RealtimeProvider = ({ children, userId }: RealtimeProviderProps) => {
-  const [isReady, setIsReady] = useState(false)
+  // Lazy initial state - check if already initialized
+  const [isReady, setIsReady] = useState(() => {
+    const alreadyReady = isRealtimeInitialized()
+    console.log('[RealtimeProvider] 🎬 Component mounting, isRealtimeInitialized():', alreadyReady)
+    return alreadyReady
+  })
   const [error, setError] = useState<string | null>(null)
-  
-  // Store cleanup functions
-  const eventBridgeCleanupRef = useRef<(() => void) | null>(null)
-  const socketBridgeCleanupRef = useRef<(() => void) | null>(null)
+
+  console.log('[RealtimeProvider] 🎨 Render, isReady:', isReady, 'error:', error)
 
   useEffect(() => {
-    const initializeRealtime = async () => {
-      try {
-        console.log('[RealtimeProvider] 🚀 Initializing real-time infrastructure...')
-        
-        // Step 1: Initialize Event Bus bridge (Event Bus → RealtimeStore)
-        console.log('[RealtimeProvider] 🔌 Initializing Event Bus bridge...')
-        eventBridgeCleanupRef.current = initializeEventBridge()
-        
-        // Enable Event Bus logging for debugging real-time updates
-        eventBus.setLogging(true)
-        console.log('[RealtimeProvider] ✅ Event Bus bridge active (logging enabled)')
-        
-        // Step 2: Connect to WebSocket via presenceStore (handles its own listeners)
-        console.log('[RealtimeProvider] 🔌 Connecting to WebSocket...')
-        const presenceStore = usePresenceStore.getState()
-        await presenceStore.connect(userId)
-        console.log('[RealtimeProvider] ✅ WebSocket connected')
-        
-        // Step 3: Initialize Socket Bridge (Socket → Event Bus)
-        console.log('[RealtimeProvider] 🔌 Initializing Socket Bridge...')
-        const socket = socketService.getSocket()
-        if (socket) {
-          socketBridgeCleanupRef.current = initializeSocketBridge(socket)
-          console.log('[RealtimeProvider] ✅ Socket Bridge active')
-          console.log('[RealtimeProvider] ✅ Real-time infrastructure ready!')
-        } else {
-          throw new Error('Socket not available after connection')
-        }
-        
-        setIsReady(true)
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        console.error('[RealtimeProvider] ❌ Failed to initialize:', errorMessage)
-        setError(errorMessage)
-      }
+    console.log('[RealtimeProvider] 🔄 useEffect running, userId:', userId)
+    
+    // If already initialized and connected, just set ready and return
+    if (isRealtimeInitialized()) {
+      console.log('[RealtimeProvider] ♻️  Already initialized, setting ready state')
+      setIsReady(true)
+      return
     }
-
-    initializeRealtime()
-
-    // Cleanup on unmount
+    
+    console.log('[RealtimeProvider] 🚀 Initializing real-time infrastructure...')
+    
+    // Track if component is still mounted to prevent state updates after unmount
+    let mounted = true
+    console.log('[RealtimeProvider] 📍 Set mounted flag to true')
+    
+    // Initialize socket and handlers (happens once globally)
+    initializeRealtime(userId)
+      .then(() => {
+        console.log('[RealtimeProvider] ✅ Init promise resolved, mounted:', mounted)
+        if (mounted) {
+          console.log('[RealtimeProvider] ✅ Setting ready state to true')
+          setIsReady(true)
+          setError(null)
+        } else {
+          console.log('[RealtimeProvider] ⚠️  Component unmounted, skipping state update')
+        }
+      })
+      .catch((err) => {
+        console.log('[RealtimeProvider] ❌ Init promise rejected, mounted:', mounted)
+        if (mounted) {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          console.error('[RealtimeProvider] ❌ Initialization failed:', errorMessage)
+          setError(errorMessage)
+        }
+      })
+    
+    // Cleanup: DON'T clean up socket or handlers - they persist across remounts
     return () => {
-      console.log('[RealtimeProvider] 🧹 Cleaning up real-time infrastructure...')
-      
-      // Disconnect via presenceStore
-      const presenceStore = usePresenceStore.getState()
-      presenceStore.disconnect()
-      
-      // Cleanup Event Bus bridges
-      if (eventBridgeCleanupRef.current) {
-        eventBridgeCleanupRef.current()
-        console.log('[RealtimeProvider] 🧹 Event Bus bridge cleaned up')
-      }
-      if (socketBridgeCleanupRef.current) {
-        socketBridgeCleanupRef.current()
-        console.log('[RealtimeProvider] 🧹 Socket Bridge cleaned up')
-      }
+      console.log('[RealtimeProvider] 🧹 Cleanup function running')
+      console.log('[RealtimeProvider] 🧹 Setting mounted flag to false')
+      mounted = false
+      console.log('[RealtimeProvider] 🧹 Component unmounting (socket and handlers persist)')
     }
   }, [userId])
 

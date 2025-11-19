@@ -1,21 +1,18 @@
 /**
  * Team Service
  * 
- * Handles all team-related API operations using shared DTOs
+ * Per Refactoring Guide Section 1.3:
+ * - Handles all team-related API operations
+ * - Updates EntityStore after API calls
+ * - No Event Bus, direct store updates
  * 
- * Tech Stack: Axios
+ * Tech Stack: Axios, EntityStore
  * Types: @fypai/types (TeamWithMembersDTO, CreateTeamDTO, AddMemberDTO)
- * 
- * Operations:
- * - Get all teams for current user
- * - Get team by ID (with members)
- * - Create new team
- * - Add member to team
- * - Remove member from team
  */
 
 import { api, getErrorMessage } from './api'
 import type { TeamWithMembersDTO, CreateTeamRequest, AddTeamMemberRequest } from '@fypai/types'
+import { useEntityStore } from '@/stores/entityStore'
 
 /**
  * Get all teams the current user can access
@@ -28,6 +25,12 @@ export async function getTeamsForUser(userId: string): Promise<TeamWithMembersDT
     const response = await api.get<TeamWithMembersDTO[]>('/teams', {
       params: { userId },
     })
+    
+    // Update EntityStore
+    response.data.forEach(team => {
+      useEntityStore.getState().addTeam(team)
+    })
+    
     return response.data
   } catch (error) {
     console.error('[TeamService] Failed to fetch teams:', getErrorMessage(error))
@@ -44,6 +47,10 @@ export async function getTeamsForUser(userId: string): Promise<TeamWithMembersDT
 export async function getTeamById(teamId: string): Promise<TeamWithMembersDTO> {
   try {
     const response = await api.get<TeamWithMembersDTO>(`/teams/${teamId}`)
+    
+    // Update EntityStore
+    useEntityStore.getState().addTeam(response.data)
+    
     return response.data
   } catch (error) {
     console.error(`[TeamService] Failed to fetch team ${teamId}:`, getErrorMessage(error))

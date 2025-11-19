@@ -28,6 +28,7 @@ import cors from 'cors'
 import { prisma } from './db.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { setupSocketHandlers } from './socket/socketHandlers.js'
+import { getRedisClient, checkRedisHealth, disconnectRedis } from './services/redis.js'
 
 // Import routes
 import teamRoutes from './routes/teamRoutes.js'
@@ -64,8 +65,13 @@ app.use(cors({
 app.use(express.json())
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+app.get('/health', async (req, res) => {
+  const redisHealthy = await checkRedisHealth()
+  res.json({ 
+    status: redisHealthy ? 'ok' : 'degraded',
+    timestamp: new Date().toISOString(),
+    redis: redisHealthy ? 'connected' : 'disconnected'
+  })
 })
 
 // Setup WebSocket handlers first
@@ -75,6 +81,10 @@ setupSocketHandlers(io)
 setMessageSocketIO(io)
 AIAgentController.setSocketIO(io)
 AIInsightController.setSocketIO(io)
+
+// Mark AI agent as online immediately
+io.emit('presence:update', { userId: 'agent', online: true })
+console.log('[Server] 🤖 AI agent marked as online')
 
 // API routes
 app.use('/api/teams', teamRoutes)
@@ -101,12 +111,26 @@ server.listen(PORT, async () => {
   } catch (error) {
     console.error('❌ Database connection failed:', error)
   }
+  
+  // Initialize Redis connection
+  try {
+    getRedisClient() // Lazy initialization
+    const redisHealthy = await checkRedisHealth()
+    if (redisHealthy) {
+      console.log('✅ Redis connected')
+    } else {
+      console.warn('⚠️  Redis connection failed - caching disabled')
+    }
+  } catch (error) {
+    console.warn('⚠️  Redis not available - running without cache:', error)
+  }
 })
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...')
   await prisma.$disconnect()
+  await disconnectRedis()
   server.close(() => {
     console.log('Server closed')
     process.exit(0)

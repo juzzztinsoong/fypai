@@ -23,6 +23,7 @@ import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/llm/prompts.js'
 import { MessageController } from './messageController.js'
 import { TeamController } from './teamController.js'
 import { Server as SocketIOServer } from 'socket.io'
+import { CacheService } from '../services/cacheService.js'
 
 export class AIInsightController {
   private static llm = new GitHubModelsClient();
@@ -69,6 +70,9 @@ export class AIInsightController {
     })
 
     const insightDTO = aiInsightToDTO(insight)
+
+    // Invalidate team cache after insight creation
+    await CacheService.invalidateTeamCache(data.teamId)
 
     // 🚨 CRITICAL: Broadcast new insight to team via WebSocket
     if (this.io) {

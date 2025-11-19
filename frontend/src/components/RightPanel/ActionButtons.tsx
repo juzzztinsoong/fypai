@@ -1,9 +1,22 @@
+/**
+ * ActionButtons Component
+ *
+ * Per Refactoring Guide Section 1.3:
+ * - Uses UIStore for current team context
+ * - Uses EntityStore for team data
+ * - Uses insightService for AI generation
+ * - No teamStore
+ */
 import { useState } from 'react';
-import { useCurrentTeam } from '../../stores/teamStore';
+import { useUIStore } from '@/stores/uiStore';
+import { useEntityStore } from '@/stores/entityStore';
 import * as insightService from '../../services/insightService';
 
 export const ActionButtons = () => {
-  const currentTeam = useCurrentTeam();
+  const currentTeamId = useUIStore((state) => state.currentTeamId);
+  const currentTeam = useEntityStore((state) => 
+    currentTeamId ? state.getTeam(currentTeamId) : null
+  );
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
 
@@ -12,7 +25,6 @@ export const ActionButtons = () => {
     
     setLoadingSummary(true);
     try {
-      // Generate summary insight directly via insight service
       await insightService.generateSummary(currentTeam.id);
       console.log('[ActionButtons] Summary insight generated');
     } catch (error) {
@@ -27,7 +39,6 @@ export const ActionButtons = () => {
     
     setLoadingReport(true);
     try {
-      // Generate report insight directly via insight service
       await insightService.generateReport(currentTeam.id);
       console.log('[ActionButtons] Report insight generated');
     } catch (error) {

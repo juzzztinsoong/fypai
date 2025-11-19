@@ -1,85 +1,118 @@
 /**
- * Message Service (Socket-Aware)
+ * Message Service
  * 
- * Handles all message-related operations with unified REST + Real-time coordination.
+ * Per Refactoring Guide Section 1.1-1.2:
+ * - Removed Event Bus (call EntityStore directly)
+ * - Optimistic updates with correlationId pattern
+ * - Socket-aware (REST + WebSocket coordination)
  * 
- * Architecture:
- * - REST API calls → Publish to Event Bus
- * - Socket events → Subscribe via Event Bus
- * - RealtimeStore → Single source of truth
- * 
- * Tech Stack: Axios, Event Bus, RealtimeStore
+ * Tech Stack: Axios, EntityStore, SessionStore
  * Types: @fypai/types (MessageDTO, CreateMessageRequest, UpdateMessageRequest)
  * 
  * Operations:
- * - Get messages for a team (REST → Event Bus)
- * - Create new message (REST → Event Bus, socket event deduplicated)
- * - Update message (REST → Event Bus)
- * - Delete message (REST → Event Bus)
- * - Subscribe to team messages (joins socket room, listens to Event Bus)
+ * - Get messages for a team
+ * - Create new message (with optimistic update)
+ * - Update message
+ * - Delete message
  */
 
 import { api, getErrorMessage } from './api'
 import type { MessageDTO, CreateMessageRequest, UpdateMessageRequest } from '@fypai/types'
-import { eventBus, EventTransformer } from '@/core/eventBus'
+import { useEntityStore } from '@/stores/entityStore'
+import { useSessionStore } from '@/stores/sessionStore'
+import { useUIStore } from '@/stores/uiStore'
 
 /**
  * Get all messages for a team
  * GET /messages?teamId=:teamId
  * 
- * Flow:
- * 1. Fetch from REST API
- * 2. Publish to Event Bus
- * 3. RealtimeStore updates automatically
- * 
  * @param teamId - Team ID to fetch messages for
  * @returns Array of messages
  */
 export async function getMessages(teamId: string): Promise<MessageDTO[]> {
+  console.log('[MessageService] 📞 getMessages called for teamId:', teamId)
+  const uiStore = useUIStore.getState()
+  const entityStore = useEntityStore.getState()
+  
+  uiStore.setLoading('messages', true)
+  
   try {
     const response = await api.get<MessageDTO[]>('/messages', {
       params: { teamId },
     })
     
-    // Publish to Event Bus (RealtimeStore will update)
-    const event = EventTransformer.messagesFetched(teamId, response.data, 'rest')
-    eventBus.publish(event)
+    // Add to EntityStore (per guide: call store directly)
+    response.data.forEach(message => entityStore.addMessage(message))
+    
+    uiStore.clearError('messages')
+    console.log('[MessageService] ✅ Fetched messages for team:', teamId)
     
     return response.data
   } catch (error) {
-    console.error(`[MessageService] Failed to fetch messages for team ${teamId}:`, getErrorMessage(error))
+    const errorMsg = getErrorMessage(error)
+    uiStore.setError('messages', errorMsg)
+    console.error(`[MessageService] Failed to fetch messages for team ${teamId}:`, errorMsg)
     throw error
+  } finally {
+    uiStore.setLoading('messages', false)
   }
 }
 
 /**
- * Create a new message
+ * Create a new message (with optimistic update per guide section 1.2)
  * POST /messages
  * 
  * Flow:
- * 1. Send to REST API
- * 2. Publish to Event Bus with requestId
- * 3. Socket event arrives with same message
- * 4. Event Bus deduplicates (same requestId)
- * 5. RealtimeStore updated only once
+ * 1. Create temp message with correlationId (instant UI update)
+ * 2. Send to REST API
+ * 3. Confirm optimistic message with server response
+ * 4. Socket event also arrives (EntityStore handles deduplication)
  * 
- * @param data - Message creation data (teamId, authorId, content, contentType, metadata)
+ * @param data - Message creation data
  * @returns Newly created message
  */
 export async function createMessage(data: CreateMessageRequest): Promise<MessageDTO> {
+  const entityStore = useEntityStore.getState()
+  const sessionStore = useSessionStore.getState()
+  
+  // Generate temp ID and correlationId for optimistic update
+  const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const correlationId = crypto.randomUUID()
+  
+  const currentUser = sessionStore.getCurrentUser()
+  
+  // Create temp message for optimistic update
+  const tempMessage: MessageDTO = {
+    id: tempId,
+    teamId: data.teamId,
+    authorId: currentUser?.id || data.authorId,
+    content: data.content,
+    contentType: data.contentType || 'text',
+    createdAt: new Date().toISOString(),
+    metadata: data.metadata || {},
+  }
+  
+  // Add optimistic message (instant UI update)
+  entityStore.addOptimisticMessage(tempMessage, correlationId)
+  console.log('[MessageService] 🚀 Optimistic message added:', tempId)
+  
   try {
-    // Generate unique request ID for deduplication
-    const requestId = EventTransformer.generateEventId('create-msg', data.teamId)
+    // Send to API with correlationId
+    const response = await api.post<MessageDTO>('/messages', {
+      ...data,
+      correlationId,
+    })
     
-    const response = await api.post<MessageDTO>('/messages', data)
-    
-    // Publish to Event Bus (socket event will be deduplicated)
-    const event = EventTransformer.messageCreated(response.data, 'rest', requestId)
-    eventBus.publish(event)
+    // Confirm optimistic update (replaces temp with real)
+    entityStore.confirmMessage(correlationId, response.data)
+    console.log('[MessageService] ✅ Message confirmed:', response.data.id)
     
     return response.data
   } catch (error) {
-    console.error('[MessageService] Failed to create message:', getErrorMessage(error))
+    // Remove failed optimistic message
+    entityStore.removeOptimisticMessage(tempId)
+    console.error('[MessageService] ❌ Failed to create message, optimistic update removed')
+    console.error('[MessageService] Error:', getErrorMessage(error))
     throw error
   }
 }
@@ -87,11 +120,6 @@ export async function createMessage(data: CreateMessageRequest): Promise<Message
 /**
  * Update an existing message
  * PUT /messages/:id
- * 
- * Flow:
- * 1. Update via REST API
- * 2. Publish to Event Bus
- * 3. RealtimeStore updates automatically
  * 
  * @param messageId - Message ID to update
  * @param data - Update data (content, metadata)
@@ -101,13 +129,15 @@ export async function updateMessage(
   messageId: string,
   data: UpdateMessageRequest
 ): Promise<MessageDTO> {
+  const entityStore = useEntityStore.getState()
+  
   try {
     const response = await api.put<MessageDTO>(`/messages/${messageId}`, data)
     
-    // Publish to Event Bus
-    const event = EventTransformer.messageUpdated(response.data, 'rest')
-    eventBus.publish(event)
+    // Update in EntityStore
+    entityStore.updateMessage(messageId, response.data)
     
+    console.log('[MessageService] ✅ Message updated:', messageId)
     return response.data
   } catch (error) {
     console.error(`[MessageService] Failed to update message ${messageId}:`, getErrorMessage(error))
@@ -119,23 +149,20 @@ export async function updateMessage(
  * Delete a message
  * DELETE /messages/:id
  * 
- * Flow:
- * 1. Delete via REST API
- * 2. Publish to Event Bus
- * 3. RealtimeStore removes message automatically
- * 
  * @param messageId - Message ID to delete
- * @param teamId - Team ID (needed for Event Bus routing)
+ * @param teamId - Team ID (for EntityStore)
  * @returns Deleted message confirmation
  */
 export async function deleteMessage(messageId: string, teamId: string): Promise<{ id: string }> {
+  const entityStore = useEntityStore.getState()
+  
   try {
     const response = await api.delete<{ id: string }>(`/messages/${messageId}`)
     
-    // Publish to Event Bus
-    const event = EventTransformer.messageDeleted(messageId, teamId, 'rest')
-    eventBus.publish(event)
+    // Remove from EntityStore
+    entityStore.deleteMessage(messageId, teamId)
     
+    console.log('[MessageService] ✅ Message deleted:', messageId)
     return response.data
   } catch (error) {
     console.error(`[MessageService] Failed to delete message ${messageId}:`, getErrorMessage(error))

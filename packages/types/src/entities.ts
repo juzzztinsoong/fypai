@@ -36,7 +36,9 @@ export interface User {
 export interface Team {
   id: string
   name: string
+  isChimeEnabled: boolean  // AI assistant enabled state
   createdAt: Date
+  updatedAt: Date
 }
 
 /**

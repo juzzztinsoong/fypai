@@ -1,104 +1,137 @@
-import { useState, useRef, useCallback } from 'react'
-import { useChatStore } from '../../stores/chatStore'
-import { useCurrentTeam } from '../../stores/teamStore'
-import { MessageList } from './MessageList'
-import { ChatHeader } from './ChatHeader'
-import { useUserStore } from '../../stores/userStore'
-import { socketService } from '@/services/socketService'
-
 /**
  * ChatWindow Component
  *
- * Tech Stack: React (Vite), Zustand for state, Tailwind CSS for styling
- * Patterns: Controlled input, state-driven UI, functional component
- * Requirements:
- *   - Display chat history for current team
- *   - Allow user to send messages (Enter key or button)
- *   - Validate non-empty input
- *   - Future: Support agent responses, file uploads, markdown
+ * Per Refactoring Guide Section 1.3:
+ * - Uses UIStore for current team context
+ * - Uses SessionStore for current user
+ * - Uses messageService for sending messages
+ * - No chatStore, no teamStore, no userStore
  *
- * Methods & Arguments:
- *   - ChatWindow(): No arguments. Uses Zustand stores for state.
- *     - Returns: JSX.Element (chat UI)
- *   - useState(newMessage): string - controlled textarea value
- *   - useTeamStore(): Returns currentTeam (Team)
- *   - useChatStore(): Returns addMessage(teamId, message)
- *   - handleSend(): No arguments. Sends message if valid
- *     - Creates Message object with id, teamId, authorId, content, etc.
- *     - Calls addMessage(teamId, message)
- *
- * Usage:
- *   - Used in main layout between Sidebar and RightPanel
+ * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
  */
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useUIStore } from '@/stores/uiStore'
+import { useSessionStore } from '@/stores/sessionStore'
+import { useEntityStore } from '@/stores/entityStore'
+import { createMessage } from '@/services/messageService'
+import { MessageList } from './MessageList'
+import { ChatHeader } from './ChatHeader'
+import { socketService } from '@/services/socketService'
 
 export const ChatWindow = () => {
-  // newMessage: string - controlled textarea value
   const [newMessage, setNewMessage] = useState('')
-  // currentTeam: Team | null - active team context
-  const currentTeam = useCurrentTeam()
-  // Use API method instead of direct mutation
-  const sendMessage = useChatStore((state) => state.sendMessage)
-  const { user } = useUserStore()
   
-  // Track typing state to avoid spamming socket events
+  // Get current team from UIStore
+  const currentTeamId = useUIStore((state) => state.currentTeamId)
+  const currentTeam = useEntityStore((state) => 
+    currentTeamId ? state.getTeam(currentTeamId) : null
+  )
+  
+  // Get current user from SessionStore
+  const currentUser = useSessionStore((state) => state.currentUser)
+  
+  // Phase 2.3: Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      console.log('[ChatWindow] 🧹 Cleaning up typing timers on unmount')
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+      // Stop typing if component unmounts
+      if (isTypingRef.current && currentTeam && currentUser) {
+        socketService.sendTypingIndicator(currentTeam.id, currentUser.id, false)
+        isTypingRef.current = false
+      }
+    }
+  }, [currentTeam, currentUser])
+  
+  // Phase 2.3: Track typing state with debouncing
   const isTypingRef = useRef(false)
-  const typingTimeoutRef = useRef<number | null>(null)
+  const typingTimeoutRef = useRef<number | null>(null) // Auto-stop after 3s
+  const debounceTimeoutRef = useRef<number | null>(null) // 500ms delay before emit
 
-  // Send typing indicator (debounced)
-  const handleTypingStart = useCallback(() => {
-    if (!currentTeam || isTypingRef.current) return
+  // Phase 2.3: Send typing:start (only called after debounce)
+  const emitTypingStart = useCallback(() => {
+    if (!currentTeam || !currentUser || isTypingRef.current) return
     
     isTypingRef.current = true
-    socketService.sendTypingIndicator(currentTeam.id, user.id, true)
-    console.log('[ChatWindow] 👆 Typing started')
-  }, [currentTeam, user.id])
+    socketService.sendTypingIndicator(currentTeam.id, currentUser.id, true)
+    console.log('[ChatWindow] 👆 Typing started (emitted after 500ms debounce)')
+  }, [currentTeam, currentUser])
 
-  const handleTypingStop = useCallback(() => {
-    if (!currentTeam || !isTypingRef.current) return
+  // Phase 2.3: Send typing:stop
+  const emitTypingStop = useCallback(() => {
+    if (!currentTeam || !currentUser || !isTypingRef.current) return
     
     isTypingRef.current = false
-    socketService.sendTypingIndicator(currentTeam.id, user.id, false)
+    socketService.sendTypingIndicator(currentTeam.id, currentUser.id, false)
     console.log('[ChatWindow] 👇 Typing stopped')
-  }, [currentTeam, user.id])
+  }, [currentTeam, currentUser])
 
-  // Handle input change with typing indicators
+  // Phase 2.3: Handle input change with debouncing
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value)
     
-    // Start typing if not already
-    if (e.target.value.length > 0 && !isTypingRef.current) {
-      handleTypingStart()
-    }
+    const hasContent = e.target.value.length > 0
     
-    // Reset timeout - stop typing after 3s of inactivity
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
-    }
-    
-    if (e.target.value.length > 0) {
+    if (hasContent) {
+      // Clear existing debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+      
+      // Clear auto-stop timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+      
+      // Phase 2.3: Debounce - only emit if still typing after 500ms
+      if (!isTypingRef.current) {
+        debounceTimeoutRef.current = setTimeout(() => {
+          emitTypingStart()
+        }, 500)
+      }
+      
+      // Phase 2.3: Auto-stop after 3s of no input
       typingTimeoutRef.current = setTimeout(() => {
-        handleTypingStop()
+        emitTypingStop()
       }, 3000)
     } else {
-      // Empty input = stop typing immediately
-      handleTypingStop()
+      // Empty input = stop immediately
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+        debounceTimeoutRef.current = null
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = null
+      }
+      emitTypingStop()
     }
   }
 
-  // handleSend(): sends message via API
+  // handleSend(): sends message via messageService
   const handleSend = async () => {
-    if (!newMessage.trim() || !currentTeam) return
+    if (!newMessage.trim() || !currentTeam || !currentUser) return
 
-    // Stop typing indicator before sending
-    handleTypingStop()
+    // Phase 2.3: Clear all timers and stop typing
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+      debounceTimeoutRef.current = null
+    }
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
+      typingTimeoutRef.current = null
     }
+    emitTypingStop()
 
     try {
-      await sendMessage({
+      await createMessage({
         teamId: currentTeam.id,
-        authorId: user.id,
+        authorId: currentUser.id,
         content: newMessage.trim(),
         contentType: 'text',
       })

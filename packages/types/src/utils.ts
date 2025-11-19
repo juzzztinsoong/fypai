@@ -156,6 +156,7 @@ export function teamWithMembersToDTO(
   return {
     id: team.id,
     name: team.name,
+    isChimeEnabled: team.isChimeEnabled,
     createdAt: dateToISOString(team.createdAt),
     members: teamMembers.map(({ teamMember, user }) => ({
       id: teamMember.id,
