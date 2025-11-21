@@ -99,6 +99,7 @@ export interface MessageDTO {
         avatar: string | null;
         role: UserRoleString;
     };
+    relevanceScore?: number;
 }
 /**
  * AIInsight Metadata

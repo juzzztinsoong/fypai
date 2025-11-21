@@ -5,7 +5,7 @@
  * These can be enabled/disabled or customized per team.
  */
 
-import { ChimeRule } from './chimeRulesEngine.js';
+import { ChimeRule } from '../autonomous/chimeEngine.js';
 
 /**
  * Rule 1: Decision Detector

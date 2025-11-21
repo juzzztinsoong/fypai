@@ -10,21 +10,57 @@ This file documents the architecture, conventions, and patterns so AI coding age
 
 ---
 
+## 🎯 Current Status (November 2025)
+
+**Current Phase**: Phase 5 - RAG Enhancement & Validation  
+**Branch**: `rag_1`  
+**Last Major Milestone**: Phase 4 Complete (RAG Infrastructure - embeddings, vector search, worker queue)
+
+### ✅ Completed Phases
+- **Phase 1-3**: Full-stack foundation (React, Express, Socket.IO, Prisma, real-time chat)
+- **Phase 4**: RAG Infrastructure (GitHub Models embeddings, Pinecone vector DB, BullMQ worker, basic integration)
+
+### 🚧 Active Development
+- **Phase 5 Tasks**: RAG context enhancement, end-to-end verification, similarity threshold tuning
+- **Quick Wins**: Error tracking (Sentry), in-memory caching, batch embeddings, message preprocessing
+
+### 📋 Next Up
+- **Phase 6**: Multi-agent architecture (Tier 1 cheap + Tier 2 smart agents)
+- **Phase 7**: Authentication (Clerk integration)
+- **Phase 8**: Production deployment (PostgreSQL, Vercel/Railway)
+- **Phase 9**: Adaptive UI (theme system, user preferences)
+
+**Key Documents**:
+- `CURRENT_PHASE_IMPLEMENTATION.md` - Actionable tasks for immediate implementation
+- `PHASE_5_PLAN.md` - Comprehensive RAG enhancement checklist
+- `FUTURE_ROADMAP.md` - Strategic vision for Phases 6-9
+
+---
+
 ## Current Tech Stack (Implemented)
 
 ### Frontend
 - **Framework**: React 18 + TypeScript + Vite 7.1.9
-- **State Management**: Zustand (chatStore, aiInsightsStore, teamStore, userStore, presenceStore)
+- **State Management**: Zustand (entityStore, uiStore, sessionStore) - **refactored from 6→3 stores**
 - **Styling**: TailwindCSS
-- **Real-time**: Socket.IO client
+- **Real-time**: Socket.IO client (connection managed in realtimeInit.ts)
 - **Markdown**: react-markdown with syntax highlighting
 
 ### Backend  
 - **Runtime**: Node.js 20 + Express 4.18
 - **Real-time**: Socket.IO 4.6
-- **Database**: Prisma 5.7 ORM + SQLite (dev) / PostgreSQL (prod)
-- **AI Provider**: GitHub Models (Azure) - `gpt-4o` model
+- **Database**: Prisma 5.7 ORM + SQLite (dev) / PostgreSQL (planned for prod)
+- **AI Provider**: GitHub Models (Azure) - `gpt-4o` model for chat, `text-embedding-3-small` for embeddings
+- **Vector DB**: Pinecone (serverless, us-east-1) for semantic search
+- **Job Queue**: BullMQ + Redis for background embedding generation
 - **API Design**: REST endpoints + WebSocket events
+
+### RAG Infrastructure (Phase 4 Complete)
+- **Embedding Service**: OpenAI-compatible SDK → GitHub Models endpoint (free tier)
+- **Vector Storage**: Pinecone index `fypai-messages` (1536 dimensions)
+- **Worker System**: BullMQ worker processes embedding queue (concurrency: 3)
+- **Semantic Search**: RAG service retrieves relevant past messages (threshold: 0.7 similarity)
+- **Usage Tracking**: Cumulative token/request counters + API endpoint (`GET /api/stats/embeddings`)
 
 ### Shared
 - **Types Package**: `packages/types/` - shared DTOs between frontend/backend
@@ -91,11 +127,9 @@ fypai/
 │   │   │       ├── ReportCard.tsx           # Green-themed report display
 │   │   │       └── CodeOutputCard.tsx       # Syntax-highlighted code
 │   │   ├── stores/             # Zustand stores
-│   │   │   ├── chatStore.ts              # Messages, sendMessage, socket listeners
-│   │   │   ├── aiInsightsStore.ts        # AI insights (summaries, reports, actions)
-│   │   │   ├── teamStore.ts              # Teams, currentTeam
-│   │   │   ├── userStore.ts              # Current user
-│   │   │   └── presenceStore.ts          # Online users, typing indicators
+│   │   │   ├── entityStore.ts            # Normalized data (users, teams, messages, insights)
+│   │   │   ├── uiStore.ts                # UI state (current team, sidebar open, etc.)
+│   │   │   └── sessionStore.ts           # Session state (auth, connection status)
 │   │   ├── services/           # API clients
 │   │   │   ├── messageService.ts         # /api/messages
 │   │   │   ├── insightService.ts         # /api/insights (includes AI generation)
@@ -888,6 +922,24 @@ console.log('[Socket] 📨 Event name:', payload);
 6. **Test with real conversations**: Verify rule triggers correctly, no false positives
 7. **Add cooldown**: Prevent spam (default 30min between same rule)
 
+### When Asked to Implement RAG Enhancements (Phase 5)
+
+1. **Check current RAG status**: Is embedding worker running? Are messages being embedded?
+2. **Verify Pinecone connection**: Use `GET /api/stats/embeddings` to check usage
+3. **Test semantic search**: Use debug endpoint or write test script
+4. **Enhance context injection**:
+   - RAG context should be system message (not user message)
+   - Include relevance scores and timestamps
+   - Add citation encouragement to prompts
+5. **Tune similarity threshold**:
+   - Start at 0.7, adjust based on result quality
+   - Higher threshold = more relevant but fewer results
+   - Lower threshold = more results but lower quality
+6. **Handle edge cases**:
+   - Pinecone down → graceful degradation
+   - No results found → continue without RAG
+   - Embedding generation fails → log to dead letter queue
+
 ### When Asked to Fix a Bug
 
 1. **Reproduce**: Understand exact steps to trigger the bug
@@ -938,44 +990,342 @@ console.log('[Socket] 📨 Event name:', payload);
 
 ## Current Status & Roadmap
 
-### ✅ Implemented & Working
+### ✅ Implemented & Working (Phase 1-4 Complete)
 - Real-time chat with Socket.IO (team rooms)
 - **AI Reactive Mode**: `@agent` mentions in chat
 - **AI User-Triggered Mode**: Summary/Report generation buttons
+- **AI Autonomous Mode**: Smart chime rules engine (pattern-based)
+  - Decision detector, action commitment tracker, problem detector
+  - Anti-spam measures (cooldowns, priority-based execution)
+  - ChimeLog tracking for analytics and debugging
+- **RAG Infrastructure** (Phase 4 Complete):
+  - Embedding generation (GitHub Models `text-embedding-3-small`)
+  - Pinecone vector database (1536 dimensions, serverless)
+  - BullMQ background worker (concurrency: 3)
+  - Semantic message retrieval (similarity threshold: 0.7)
+  - Usage tracking API (`GET /api/stats/embeddings`)
 - AI Insights system (summaries, reports, actions, suggestions)
 - Right panel with content filtering (All, Summaries, Actions, Suggestions)
 - Markdown rendering for AI content
 - Team switching and persistence
-- Message/insight storage in SQLite/PostgreSQL
+- Message/insight storage in SQLite (dev)
 - Socket.IO broadcasts for real-time sync across clients
-- Zustand state management with proper subscriptions
+- **Zustand state management** (refactored to 3 stores: entityStore, uiStore, sessionStore)
+- Online presence indicators
+- Typing indicators (full implementation)
 
-### 🚧 In Progress / Next Priority
-- **AI Autonomous Mode**: Smart chime rules engine
-  - Pattern detectors (decisions, actions, confusion)
-  - Threshold-based triggers
-  - Semantic analysis (requires vector DB)
-  - Scheduled chimes (daily summaries)
-  - Hybrid rules (multiple conditions)
-- Chime rules database schema
-- Chime admin UI for rule management
+### 🚧 In Progress - Phase 5 (RAG Enhancement & Validation)
+**High Priority:**
+- Inject RAG context as system message (higher LLM weight)
+- Add relevance scores and timestamps to retrieved context
+- Add citation support in prompts
+- Create comprehensive RAG test suite (end-to-end verification)
+- Backfill existing 70+ messages for realistic testing
+- Tune similarity threshold with real data
 
-### 📋 Planned (Not Started)
-- User authentication (currently hardcoded `user1`)
-- Vector DB integration (Pinecone/Weaviate/FAISS) for semantic search
-- Typing indicators (backend ready, frontend TODO)
-- User presence ("online" status)
-- Message editing/deletion UI (backend ready)
-- File attachments in chat
-- Notebook generation
-- Code analysis features
-- Voice/video transcription summaries
-- Mobile responsiveness
-- Desktop app (Electron)
-- PostgreSQL for production deployment
+**Medium Priority:**
+- Error tracking integration (Sentry)
+- In-memory caching layer
+- Batch embedding generation
+- Message preprocessing (clean text before embedding)
+- RAG fallback logic (graceful degradation)
+- Pinecone circuit breaker
 
-### 🐛 Known Issues
-- None currently (all major bugs fixed as of Oct 19, 2025)
+**Low Priority:**
+- Semantic chime rules (vector similarity instead of regex)
+- RAG performance metrics
+- Result caching
+
+### 📋 Planned - Phases 6-9
+**Phase 6: Multi-Agent Architecture**
+- Tier 1 agent (gpt-4o-mini) for monitoring/drafts - 90% cheaper
+- Tier 2 agent (gpt-4o) for complex reasoning
+- Chat/insight routing based on content type
+- Bidirectional message-insight linking
+- Agent orchestration system
+
+**Phase 7: Authentication**
+- Clerk integration (email/OAuth)
+- Team membership and permissions
+- User onboarding flow
+- Replace hardcoded `user1`
+
+**Phase 8: Production Deployment**
+- PostgreSQL migration from SQLite
+- Team creation and invitation system
+- Cloud deployment (Vercel + Railway/Render)
+- Email service integration
+
+**Phase 9: Adaptive UI**
+- Plain-language rule builder
+- User preference system (AI behavior, theme, layout)
+- Custom insight categories
+
+### 🐛 Known Issues & Watch Points
+- **RAG not verified end-to-end**: Code exists but no test shows @agent using retrieved context
+- **Small dataset**: Only 5 messages embedded, insufficient for quality testing
+- **Arbitrary threshold**: 0.7 similarity not tuned with real data
+- **No cross-team verification**: Team scoping implemented but not tested
+- **Backend TypeScript**: Ensure `npx prisma generate` after schema changes
+
+---
+
+## 🎓 Lessons Learned & Common Bugs to Avoid
+
+### Critical Lessons from Refactoring
+
+#### 1. **Store Architecture - Direct Flow is King**
+**What We Learned:**
+- Event Bus added 3 unnecessary layers of abstraction
+- Direct `Service → Store → Component` flow is simpler and faster
+- Fewer moving parts = fewer bugs
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: Subscribing to function reference
+const fetchMessages = useChatStore((state) => state.fetchMessages);
+const messages = fetchMessages(teamId); // Component won't re-render!
+
+// ✅ CORRECT: Subscribe to data
+const messages = useEntityStore((state) => state.getMessages(teamId));
+```
+
+**Why it breaks:** Function references never change, so Zustand won't trigger re-renders. Always subscribe to actual data, not methods.
+
+---
+
+#### 2. **Stable Empty References Prevent Re-render Storms**
+**What We Learned:**
+- `[] !== []` in JavaScript - new arrays break React memoization
+- Returning stable frozen empty objects prevents unnecessary re-renders
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: Creates new array every call
+getMessages: (teamId) => {
+  return get().messages[teamId] || []; // NEW array each time!
+}
+
+// ✅ CORRECT: Stable frozen reference
+const EMPTY_ARRAY = Object.freeze([]) as MessageDTO[];
+getMessages: (teamId) => {
+  return get().messages[teamId] || EMPTY_ARRAY; // Same reference
+}
+```
+
+**Impact:** This single fix reduced typing indicator re-renders from 100+ to 3 per second.
+
+---
+
+#### 3. **TypeScript Type Inference Can Fail**
+**What We Learned:**
+- Literal types like `'user' | 'assistant' | 'system'` need explicit assertion
+- Pinecone metadata types are stricter than expected
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: TypeScript infers as string, not literal
+const messages = [
+  { role: 'system', content: '...' } // Error: Type 'string' not assignable to 'system'
+];
+
+// ✅ CORRECT: Use `as const` for literal type inference
+const messages = [
+  { role: 'system' as const, content: '...' }
+];
+```
+
+**Fix applied:** Added `as const` to all LLM message role assignments.
+
+---
+
+#### 4. **Prisma Regeneration After Schema Changes**
+**What We Learned:**
+- TypeScript errors like "Property 'chimeLog' does not exist" mean Prisma client is stale
+- Schema changes require regeneration AND server restart
+
+**Bug to Avoid:**
+```bash
+# ❌ WRONG: Edit schema, restart server immediately
+# Result: TypeScript compilation errors
+
+# ✅ CORRECT: Regenerate Prisma client first
+npx prisma generate
+npm run dev
+```
+
+**Always do:** `npx prisma generate` after editing `schema.prisma`.
+
+---
+
+#### 5. **Socket Deduplication is Essential**
+**What We Learned:**
+- REST API response + Socket broadcast = potential duplicate
+- Need correlation IDs and deduplication logic
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: No deduplication
+addMessage: (message) => set((state) => ({
+  messages: [...state.messages, message] // Adds duplicate from socket
+}))
+
+// ✅ CORRECT: Check if message already exists
+addMessage: (message) => set((state) => {
+  if (state.entities.messages[message.id]) {
+    return state; // Already exists, skip
+  }
+  // ... add message
+})
+```
+
+**Impact:** Without this, users see duplicate messages from REST + Socket events.
+
+---
+
+#### 6. **Chime Rules Need Anti-Spam Measures**
+**What We Learned:**
+- Agent's own messages can trigger chime rules → infinite loops
+- Multiple rules triggering on same message = spam
+- Generic patterns ("error", "urgent") cause false positives
+
+**Bugs Fixed:**
+```typescript
+// ✅ Skip agent's own messages
+if (message.authorId === 'agent') {
+  console.log('Skipping agent message to prevent loops');
+  return;
+}
+
+// ✅ Execute only highest priority rule
+const topDecision = decisions[0]; // Not all decisions
+await this.executeChime(topDecision);
+
+// ✅ Tightened patterns
+// Before: 'urgent' (too broad)
+// After: 'urgent.+(deadline|task|issue)' (requires context)
+```
+
+**Impact:** Reduced chime spam from 3-4 per message to max 1.
+
+---
+
+#### 7. **Embedding API Choice Matters**
+**What We Learned:**
+- GitHub Models (Azure) provides free embeddings vs OpenAI's paid tier
+- Usage tracking requires manual implementation (not built-in)
+- Different endpoint, same SDK (OpenAI-compatible)
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: Using OPENAI_API_KEY with GitHub Models endpoint
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // Won't work!
+  baseURL: 'https://models.inference.ai.azure.com'
+});
+
+// ✅ CORRECT: Use GITHUB_TOKEN
+const openai = new OpenAI({
+  apiKey: process.env.GITHUB_TOKEN,
+  baseURL: 'https://models.inference.ai.azure.com'
+});
+```
+
+**Monitoring:** GitHub Models usage tracked at github.com/settings/models (not OpenAI dashboard).
+
+---
+
+#### 8. **RAG Context Placement Affects LLM Behavior**
+**What We Learned:**
+- User message role has lower weight than system message
+- Appending RAG as user message can be ignored by LLM
+- System messages before conversation = higher priority
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: RAG as user message (low priority)
+messages: [
+  { role: 'system', content: systemPrompt },
+  ...conversationHistory,
+  { role: 'user', content: ragContext } // LLM may ignore this
+]
+
+// ✅ CORRECT: RAG as system message (high priority)
+messages: [
+  { role: 'system', content: systemPrompt },
+  { role: 'system', content: `IMPORTANT CONTEXT:\n${ragContext}` },
+  ...conversationHistory
+]
+```
+
+**Status:** Identified in Phase 5 planning, not yet implemented.
+
+---
+
+#### 9. **React 18 Strict Effects Unmount/Remount**
+**What We Learned:**
+- React 18 automatically unmounts/remounts in dev mode
+- `useEffect` with `[]` dependency runs once on first mount only
+- Socket connections need to persist across remounts
+
+**Bug to Avoid:**
+```typescript
+// ❌ WRONG: Socket handlers in useEffect with []
+useEffect(() => {
+  socket.on('message:new', handler);
+  return () => socket.off('message:new', handler); // Cleanup removes handler
+}, []); // After remount, handlers gone but effect doesn't re-run!
+
+// ✅ CORRECT: Initialize socket outside React lifecycle
+// File: services/realtimeInit.ts
+let initPromise = null;
+export async function initializeRealtime(userId) {
+  if (initPromise) return initPromise; // Idempotent
+  initPromise = connectAndRegisterHandlers(userId);
+  return initPromise;
+}
+```
+
+**Fix applied:** Moved socket initialization to `realtimeInit.ts` singleton pattern.
+
+---
+
+#### 10. **Dependencies vs DevDependencies**
+**What We Learned:**
+- `@types/*` packages should be in `devDependencies`
+- Runtime packages must be in `dependencies`
+- Monorepo shared packages need proper linking
+
+**Bug to Avoid:**
+```json
+// ❌ WRONG: Types in dependencies
+"dependencies": {
+  "@types/node": "^20.0.0"
+}
+
+// ✅ CORRECT: Types in devDependencies
+"devDependencies": {
+  "@types/node": "^20.0.0"
+}
+```
+
+**Impact:** Smaller production builds, clearer dependency tree.
+
+---
+
+### Quick Bug Checklist
+
+Before pushing code, verify:
+- [ ] `npx prisma generate` after schema changes
+- [ ] `npm run build` in `packages/types` after DTO changes
+- [ ] Subscriptions use data, not function references
+- [ ] Empty arrays/objects are frozen constants
+- [ ] TypeScript uses `as const` for literal types
+- [ ] Deduplication logic for socket + REST events
+- [ ] Agent messages skipped in chime evaluation
+- [ ] RAG context as system message (if applicable)
+- [ ] Socket initialization is idempotent
+- [ ] No infinite loops in useEffect dependencies
 
 ---
 
@@ -991,6 +1341,7 @@ If you're an AI coding agent and need clarification:
 
 ---
 
-**Last Updated:** October 19, 2025  
+**Last Updated:** November 19, 2025  
+**Current Phase:** Phase 5 - RAG Enhancement & Validation  
 **Stack Version:** React 18, Node 20, Prisma 5, Socket.IO 4, Vite 7  
 **Repository:** https://github.com/juzzztinsoong/fypai

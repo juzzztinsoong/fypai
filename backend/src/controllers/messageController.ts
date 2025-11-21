@@ -20,6 +20,7 @@ import { prisma } from '../db.js'
 import { Message } from '@prisma/client'
 import { MessageDTO, CreateMessageRequest, UpdateMessageRequest, messagesToDTO, messageToDTO } from '../types.js'
 import { CacheService } from '../services/cacheService.js'
+import { queueMessageEmbedding } from '../queues/embeddingQueue.js'
 
 export class MessageController {
   /**
@@ -66,6 +67,25 @@ export class MessageController {
 
     // Invalidate conversation context cache for this team
     await CacheService.invalidateTeamCache(data.teamId)
+
+    // Queue embedding generation for RAG (Phase 4)
+    // Skip embedding for very short messages or AI agent messages
+    if (message.content.trim().length >= 10 && message.contentType === 'text') {
+      try {
+        await queueMessageEmbedding({
+          messageId: message.id,
+          teamId: message.teamId,
+          content: message.content,
+          authorId: message.authorId,
+          createdAt: message.createdAt.toISOString(),
+          priority: 1,
+        })
+        console.log(`[MessageController] ✅ Queued embedding for message: ${message.id}`)
+      } catch (error) {
+        // Don't fail message creation if embedding queue fails
+        console.error('[MessageController] ⚠️ Failed to queue embedding:', error)
+      }
+    }
 
     return messageToDTO(message, message.author)
   }

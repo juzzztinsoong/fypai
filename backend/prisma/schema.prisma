@@ -65,18 +65,23 @@ model TeamMember {
 }
 
 model Message {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   teamId      String
   authorId    String
   content     String
-  contentType String   // 'text' | 'ai_longform' | 'notebook' | 'file'
-  createdAt   DateTime @default(now())
-  metadata    String?  // JSON string for flexible data
+  contentType String    // 'text' | 'ai_longform' | 'notebook' | 'file'
+  createdAt   DateTime  @default(now())
+  metadata    String?   // JSON string for flexible data
   
-  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  // Phase 4: Embedding fields for RAG
+  embeddingId String?   // Pinecone vector ID
+  embeddedAt  DateTime? // When embedding was generated
+  
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   
   @@index([teamId, createdAt])
+  @@index([embeddingId])
 }
 
 model AIInsight {

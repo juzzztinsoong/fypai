@@ -49,6 +49,23 @@ router.get('/', async (req, res, next) => {
 })
 
 /**
+ * GET /api/messages/:id
+ * Get a single message by ID
+ */
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const message = await MessageController.getMessage(id)
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' })
+    }
+    res.json(message)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
  * POST /api/messages
  * Create a new message
  */

@@ -8,14 +8,16 @@
  * - Evaluates chime rules for autonomous AI responses
  */
 
-import { GitHubModelsClient } from '../ai/llm/githubModelsClient.js';
-import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/llm/prompts.js';
-import { shouldAgentRespond } from '../ai/agent/rules.js';
-import { ChimeEvaluator } from '../ai/agent/chimeRulesEngine.js';
+import { GitHubModelsClient } from '../ai/core/llm.js';
+import { SYSTEM_PROMPTS, buildConversationContext, buildRAGContext } from '../ai/core/prompts.js';
+import { shouldAgentRespond } from '../ai/reactive/reactiveRules.js';
+import { ChimeEvaluator } from '../ai/autonomous/chimeEngine.js';
 import { MessageController } from './messageController.js';
 import { TeamController } from './teamController.js';
 import { AIInsightController } from './aiInsightController.js';
 import { ChimeRuleController } from './chimeRuleController.js';
+import { RuleProvider } from '../ai/rules/ruleProvider.js';
+import { ragService } from '../services/ragService.js';
 import { MessageDTO, CreateAIInsightRequest } from '@fypai/types';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -156,6 +158,7 @@ export class AIAgentController {
 
   /**
    * Generate AI response based on conversation context
+   * Now with RAG support for semantic context retrieval
    */
   private static async generateResponse(
     messages: MessageDTO[],
@@ -174,9 +177,33 @@ export class AIAgentController {
       systemPrompt = SYSTEM_PROMPTS.codeGenerator;
     }
 
+    // ✨ NEW: Try to get RAG context for better responses
+    let ragContext = '';
+    try {
+      const isRAGReady = await ragService.healthCheck();
+      if (isRAGReady) {
+        const { relevantMessages, totalResults } = await ragService.getRelevantContext(
+          triggerMessage.content,
+          triggerMessage.teamId,
+          5, // Top 5 similar messages
+          parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.7') // Configurable similarity threshold
+        );
+
+        if (totalResults > 0) {
+          const scores = relevantMessages.map(m => m.relevanceScore || 0);
+          ragContext = buildRAGContext(relevantMessages, scores);
+          systemPrompt = SYSTEM_PROMPTS.assistantWithRAG; // Use RAG-aware prompt
+          console.log(`[AI Agent] 🔍 Retrieved ${totalResults} relevant messages for context`);
+        }
+      }
+    } catch (error) {
+      console.warn('[AI Agent] RAG context retrieval failed, continuing without:', error);
+    }
+
     const response = await this.llm.generate({
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system' as const, content: systemPrompt },
+        ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...conversationHistory,
       ],
       maxTokens: parseInt(process.env.AI_MAX_TOKENS || '2048'),
@@ -324,7 +351,7 @@ export class AIAgentController {
       }
 
       // 1. Get active rules for this team
-      const rules = await ChimeRuleController.getActiveRules(message.teamId);
+      const rules = await RuleProvider.getRulesForTeam(message.teamId);
       
       console.log(`[AI Agent] 📋 Found ${rules.length} active chime rules for team ${message.teamId}`);
       

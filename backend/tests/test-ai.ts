@@ -20,13 +20,13 @@ console.log(`   AI_TEMPERATURE: ${process.env.AI_TEMPERATURE || '0.7'}\n`);
 try {
   console.log('2️⃣ Importing AI modules...');
   
-  const { GitHubModelsClient } = await import('./src/ai/llm/githubModelsClient.js');
+  const { GitHubModelsClient } = await import('../src/ai/llm/githubModelsClient.js');
   console.log('   ✅ GitHubModelsClient imported');
   
-  const { SYSTEM_PROMPTS, buildConversationContext } = await import('./src/ai/llm/prompts.js');
+  const { SYSTEM_PROMPTS, buildConversationContext } = await import('../src/ai/llm/prompts.js');
   console.log('   ✅ Prompts imported');
   
-  const { shouldAgentRespond, CHIME_RULES } = await import('./src/ai/agent/rules.js');
+  const { shouldAgentRespond, CHIME_RULES } = await import('../src/ai/agent/rules.js');
   console.log('   ✅ Chime rules imported');
   console.log(`   📋 ${CHIME_RULES.length} rules configured\n`);
 

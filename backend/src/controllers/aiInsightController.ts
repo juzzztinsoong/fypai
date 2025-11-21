@@ -18,8 +18,8 @@
 
 import { prisma } from '../db.js'
 import { AIInsightDTO, CreateAIInsightRequest, aiInsightToDTO, aiInsightsToDTO } from '../types.js'
-import { GitHubModelsClient } from '../ai/llm/githubModelsClient.js'
-import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/llm/prompts.js'
+import { GitHubModelsClient } from '../ai/core/llm.js'
+import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/core/prompts.js'
 import { MessageController } from './messageController.js'
 import { TeamController } from './teamController.js'
 import { Server as SocketIOServer } from 'socket.io'
