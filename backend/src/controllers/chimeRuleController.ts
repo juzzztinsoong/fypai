@@ -7,8 +7,8 @@
 
 import { Request, Response } from 'express';
 import { prisma } from '../db.js';
-import type { ChimeRule } from '../ai/agent/chimeRulesEngine.js';
-import { DEFAULT_RULES, getDefaultEnabledRules } from '../ai/agent/defaultRules.js';
+import type { ChimeRule } from '../ai/autonomous/chimeEngine.js';
+import { DEFAULT_RULES, getDefaultEnabledRules } from '../ai/rules/systemRules.js';
 
 export class ChimeRuleController {
   /**

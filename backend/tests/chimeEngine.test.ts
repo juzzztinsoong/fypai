@@ -5,7 +5,7 @@
  * Run with: npm run build && node dist/ai/agent/chimeRulesEngine.test.js
  */
 
-import { ChimeEvaluator, ChimeRule, ChimeEvaluationContext } from './chimeRulesEngine.js';
+import { ChimeEvaluator, ChimeRule, ChimeEvaluationContext } from '../src/ai/autonomous/chimeEngine.js';
 import { 
   detectDecision, 
   detectActionCommitment, 
@@ -14,15 +14,13 @@ import {
   detectProblem,
   detectUrgency,
   detectQuestionOverload
-} from './patternDetectors.js';
+} from '../src/ai/autonomous/detectors.js';
 import { 
   DECISION_DETECTOR, 
-  ACTION_COMMITMENT_TRACKER,
+  ACTION_COMMITMENT_TRACKER, 
   CONFUSION_INTERVENTION,
   getDefaultEnabledRules 
-} from './defaultRules.js';
-
-// Mock message data
+} from '../src/ai/rules/systemRules.js';// Mock message data
 const mockMessages = {
   decision: [
     { id: '1', content: "Let's go with option A for the database", authorId: 'user1', createdAt: new Date().toISOString() },

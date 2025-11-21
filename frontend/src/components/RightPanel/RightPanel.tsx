@@ -21,15 +21,10 @@ import { ActionButtons } from './ActionButtons';
 import { EmptyState } from './EmptyState';
 import { getInsights } from '@/services/insightService';
 
-let rightPanelRenderCount = 0
-
 export const RightPanel = () => {
-  rightPanelRenderCount++
-  console.log('[RightPanel] 🎨 Render #' + rightPanelRenderCount)
   
   // Get current team from UIStore
   const currentTeamId = useUIStore((state) => state.currentTeamId);
-  console.log('[RightPanel] currentTeamId:', currentTeamId);
   const currentTeam = useEntityStore((state) => 
     currentTeamId ? state.getTeam(currentTeamId) : null
   );
@@ -41,7 +36,6 @@ export const RightPanel = () => {
   
   // Map to data in useMemo to prevent re-renders
   const teamInsights = useMemo(() => {
-    console.log('[RightPanel] useMemo recalculating teamInsights')
     return (insightIds as string[])
       .map(id => insightsById[id])
       .filter(Boolean);
@@ -56,7 +50,6 @@ export const RightPanel = () => {
   // Fetch insights when team changes
   useEffect(() => {
     if (currentTeamId) {
-      console.log('[RightPanel] Fetching insights for team:', currentTeamId);
       getInsights(currentTeamId);
     }
   }, [currentTeamId]);
@@ -109,7 +102,6 @@ export const RightPanel = () => {
 
     // Emit socket event to persist and broadcast to other clients
     socketService.toggleTeamAI(currentTeamId, newState);
-    console.log('[RightPanel] 🤖 AI toggled for team', currentTeamId, ':', newState ? 'enabled' : 'disabled');
   };
   
   // Show empty state when no team selected (AFTER all hooks)
@@ -184,17 +176,7 @@ export const RightPanel = () => {
               return (
                 <LongFormContentViewer 
                   key={insight.id} 
-                  messages={[{
-                    id: insight.id,
-                    teamId: insight.teamId,
-                    authorId: 'ai-assistant',
-                    content: insight.content,
-                    createdAt: insight.createdAt,
-                    metadata: {
-                      longFormType: insight.type,
-                      aiGenerated: true,
-                    }
-                  } as any]} 
+                  insights={[insight]} 
                 />
               );
             } else {

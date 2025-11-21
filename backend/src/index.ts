@@ -24,11 +24,17 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 import cors from 'cors'
+import * as Sentry from '@sentry/node'
+import { nodeProfilingIntegration } from '@sentry/profiling-node'
 
 import { prisma } from './db.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { setupSocketHandlers } from './socket/socketHandlers.js'
 import { getRedisClient, checkRedisHealth, disconnectRedis } from './services/redis.js'
+import { pineconeService } from './services/pineconeService.js'
+import { embeddingService } from './services/embeddingService.js'
+import { createEmbeddingWorker, shutdownEmbeddingWorker } from './workers/embeddingWorker.js'
+import type { Worker } from 'bullmq'
 
 // Import routes
 import teamRoutes from './routes/teamRoutes.js'
@@ -38,9 +44,33 @@ import aiInsightRoutes from './routes/aiInsightRoutes.js'
 import chimeRuleRoutes from './routes/chimeRuleRoutes.js'
 import { AIAgentController } from './controllers/aiAgentController.js'
 import { AIInsightController } from './controllers/aiInsightController.js'
+import { ragService } from './services/ragService.js'
 
 const app = express()
+
+// Initialize Sentry
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    integrations: [
+      // enable HTTP calls tracing
+      Sentry.httpIntegration(),
+      // enable Express.js middleware tracing
+      Sentry.expressIntegration(),
+      nodeProfilingIntegration(),
+    ],
+    // Performance Monitoring
+    tracesSampleRate: 1.0, // Capture 100% of the transactions
+    // Set sampling rate for profiling - this is relative to tracesSampleRate
+    profilesSampleRate: 1.0,
+  })
+  console.log('✅ Sentry initialized')
+}
+
 const server = createServer(app)
+
+// Track background workers
+let embeddingWorker: Worker | null = null
 
 // Allow multiple frontend origins for development
 const allowedOrigins: string[] = [
@@ -59,6 +89,8 @@ const io = new SocketIOServer(server, {
 })
 
 // Middleware
+// Sentry request/tracing handlers are automatically handled by expressIntegration in v8
+
 app.use(cors({
   origin: allowedOrigins,
 }))
@@ -73,6 +105,36 @@ app.get('/health', async (req, res) => {
     redis: redisHealthy ? 'connected' : 'disconnected'
   })
 })
+
+// Embedding usage stats endpoint
+app.get('/api/stats/embeddings', (req, res) => {
+  const stats = embeddingService.getUsageStats()
+  res.json({
+    ...stats,
+    model: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
+    provider: process.env.OPENAI_API_KEY ? 'OpenAI' : 'GitHub Models',
+    costNote: process.env.OPENAI_API_KEY 
+      ? `Estimated cost (may vary)` 
+      : 'Free tier via GitHub Models',
+  })
+})
+
+// Debug RAG endpoint
+app.post('/api/debug/rag-search', async (req, res) => {
+  const { query, teamId, topK = 5, minScore = 0.7 } = req.body;
+  
+  if (!query || !teamId) {
+    return res.status(400).json({ error: 'query and teamId are required' });
+  }
+
+  try {
+    const result = await ragService.getRelevantContext(query, teamId, topK, minScore);
+    res.json(result);
+  } catch (error) {
+    console.error('RAG Debug Error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
 
 // Setup WebSocket handlers first
 setupSocketHandlers(io)
@@ -94,6 +156,9 @@ app.use('/api/insights', aiInsightRoutes)
 app.use('/api/chime', chimeRuleRoutes)
 
 // Error handler (must be last)
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app)
+}
 app.use(errorHandler)
 
 // Start server
@@ -124,11 +189,30 @@ server.listen(PORT, async () => {
   } catch (error) {
     console.warn('⚠️  Redis not available - running without cache:', error)
   }
+
+  // Initialize Pinecone vector database
+  try {
+    await pineconeService.initialize()
+    console.log('✅ Pinecone initialized')
+  } catch (error) {
+    console.warn('⚠️  Pinecone initialization failed - RAG disabled:', error)
+  }
+
+  // Start embedding worker
+  try {
+    embeddingWorker = createEmbeddingWorker()
+    console.log('✅ Embedding worker started (concurrency: 3)')
+  } catch (error) {
+    console.error('❌ Embedding worker failed to start:', error)
+  }
 })
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...')
+  if (embeddingWorker) {
+    await shutdownEmbeddingWorker(embeddingWorker)
+  }
   await prisma.$disconnect()
   await disconnectRedis()
   server.close(() => {

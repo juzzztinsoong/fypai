@@ -119,6 +119,7 @@ export interface MessageDTO {
     avatar: string | null
     role: UserRoleString
   }
+  relevanceScore?: number // RAG similarity score (0-1)
 }
 
 /**
