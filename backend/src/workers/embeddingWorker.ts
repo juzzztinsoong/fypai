@@ -21,18 +21,34 @@ import { embeddingService } from '../services/embeddingService.js';
 import { pineconeService } from '../services/pineconeService.js';
 import { prisma } from '../db.js';
 import { v4 as uuidv4 } from 'uuid';
-
-import { Worker, Job } from 'bullmq';
-import { redisConnection, defaultWorkerOptions, QUEUE_NAMES } from '../queues/queueConfig.js';
-import { EmbeddingJobData } from '../queues/embeddingQueue.js';
-import { embeddingService } from '../services/embeddingService.js';
-import { pineconeService } from '../services/pineconeService.js';
-import { prisma } from '../db.js';
-import { v4 as uuidv4 } from 'uuid';
+import { UnifiedRuleEngine } from '../ai/autonomous/unifiedRuleEngine.js';
+import { IntentClassifier, MessageClassification } from '../ai/core/intentClassifier.js';
+import { MessageDTO } from '@fypai/types';
 
 // Buffer configuration
 const BATCH_SIZE = 20;
 const FLUSH_TIMEOUT_MS = 60000; // 60 seconds
+
+// Trivial content filter
+const TRIVIAL_WORDS = new Set([
+  'ok', 'okay', 'k', 'kk', 'thx', 'thanks', 'ty', 'lol', 'lmao', 'haha', 
+  'yes', 'no', 'yep', 'nope', 'sure', 'cool', 'nice', 'good', 'bad',
+  'hello', 'hi', 'hey', 'bye', 'goodbye', 'gm', 'gn'
+]);
+
+function isSemanticallySignificant(content: string): boolean {
+  const trimmed = content.trim();
+  
+  // 1. Too short to be meaningful context
+  if (trimmed.length < 4) return false;
+  
+  // 2. Common trivial responses
+  if (trimmed.length < 15 && TRIVIAL_WORDS.has(trimmed.toLowerCase().replace(/[!.?]+$/, ''))) {
+    return false;
+  }
+  
+  return true;
+}
 
 interface BufferedJob {
   job: Job<EmbeddingJobData>;
@@ -76,6 +92,20 @@ async function flushBuffer() {
       const { messageId, teamId, authorId, content, createdAt } = job.data;
 
       try {
+        // Build MessageDTO for classification
+        const messageDTO: MessageDTO = {
+          id: messageId,
+          teamId,
+          authorId,
+          content,
+          contentType: 'text',
+          createdAt: createdAt,
+        };
+
+        // Phase 6.2: Intent Classification (Tier 1 LLM)
+        // Run classification in parallel with Pinecone upsert for efficiency
+        const classificationPromise = IntentClassifier.getInstance().classifyAsync(messageDTO);
+        
         // Store in Pinecone
         const vectorId = uuidv4();
         await pineconeService.upsertVector({
@@ -91,13 +121,34 @@ async function flushBuffer() {
           },
         });
 
-        // Update Message record
+        // Await classification result
+        const classification = await classificationPromise;
+        console.log(`[EmbeddingWorker] 🏷️ Classified ${messageId}: intent=${classification.intent}, urgency=${classification.urgency}`);
+
+        // Update Message record with embedding and classification
         await prisma.message.update({
           where: { id: messageId },
           data: {
             embeddingId: vectorId,
             embeddedAt: new Date(),
+            // Store classification in metadata (JSON merge)
+            metadata: JSON.stringify({
+              ...JSON.parse((await prisma.message.findUnique({ where: { id: messageId } }))?.metadata || '{}'),
+              classification: {
+                intent: classification.intent,
+                sentiment: classification.sentiment,
+                urgency: classification.urgency,
+                topics: classification.topics,
+                confidence: classification.confidence
+              }
+            })
           },
+        });
+
+        // Phase 6: Async Semantic Rule Evaluation with Classification
+        // Fire and forget (don't block worker completion)
+        UnifiedRuleEngine.getInstance().evaluateAsync(messageDTO, embedding, classification).catch(err => {
+          console.error(`[EmbeddingWorker] Error in async rule evaluation for ${messageId}:`, err);
         });
 
         console.log(`[EmbeddingWorker] ✅ Processed message: ${messageId}`);
@@ -124,6 +175,14 @@ async function flushBuffer() {
  * Instead of processing immediately, add to buffer and wait.
  */
 async function processEmbeddingJob(job: Job<EmbeddingJobData>): Promise<void> {
+  const { content, messageId } = job.data;
+
+  // Step 0: Cost Optimization - Skip trivial messages
+  if (!isSemanticallySignificant(content)) {
+    console.log(`[EmbeddingWorker] ⏭️ Skipping trivial message ${messageId}: "${content.substring(0, 20)}..."`);
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
     // Add to buffer
     jobBuffer.push({ job, resolve, reject });

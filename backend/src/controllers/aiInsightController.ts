@@ -116,6 +116,7 @@ export class AIInsightController {
         ...conversationHistory,
         { role: 'user', content: 'Please provide a comprehensive summary of our conversation, including key points, decisions, and action items.' },
       ],
+      model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for summaries
       maxTokens: 4096,
       temperature: 0.7,
     });

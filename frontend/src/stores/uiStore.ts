@@ -36,6 +36,7 @@ interface UIState {
     theme: 'light' | 'dark'
     layout: string  // Future: 'compact' | 'comfortable' | 'spacious'
     sidebarCollapsed: boolean
+    showAIDetails: boolean  // Phase 6.5: Show agent metadata (model, tokens, cost) on AI messages
   }
   
   // View States (per guide section 2.1)
@@ -96,6 +97,7 @@ export const useUIStore = create<UIStore>()(
         theme: 'light',
         layout: 'comfortable',
         sidebarCollapsed: false,
+        showAIDetails: false,  // Default off for users, researchers can enable
       },
       
       viewStates: {

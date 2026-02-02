@@ -6,6 +6,7 @@ export interface AIGenerationRequest {
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   maxTokens?: number;
   temperature?: number;
+  model?: string;
 }
 
 export interface AIGenerationResponse {
@@ -30,22 +31,23 @@ export class GitHubModelsClient {
       new AzureKeyCredential(token!)
     );
     
-    // Use Claude 3.5 Sonnet (best for your collaboration use case)
-    this.model = process.env.AI_MODEL || "Claude-3.5-Sonnet";
+    // Use Tier 2 (Smart) model as default for general queries
+    this.model = process.env.LLM_MODEL_TIER_2 || process.env.AI_MODEL || "gpt-4o";
   }
 
   async generate(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     const response = await this.client.path("/chat/completions").post({
       body: {
         messages: request.messages,
-        model: this.model,
+        model: request.model || this.model,
         max_tokens: request.maxTokens || 4096,
         temperature: request.temperature || 0.7,
       }
     });
 
     if (response.status !== "200") {
-      throw new Error(`API error: ${response.status}`);
+      console.error('[GitHubModelsClient] API Error Details:', response.body);
+      throw new Error(`API error: ${response.status} - ${JSON.stringify(response.body)}`);
     }
 
     const result = response.body as any; // Type assertion for Azure REST client
@@ -65,7 +67,7 @@ export class GitHubModelsClient {
     const response = await this.client.path("/chat/completions").post({
       body: {
         messages: request.messages,
-        model: this.model,
+        model: request.model || this.model,
         max_tokens: request.maxTokens || 4096,
         temperature: request.temperature || 0.7,
         stream: true,

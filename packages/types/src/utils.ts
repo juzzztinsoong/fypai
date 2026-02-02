@@ -17,6 +17,7 @@ import type {
   TeamWithMembersDTO,
   MessageDTO,
   MessageMetadata,
+  AgentMetadata,
   AIInsightDTO,
 } from './dtos.js'
 import {
@@ -117,6 +118,7 @@ export function messageToDTO(
     contentType: message.contentType as ContentTypeString,
     createdAt: dateToISOString(message.createdAt),
     metadata: parseJSON<MessageMetadata>(message.metadata),
+    agentMetadata: parseJSON<AgentMetadata>(message.agentMetadata),
     author: author
       ? {
           id: author.id,

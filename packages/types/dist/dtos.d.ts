@@ -82,6 +82,33 @@ export interface MessageMetadata {
     confidence?: number;
 }
 /**
+ * RAG Context Item
+ * Represents a message retrieved for context during AI generation
+ */
+export interface RAGContextItem {
+    messageId: string;
+    content: string;
+    authorId: string;
+    authorName?: string;
+    relevanceScore: number;
+    createdAt: string;
+}
+/**
+ * Agent Metadata
+ * Details about the AI agent execution
+ */
+export interface AgentMetadata {
+    model: string;
+    cost: number;
+    tier: 'tier1' | 'tier2';
+    tokensUsed: {
+        input: number;
+        output: number;
+    };
+    confidence?: number;
+    ragContext?: RAGContextItem[];
+}
+/**
  * Message DTO
  * Frontend-friendly message representation with parsed metadata
  */
@@ -93,6 +120,7 @@ export interface MessageDTO {
     contentType: ContentTypeString;
     createdAt: string;
     metadata?: MessageMetadata;
+    agentMetadata?: AgentMetadata;
     author?: {
         id: string;
         name: string;
@@ -108,6 +136,9 @@ export interface MessageDTO {
 export interface AIInsightMetadata {
     language?: string;
     filename?: string;
+    model?: string;
+    tokensUsed?: number;
+    prompt?: string;
     chimeRuleName?: string;
     chimeRuleId?: string;
     confidence?: number;
@@ -127,6 +158,7 @@ export interface AIInsightDTO {
     createdAt: string;
     relatedMessageIds?: string[];
     metadata?: AIInsightMetadata;
+    agentMetadata?: AgentMetadata;
 }
 /**
  * API Request DTOs
@@ -160,6 +192,7 @@ export interface CreateMessageRequest {
     content: string;
     contentType: ContentTypeString;
     metadata?: MessageMetadata;
+    agentMetadata?: AgentMetadata;
 }
 export interface UpdateMessageRequest {
     content: string;
@@ -173,6 +206,7 @@ export interface CreateAIInsightRequest {
     tags?: string[];
     relatedMessageIds?: string[];
     metadata?: AIInsightMetadata;
+    agentMetadata?: AgentMetadata;
 }
 export interface UpdateAIInsightRequest {
     title?: string;

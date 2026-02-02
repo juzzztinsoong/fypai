@@ -270,6 +270,24 @@ class PineconeService {
   }
 
   /**
+   * Delete ALL vectors in the index (use with caution!)
+   * Used during database reset/seed operations.
+   */
+  async deleteAllVectors(): Promise<void> {
+    try {
+      await this.initialize();
+      const index = this.getIndex();
+      
+      // Pinecone deleteAll requires namespace or deleteAll flag
+      await index.deleteAll();
+      console.log('[Pinecone] 🗑️ Deleted ALL vectors from index');
+    } catch (error) {
+      console.error('[Pinecone] ❌ Failed to delete all vectors:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Health check
    */
   async healthCheck(): Promise<boolean> {

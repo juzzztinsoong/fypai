@@ -65,6 +65,7 @@ export interface Message {
     content: string;
     contentType: string;
     metadata: string | null;
+    agentMetadata: string | null;
     createdAt: Date;
 }
 /**

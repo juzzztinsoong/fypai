@@ -15,6 +15,8 @@ import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { getMessages } from '@/services/messageService'
 import { TypingIndicator } from './TypingIndicator'
+import { AgentMetadataTag } from './AgentMetadataTag'
+import { RAGContextPanel } from './RAGContextPanel'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
@@ -53,6 +55,9 @@ export const MessageList = () => {
   // Get loading/error states from UIStore
   const isLoading = useUIStore((state) => state.getLoading('messages'))
   const error = useUIStore((state) => state.getError('messages'))
+  
+  // Phase 6.5: Get showAIDetails preference
+  const showAIDetails = useUIStore((state) => state.preferences.showAIDetails)
   
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -149,13 +154,53 @@ export const MessageList = () => {
           )
         } else if (message.authorId === 'agent') {
           // Agent: center, bright purple
+          const tier = message.agentMetadata?.tier;
           return (
             <div key={message.id} className="flex justify-center">
-              <div className="flex flex-col items-center">
-                <span className="text-xs text-purple-700 mb-1 font-bold">AI Assistant</span>
-                <div className="bg-purple-500 text-white rounded-xl p-3 max-w-[70%] shadow-lg animate-pulse">
+              <div className="flex flex-col items-center max-w-[80%]">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-purple-700 font-bold">AI Assistant</span>
+                  {tier && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      tier === 'tier1' 
+                        ? 'bg-green-100 text-green-700 border border-green-200' 
+                        : 'bg-blue-100 text-blue-700 border border-blue-200'
+                    }`}>
+                      {tier === 'tier1' ? '⚡ Fast' : '🧠 Smart'}
+                    </span>
+                  )}
+                  {/* Show chime indicator if triggered by rule */}
+                  {message.metadata?.chimeRuleName && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                      🔔 Auto
+                    </span>
+                  )}
+                </div>
+                <div className="bg-purple-500 text-white rounded-xl p-3 shadow-lg w-full">
                   <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere font-semibold">{message.content}</p>
                 </div>
+                
+                {/* Phase 6.5: Agent Metadata Display */}
+                {showAIDetails && (
+                  <>
+                    {console.log('[MessageList] Agent message metadata:', { 
+                      id: message.id,
+                      hasAgentMetadata: !!message.agentMetadata,
+                      agentMetadata: message.agentMetadata,
+                      metadata: message.metadata
+                    })}
+                    <AgentMetadataTag 
+                      agentMetadata={message.agentMetadata} 
+                      messageMetadata={message.metadata}
+                    />
+                  </>
+                )}
+                
+                {/* Phase 6.5: RAG Context Viewer */}
+                {showAIDetails && message.agentMetadata?.ragContext && (
+                  <RAGContextPanel ragContext={message.agentMetadata.ragContext} />
+                )}
+                
                 <div className="mt-2 relative">
                   <svg className="w-8 h-8 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10" />

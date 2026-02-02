@@ -15,6 +15,7 @@ import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils'
 import { socketService } from '@/services/socketService'
+import { getTeamsForUser } from '@/services/teamService'
 
 // Mock users for testing typing indicators
 const TEST_USERS = [
@@ -43,6 +44,10 @@ export const Sidebar = () => {
   const setCurrentTeamId = useUIStore((state) => state.setCurrentTeam)
   const isLoading = useUIStore((state) => state.getLoading('teams'))
   const error = useUIStore((state) => state.getError('teams'))
+  
+  // Get showAIDetails preference for research toggle (Phase 6.5.1)
+  const showAIDetails = useUIStore((state) => state.preferences.showAIDetails)
+  const updatePreference = useUIStore((state) => state.updatePreference)
   
   // Get current user and presence from SessionStore
   const currentUser = useSessionStore((state) => state.currentUser)
@@ -176,6 +181,34 @@ export const Sidebar = () => {
         </nav>
       </div>
 
+      {/* Settings Section - Research Toggles */}
+      <div className="px-6 py-3 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-medium text-gray-600">AI Details</span>
+          </div>
+          <button
+            onClick={() => updatePreference('showAIDetails', !showAIDetails)}
+            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+              showAIDetails ? 'bg-blue-600' : 'bg-gray-200'
+            }`}
+            role="switch"
+            aria-checked={showAIDetails}
+            aria-label="Show AI response details"
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                showAIDetails ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-gray-400">Show model, tokens, cost on AI messages</p>
+      </div>
+
       {/* User Profile Section with Switcher (for testing typing indicators) */}
       <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 relative">
         <button
@@ -220,6 +253,22 @@ export const Sidebar = () => {
                     role: testUser.role,
                     createdAt: new Date().toISOString(),
                   })
+                  
+                  // Refetch teams for the new user
+                  console.log('[Sidebar] 🔄 Refetching teams for new user:', testUser.id)
+                  try {
+                    await getTeamsForUser(testUser.id)
+                    
+                    // Set first team as current if exists
+                    const teams = useEntityStore.getState().entities.teams
+                    const firstTeamId = Object.keys(teams)[0]
+                    if (firstTeamId) {
+                      setCurrentTeamId(firstTeamId)
+                      console.log('[Sidebar] Set current team:', firstTeamId)
+                    }
+                  } catch (error) {
+                    console.error('[Sidebar] Failed to fetch teams:', error)
+                  }
                   
                   // Send presence update for new user going online
                   // This will update the socketUserMap on backend for this socket ID

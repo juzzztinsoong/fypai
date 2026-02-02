@@ -102,6 +102,35 @@ export interface MessageMetadata {
 }
 
 /**
+ * RAG Context Item
+ * Represents a message retrieved for context during AI generation
+ */
+export interface RAGContextItem {
+  messageId: string
+  content: string
+  authorId: string
+  authorName?: string
+  relevanceScore: number
+  createdAt: string
+}
+
+/**
+ * Agent Metadata
+ * Details about the AI agent execution
+ */
+export interface AgentMetadata {
+  model: string
+  cost: number
+  tier: 'tier1' | 'tier2'
+  tokensUsed: {
+    input: number
+    output: number
+  }
+  confidence?: number  // Overall response confidence (0-1)
+  ragContext?: RAGContextItem[]  // Retrieved context used for generation
+}
+
+/**
  * Message DTO
  * Frontend-friendly message representation with parsed metadata
  */
@@ -113,6 +142,7 @@ export interface MessageDTO {
   contentType: ContentTypeString
   createdAt: string  // ISO string
   metadata?: MessageMetadata  // Parsed from JSON string
+  agentMetadata?: AgentMetadata // Agent execution details
   author?: {  // Optionally include author info
     id: string
     name: string
@@ -129,6 +159,10 @@ export interface MessageDTO {
 export interface AIInsightMetadata {
   language?: string  // For code snippets
   filename?: string  // For code/document insights
+  // Legacy fields (kept for compatibility)
+  model?: string
+  tokensUsed?: number
+  prompt?: string
   // Chime rules metadata (for autonomous AI insights)
   chimeRuleName?: string  // Name of the rule that triggered this insight
   chimeRuleId?: string  // ID of the rule that triggered this insight
@@ -150,6 +184,7 @@ export interface AIInsightDTO {
   createdAt: string  // ISO string
   relatedMessageIds?: string[]  // Parsed from JSON array string
   metadata?: AIInsightMetadata  // Additional context
+  agentMetadata?: AgentMetadata // Agent execution details
 }
 
 /**
@@ -190,6 +225,7 @@ export interface CreateMessageRequest {
   content: string
   contentType: ContentTypeString
   metadata?: MessageMetadata
+  agentMetadata?: AgentMetadata
 }
 
 export interface UpdateMessageRequest {
@@ -205,6 +241,7 @@ export interface CreateAIInsightRequest {
   tags?: string[]
   relatedMessageIds?: string[]
   metadata?: AIInsightMetadata
+  agentMetadata?: AgentMetadata
 }
 
 export interface UpdateAIInsightRequest {
