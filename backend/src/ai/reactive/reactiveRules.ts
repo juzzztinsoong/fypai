@@ -17,6 +17,7 @@ export interface ChimeRule {
 export interface ChimeContext {
   recentMessages: MessageDTO[];
   agentLastResponseTime?: Date;
+  isConversationalReply?: boolean; // New flag for conversational continuity
   teamSettings?: {
     autoRespond: boolean;
     cooldownMinutes: number;
@@ -28,6 +29,21 @@ export interface ChimeContext {
  * Add new rules here to extend agent behavior
  */
 export const CHIME_RULES: ChimeRule[] = [
+  {
+    name: 'conversational_reply',
+    description: 'User is replying to an agent question (conversational continuity)',
+    priority: 101, // Higher than direct_mention
+    shouldRespond: (msg, context) => {
+      if (context.isConversationalReply) {
+        // Bypass cooldown
+        if (context.teamSettings) {
+          context.teamSettings.cooldownMinutes = 0;
+        }
+        return true;
+      }
+      return false;
+    },
+  },
   {
     name: 'direct_mention',
     description: 'User explicitly mentions the agent (no cooldown)',
@@ -99,7 +115,10 @@ export const CHIME_RULES: ChimeRule[] = [
     shouldRespond: (msg, context) => {
       if (!context.agentLastResponseTime) return true;
       
-      const cooldownMs = (context.teamSettings?.cooldownMinutes || 0.5) * 60 * 1000; // Changed to 30 seconds for testing
+      // Fix: Handle 0 correctly (0 || 0.5 results in 0.5)
+      const minutes = context.teamSettings?.cooldownMinutes ?? 0.5;
+      const cooldownMs = minutes * 60 * 1000;
+      
       const timeSinceLastResponse = Date.now() - context.agentLastResponseTime.getTime();
       
       return timeSinceLastResponse > cooldownMs;

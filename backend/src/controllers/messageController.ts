@@ -28,7 +28,7 @@ export class MessageController {
    * @param {string} teamId - Team ID
    * @returns {Promise<MessageDTO[]>} Array of message DTOs with author info
    */
-  static async getMessages(teamId: string): Promise<MessageDTO[]> {
+  static async getMessages(teamId: string, limit?: number): Promise<MessageDTO[]> {
     const messages = await prisma.message.findMany({
       where: { teamId },
       include: {
@@ -36,7 +36,8 @@ export class MessageController {
           select: { id: true, name: true, avatar: true, role: true }
         }
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
+      take: limit ? -limit : undefined // Negative take gets last N messages
     })
 
     return messages.map(msg => 
@@ -56,7 +57,8 @@ export class MessageController {
         authorId: data.authorId,
         content: data.content,
         contentType: data.contentType,
-        metadata: data.metadata ? JSON.stringify(data.metadata) : null
+        metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+        agentMetadata: data.agentMetadata ? JSON.stringify(data.agentMetadata) : null
       },
       include: {
         author: {
@@ -70,7 +72,8 @@ export class MessageController {
 
     // Queue embedding generation for RAG (Phase 4)
     // Skip embedding for very short messages or AI agent messages
-    if (message.content.trim().length >= 10 && message.contentType === 'text') {
+    // NOTE: Cost optimization (isSemanticallySignificant) is handled in the worker
+    if (message.content.trim().length >= 4 && message.contentType === 'text') {
       try {
         await queueMessageEmbedding({
           messageId: message.id,

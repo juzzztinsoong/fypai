@@ -49,6 +49,7 @@ model Team {
   messages        Message[]
   aiInsights      AIInsight[]
   chimeLogs       ChimeLog[]
+  chimeRules      ChimeRule[]
 }
 
 model TeamMember {
@@ -72,6 +73,7 @@ model Message {
   contentType String    // 'text' | 'ai_longform' | 'notebook' | 'file'
   createdAt   DateTime  @default(now())
   metadata    String?   // JSON string for flexible data
+  agentMetadata String? // JSON string for agent details (model, cost, tier)
   
   // Phase 4: Embedding fields for RAG
   embeddingId String?   // Pinecone vector ID
@@ -95,6 +97,7 @@ model AIInsight {
   createdAt         DateTime @default(now())
   relatedMessageIds String?  // JSON array
   metadata          String?  // JSON string for chime rule metadata
+  agentMetadata     String?  // JSON string for agent details (model, cost, tier)
   
   team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   
@@ -104,19 +107,25 @@ model AIInsight {
 model ChimeRule {
   id              String     @id @default(uuid())
   name            String
-  type            String     // 'pattern' | 'threshold' | 'semantic' | 'schedule' | 'hybrid'
+  description     String?    // Human-readable description
+  type            String     // 'pattern' | 'semantic' | 'intent' | 'schedule'
+  execution       String     @default("async") // 'sync' | 'async'
   enabled         Boolean    @default(true)
-  priority        String     // 'low' | 'medium' | 'high' | 'critical'
+  priority        Int        @default(50)  // 0-100, higher = more important
   cooldownMinutes Int        @default(30)
   conditions      String     // JSON serialized conditions
   action          String     // JSON serialized action config
-  teamId          String?    // Optional: team-specific rule (null = global)
+  teamId          String?    // NULL = system template, non-NULL = team-specific
+  sourceRuleId    String?    // Points to original system rule ID for tracking
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   
+  team            Team?      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   chimeLogs       ChimeLog[]
   
+  @@unique([teamId, name]) // Each team can only have one rule with same name
   @@index([teamId, enabled])
+  @@index([execution])
 }
 
 model ChimeLog {

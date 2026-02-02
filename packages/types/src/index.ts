@@ -48,6 +48,8 @@ export type {
   TeamWithMembersDTO,
   MessageDTO,
   MessageMetadata,
+  AgentMetadata,
+  RAGContextItem,
   AIInsightDTO,
   AIInsightMetadata,
   CreateUserRequest,

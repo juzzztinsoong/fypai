@@ -18,7 +18,7 @@ import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { DEFAULT_RULES } from './ai/agent/defaultRules.js';
+import { DEFAULT_RULES } from './ai/rules/systemRules.js';
 
 const prisma = new PrismaClient();
 
@@ -183,11 +183,22 @@ async function seedChimeRules() {
   
   for (const team of teams) {
     for (const rule of DEFAULT_RULES) {
+      // Determine execution type based on rule type
+      let execution = 'sync';
+      if (rule.type === 'semantic') {
+        execution = 'async';
+      }
+
+      // Determine trigger type
+      const triggerType = 'standard';
+
       await prisma.chimeRule.upsert({
         where: { id: `${rule.id}-${team.id}` }, // Unique ID per team
         update: {
           name: rule.name,
           type: rule.type,
+          triggerType: triggerType,
+          execution: execution,
           enabled: rule.enabled,
           priority: rule.priority,
           cooldownMinutes: rule.cooldownMinutes,
@@ -198,6 +209,8 @@ async function seedChimeRules() {
           id: `${rule.id}-${team.id}`,
           name: rule.name,
           type: rule.type,
+          triggerType: triggerType,
+          execution: execution,
           enabled: rule.enabled,
           priority: rule.priority,
           cooldownMinutes: rule.cooldownMinutes,

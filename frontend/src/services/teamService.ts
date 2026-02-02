@@ -26,10 +26,8 @@ export async function getTeamsForUser(userId: string): Promise<TeamWithMembersDT
       params: { userId },
     })
     
-    // Update EntityStore
-    response.data.forEach(team => {
-      useEntityStore.getState().addTeam(team)
-    })
+    // Replace all teams in EntityStore (not additive)
+    useEntityStore.getState().setTeams(response.data)
     
     return response.data
   } catch (error) {

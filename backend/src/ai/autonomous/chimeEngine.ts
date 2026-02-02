@@ -18,6 +18,12 @@ export interface ChimeRuleConditions {
   timeWindow?: number;        // Within X minutes
   semanticQuery?: string;     // Vector similarity search query
   schedule?: string;          // Cron expression for scheduled triggers
+  threshold?: number;         // Similarity threshold for semantic rules
+  
+  // Phase 6.2: Intent-based conditions (used by async rules)
+  requiredIntents?: string[]; // IntentTypes that trigger this rule
+  minUrgency?: string;        // Minimum urgency level ('low' | 'medium' | 'high' | 'critical')
+  triggerSentiments?: string[]; // Sentiments that trigger this rule
 }
 
 export interface ChimeRuleAction {
@@ -25,6 +31,8 @@ export interface ChimeRuleAction {
   insightType?: InsightType;  // Required if type includes 'insight'
   template: string;           // Prompt template for LLM
 }
+
+export type ChimeRuleExecution = 'sync' | 'async';
 
 export interface ChimeRule {
   id: string;
@@ -35,6 +43,7 @@ export interface ChimeRule {
   cooldownMinutes: number;    // Minimum time between rule triggers
   conditions: ChimeRuleConditions;
   action: ChimeRuleAction;
+  execution?: ChimeRuleExecution; // 'sync' = immediate, 'async' = after embedding with intent classification
   teamId?: string;            // Optional: team-specific rule
   createdAt?: Date;
   updatedAt?: Date;

@@ -284,6 +284,260 @@ Keep answers practical and actionable.`
 };
 
 /**
+ * Rule 9: Code Helper (Sync)
+ * Triggers on code requests
+ */
+export const CODE_HELPER: ChimeRule = {
+  id: 'sync-009',
+  name: 'Code Helper',
+  type: 'pattern',
+  enabled: true,
+  priority: 'medium',
+  cooldownMinutes: 30,
+  conditions: {
+    patterns: [
+      "(write|generate|create|implement).+(code|function|class|script)",
+      "how to.+(in python|in java|in typescript|in javascript)"
+    ]
+  },
+  action: {
+    type: 'chat_message',
+    template: "I noticed you're asking for code. Here is a solution based on your request: {{context}}"
+  }
+};
+
+/**
+ * Rule 10: Meeting Summarizer (Sync)
+ * Triggers on summary requests
+ */
+export const MEETING_SUMMARIZER: ChimeRule = {
+  id: 'sync-010',
+  name: 'Meeting Summarizer',
+  type: 'pattern',
+  enabled: true,
+  priority: 'medium',
+  cooldownMinutes: 60,
+  conditions: {
+    patterns: [
+      "(can you|please).+(summarize|recap).+(meeting|discussion|chat)",
+      "what.+(did we|have we).+(discuss|decide)"
+    ]
+  },
+  action: {
+    type: 'insight',
+    insightType: 'summary',
+    template: "Generate a summary of the recent conversation, highlighting key decisions and action items."
+  }
+};
+
+/**
+ * Rule 11: Semantic Confusion Detector (Async)
+ * Triggers when users express confusion (Vector Similarity)
+ */
+export const SEMANTIC_CONFUSION: ChimeRule = {
+  id: 'async-011',
+  name: 'Semantic Confusion Detector',
+  type: 'semantic',
+  enabled: true,
+  priority: 'medium',
+  cooldownMinutes: 15,
+  conditions: {
+    semanticQuery: "I am confused and don't understand what is happening or what to do next.",
+    threshold: 0.75
+  },
+  action: {
+    type: 'chat_message',
+    template: "It seems like there's some confusion. Let me clarify the current context: {{context}}"
+  }
+};
+
+/**
+ * Rule 12: Semantic Conflict Resolution (Async)
+ * Triggers on disagreement (Vector Similarity)
+ */
+export const SEMANTIC_CONFLICT: ChimeRule = {
+  id: 'async-012',
+  name: 'Conflict Resolution',
+  type: 'semantic',
+  enabled: true,
+  priority: 'high',
+  cooldownMinutes: 30,
+  conditions: {
+    semanticQuery: "I strongly disagree with this approach and think it is a mistake.",
+    threshold: 0.8
+  },
+  action: {
+    type: 'insight',
+    insightType: 'suggestion',
+    template: "I've detected a potential conflict. Here are the key points of disagreement and a suggested path forward."
+  }
+};
+
+/**
+ * Rule 13: Semantic Action Item (Async)
+ * Triggers on commitment (Vector Similarity)
+ */
+export const SEMANTIC_ACTION_ITEM: ChimeRule = {
+  id: 'async-013',
+  name: 'Semantic Action Item',
+  type: 'semantic',
+  enabled: true,
+  priority: 'medium',
+  cooldownMinutes: 10,
+  conditions: {
+    semanticQuery: "I will take ownership of this task and complete it by the deadline.",
+    threshold: 0.7
+  },
+  action: {
+    type: 'insight',
+    insightType: 'action',
+    template: "I've detected a commitment. Creating an action item: {{action}}"
+  }
+};
+
+/**
+ * Rule 14: Feature Request (Async)
+ * Triggers on feature suggestions (Vector Similarity)
+ */
+export const FEATURE_REQUEST: ChimeRule = {
+  id: 'async-014',
+  name: 'Feature Request',
+  type: 'semantic',
+  enabled: true,
+  priority: 'low',
+  cooldownMinutes: 60,
+  conditions: {
+    semanticQuery: "We should add a new feature to the system to improve functionality.",
+    threshold: 0.75
+  },
+  action: {
+    type: 'insight',
+    insightType: 'suggestion',
+    template: "This sounds like a feature request. I've drafted a specification based on the discussion."
+  }
+};
+
+/**
+ * Rule 15: Intent-Based Blocker Alert (Async - Phase 6.2)
+ * Triggers when IntentClassifier detects blocker intent
+ */
+export const INTENT_BLOCKER_ALERT: ChimeRule = {
+  id: 'async-015',
+  name: 'Intent: Blocker Alert',
+  type: 'semantic',
+  enabled: true,
+  priority: 'high',
+  cooldownMinutes: 30,
+  execution: 'async', // Required for evaluateAsync() to pick this up
+  conditions: {
+    requiredIntents: ['blocker'],
+    minUrgency: 'medium'
+  },
+  action: {
+    type: 'insight',
+    insightType: 'action',
+    template: `A blocker has been identified via AI classification. Please analyze and create:
+
+1. **Blocker Summary**: What is blocking progress
+2. **Impact Assessment**: What work is affected by this blocker
+3. **Resolution Path**: Steps to unblock, who needs to be involved
+4. **Escalation**: Whether this needs manager/lead attention
+
+Format as a trackable blocker item with clear next steps.`
+  }
+};
+
+/**
+ * Rule 16: Intent-Based Frustration Response (Async - Phase 6.2)
+ * Triggers when sentiment is frustrated and urgency is high
+ */
+export const INTENT_FRUSTRATION_HELPER: ChimeRule = {
+  id: 'async-016',
+  name: 'Intent: Frustration Helper',
+  type: 'semantic',
+  enabled: true,
+  priority: 'medium',
+  cooldownMinutes: 45,
+  execution: 'async', // Required for evaluateAsync() to pick this up
+  conditions: {
+    triggerSentiments: ['frustrated', 'negative'],
+    minUrgency: 'high'
+  },
+  action: {
+    type: 'chat_message',
+    template: `I notice some frustration in the conversation. Let me try to help:
+
+1. Acknowledge the difficulty they're facing
+2. Offer concrete, actionable suggestions to move forward
+3. If it's a technical problem, provide debugging steps
+4. Suggest resources or team members who might help
+
+Be empathetic but solution-focused. Keep it brief and practical.`
+  }
+};
+
+/**
+ * Rule 17: Intent-Based Decision Capture (Async - Phase 6.2)
+ * Uses IntentClassifier for more accurate decision detection
+ */
+export const INTENT_DECISION_CAPTURE: ChimeRule = {
+  id: 'async-017',
+  name: 'Intent: Decision Capture',
+  type: 'semantic',
+  enabled: true,
+  priority: 'high',
+  cooldownMinutes: 60,
+  execution: 'async', // Required for evaluateAsync() to pick this up
+  conditions: {
+    requiredIntents: ['decision_detected'],
+    semanticQuery: "The team has decided on a course of action and agreed on what to do next.",
+    threshold: 0.6 // Lower threshold since we have intent confirmation
+  },
+  action: {
+    type: 'insight',
+    insightType: 'action',
+    template: `A decision has been detected by AI analysis. Please document:
+
+1. **Decision Made**: The specific choice or direction agreed upon
+2. **Participants**: Who was involved in making this decision
+3. **Reasoning**: The key factors that led to this decision
+4. **Action Items**: Immediate next steps resulting from this decision
+5. **Review Date**: When to revisit this decision (if applicable)
+
+Create a clear decision record for future reference.`
+  }
+};
+
+/**
+ * Rule 18: Intent-Based Commitment Tracker (Async - Phase 6.2)
+ * Uses IntentClassifier to catch action commitments
+ */
+export const INTENT_COMMITMENT_TRACKER: ChimeRule = {
+  id: 'async-018',
+  name: 'Intent: Commitment Tracker',
+  type: 'semantic',
+  enabled: true,
+  priority: 'medium',
+  cooldownMinutes: 20,
+  execution: 'async', // Required for evaluateAsync() to pick this up
+  conditions: {
+    requiredIntents: ['action_commitment']
+  },
+  action: {
+    type: 'insight',
+    insightType: 'action',
+    template: `An action commitment has been detected. Please capture:
+
+1. **Owner**: Who committed to this action
+2. **Task Description**: What they committed to doing
+3. **Deadline**: When it should be completed (extract from context)
+4. **Context**: Why this task is needed
+
+Format as a trackable task that can be followed up on.`
+  }
+};
+
+/**
  * All Default Rules
  */
 export const DEFAULT_RULES: ChimeRule[] = [
@@ -294,7 +548,18 @@ export const DEFAULT_RULES: ChimeRule[] = [
   PROBLEM_DETECTOR,
   DAILY_SUMMARY,
   URGENCY_ALERT,
-  QUESTION_OVERLOAD
+  QUESTION_OVERLOAD,
+  CODE_HELPER,
+  MEETING_SUMMARIZER,
+  SEMANTIC_CONFUSION,
+  SEMANTIC_CONFLICT,
+  SEMANTIC_ACTION_ITEM,
+  FEATURE_REQUEST,
+  // Phase 6.2: Intent-based async rules
+  INTENT_BLOCKER_ALERT,
+  INTENT_FRUSTRATION_HELPER,
+  INTENT_DECISION_CAPTURE,
+  INTENT_COMMITMENT_TRACKER
 ];
 
 /**

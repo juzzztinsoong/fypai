@@ -30,6 +30,9 @@ router.patch('/rules/:ruleId/toggle', ChimeRuleController.toggleRule);
 // Seed default rules for a team
 router.post('/rules/seed', ChimeRuleController.seedDefaultRules);
 
+// Migrate async rules to use execution: 'async' (Phase 6.2)
+router.post('/rules/migrate-async', ChimeRuleController.migrateAsyncRules);
+
 // Get chime execution logs for a team
 router.get('/teams/:teamId/chime-logs', ChimeRuleController.getChimeLogs);
 

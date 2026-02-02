@@ -49,17 +49,19 @@ cd backend
 # 2. Install dependencies
 npm install
 
-# 3. Set up environment variables
+# 3. Start Memurai/Redis as Administrator
+
+# 4. Set up environment variables
 # Create .env file (see Environment Configuration section)
 cp .env.example .env
 
-# 4. Generate Prisma client
+# 5. Generate Prisma client
 npm run db:generate
 
-# 5. Run database migrations
+# 6. Run database migrations
 npm run db:migrate
 
-# 6. Start development server
+# 7. Start development server
 npm run dev
 ```
 

@@ -233,6 +233,7 @@ export class ChimeRuleController {
             cooldownMinutes: rule.cooldownMinutes,
             conditions: JSON.stringify(rule.conditions),
             action: JSON.stringify(rule.action),
+            execution: rule.execution || 'sync', // Phase 6.2: Include execution mode
             teamId: teamId || null,
           },
         });
@@ -346,5 +347,50 @@ export class ChimeRuleController {
         errorMsg: data.errorMsg,
       },
     });
+  }
+
+  /**
+   * Update async rules to have correct execution mode (Phase 6.2 migration helper)
+   * This updates rules that have requiredIntents, minUrgency, or triggerSentiments
+   * to use execution: 'async'
+   */
+  static async migrateAsyncRules(req: Request, res: Response) {
+    try {
+      // Phase 6.2: Intent-based async rules
+      const asyncRuleIds = ['async-015', 'async-016', 'async-017', 'async-018'];
+      
+      const result1 = await prisma.chimeRule.updateMany({
+        where: {
+          id: { in: asyncRuleIds }
+        },
+        data: {
+          execution: 'async'
+        }
+      });
+
+      // Also update semantic rules (type: 'semantic') to use async execution
+      // These rules use vector similarity and benefit from the async pipeline
+      const result2 = await prisma.chimeRule.updateMany({
+        where: {
+          type: 'semantic',
+          execution: 'sync' // Only update those still on sync
+        },
+        data: {
+          execution: 'async'
+        }
+      });
+
+      const totalUpdated = result1.count + result2.count;
+      console.log(`[ChimeRuleController] ✅ Migrated ${totalUpdated} rules to execution: 'async' (${result1.count} intent-based, ${result2.count} semantic)`);
+
+      res.json({
+        message: `Updated ${totalUpdated} rules to use async execution`,
+        intentBasedUpdated: result1.count,
+        semanticUpdated: result2.count
+      });
+    } catch (error) {
+      console.error('[ChimeRuleController] Error migrating async rules:', error);
+      res.status(500).json({ error: 'Failed to migrate async rules' });
+    }
   }
 }

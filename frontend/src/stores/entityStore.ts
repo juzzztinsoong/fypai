@@ -70,6 +70,7 @@ interface EntityActions {
   
   // Team methods
   addTeam: (team: TeamWithMembersDTO) => void
+  setTeams: (teams: TeamWithMembersDTO[]) => void
   updateTeam: (teamId: string, updates: Partial<TeamWithMembersDTO>) => void
   getTeam: (teamId: string) => TeamWithMembersDTO
   
@@ -172,6 +173,17 @@ export const useEntityStore = create<EntityStore>((set, get) => ({
       },
     },
   })),
+  
+  setTeams: (teams) => set((state) => {
+    const teamsById: Record<string, TeamWithMembersDTO> = {}
+    teams.forEach(team => { teamsById[team.id] = team })
+    return {
+      entities: {
+        ...state.entities,
+        teams: teamsById,
+      },
+    }
+  }),
   
   updateTeam: (teamId, updates) => set((state) => {
     const existingTeam = state.entities.teams[teamId]

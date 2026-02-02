@@ -79,6 +79,7 @@ export function messageToDTO(message, author) {
         contentType: message.contentType,
         createdAt: dateToISOString(message.createdAt),
         metadata: parseJSON(message.metadata),
+        agentMetadata: parseJSON(message.agentMetadata),
         author: author
             ? {
                 id: author.id,

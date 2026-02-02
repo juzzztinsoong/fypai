@@ -22,6 +22,7 @@
 import { prisma } from '../db.js'
 import { Team, TeamMember } from '@prisma/client'
 import { TeamDTO, TeamWithMembersDTO, TeamMemberDTO, CreateTeamRequest, UpdateTeamRequest, AddTeamMemberRequest, teamWithMembersToDTO, teamToDTO } from '../types.js'
+import { RuleSeederService } from '../services/ruleSeederService.js'
 
 export class TeamController {
   /**
@@ -126,6 +127,9 @@ export class TeamController {
 
     // Extract the base team without teamMemberships
     const { teamMemberships, ...baseTeam } = team
+
+    // Auto-seed default chime rules for the new team
+    await RuleSeederService.seedTeamRules(team.id)
 
     return teamWithMembersToDTO(baseTeam, teamMembersWithUsers)
   }

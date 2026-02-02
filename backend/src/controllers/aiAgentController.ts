@@ -12,6 +12,7 @@ import { GitHubModelsClient } from '../ai/core/llm.js';
 import { SYSTEM_PROMPTS, buildConversationContext, buildRAGContext } from '../ai/core/prompts.js';
 import { shouldAgentRespond } from '../ai/reactive/reactiveRules.js';
 import { ChimeEvaluator } from '../ai/autonomous/chimeEngine.js';
+import { UnifiedRuleEngine } from '../ai/autonomous/unifiedRuleEngine.js';
 import { MessageController } from './messageController.js';
 import { TeamController } from './teamController.js';
 import { AIInsightController } from './aiInsightController.js';
@@ -77,14 +78,42 @@ export class AIAgentController {
       // 2. Check if this is an @agent mention (reactive mode)
       const hasAgentMention = message.content.toLowerCase().includes('@agent');
 
-      if (hasAgentMention) {
-        console.log(`[AI Agent] 🎯 @agent mention detected - responding in reactive mode`);
+      // 2.5 Check if this is a reply to an agent question (Conversational Mode)
+      let isReplyToAgent = false;
+      if (!hasAgentMention && messages.length >= 2) {
+        const previousMessage = messages[messages.length - 2];
+        const timeDiff = new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
+        const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutes
+
+        if (previousMessage.authorId === 'agent' && isRecent) {
+           // Check if agent asked a question or requested info
+           // Updated to handle multi-line responses, bullet points, and polite closing statements
+           const content = previousMessage.content;
+           const lowerContent = content.toLowerCase();
+           
+           if (content.includes('?') || 
+               lowerContent.includes('let me know') ||
+               lowerContent.includes('elaborate') ||
+               lowerContent.includes('please clarify') ||
+               lowerContent.includes('what do you mean') ||
+               lowerContent.includes('can you') ||
+               lowerContent.includes('could you')) {
+             isReplyToAgent = true;
+             console.log(`[AI Agent] 🗣️ Detected reply to agent question - entering conversational mode`);
+           }
+        }
+      }
+
+      if (hasAgentMention || isReplyToAgent) {
+        console.log(`[AI Agent] 🎯 ${hasAgentMention ? '@agent mention' : 'Reply to agent'} detected - responding in reactive mode`);
         
         // Decide if agent should respond (cooldown check)
+        // For direct replies/mentions, we generally want to respond unless spammed
         const decision = shouldAgentRespond(message, {
           recentMessages: messages,
           agentLastResponseTime: this.getLastAgentResponseTime(messages),
-          teamSettings: { autoRespond: true, cooldownMinutes: 2 },
+          isConversationalReply: isReplyToAgent, // Pass the flag
+          teamSettings: { autoRespond: true, cooldownMinutes: isReplyToAgent ? 0 : 2 }, // No cooldown for replies
         });
 
         if (!decision.should) {
@@ -104,6 +133,10 @@ export class AIAgentController {
           // 3. Generate response
           const response = await this.generateResponse(messages, team, message);
 
+          // Calculate cost
+          const cost = this.calculateCost(response.model, response.usage.inputTokens, response.usage.outputTokens);
+          const tier = response.model.includes('mini') ? 'tier1' : 'tier2';
+
           // 4. Post as message (unified with regular messages per copilot-instructions.md)
           const agentMessage = await MessageController.createMessage({
             teamId: message.teamId,
@@ -112,9 +145,18 @@ export class AIAgentController {
             contentType: 'text',
             metadata: {
               parentMessageId: message.id,
-              model: response.model,
-              tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
             },
+            agentMetadata: {
+              model: response.model,
+              cost,
+              tier,
+              tokensUsed: {
+                input: response.usage.inputTokens,
+                output: response.usage.outputTokens
+              },
+              confidence: response.confidence,
+              ragContext: response.ragContextItems
+            }
           });
 
           console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
@@ -164,7 +206,7 @@ export class AIAgentController {
     messages: MessageDTO[],
     team: any,
     triggerMessage: MessageDTO
-  ): Promise<{ content: string; model: string; usage: any }> {
+  ): Promise<{ content: string; model: string; usage: any; ragContextItems?: any[]; confidence: number }> {
     const conversationHistory = buildConversationContext(messages, team, 20);
 
     // Determine system prompt based on trigger
@@ -179,8 +221,11 @@ export class AIAgentController {
 
     // ✨ NEW: Try to get RAG context for better responses
     let ragContext = '';
+    let ragContextItems: any[] = [];
+    let confidence = 0.85; // Default confidence for responses without RAG
     try {
       const isRAGReady = await ragService.healthCheck();
+      console.log(`[AI Agent] 🔍 RAG health check: ${isRAGReady ? 'ready' : 'not ready'}`);
       if (isRAGReady) {
         const { relevantMessages, totalResults } = await ragService.getRelevantContext(
           triggerMessage.content,
@@ -189,15 +234,32 @@ export class AIAgentController {
           parseFloat(process.env.RAG_SIMILARITY_THRESHOLD || '0.7') // Configurable similarity threshold
         );
 
+        console.log(`[AI Agent] 🔍 RAG search returned ${totalResults} results`);
+
         if (totalResults > 0) {
           const scores = relevantMessages.map(m => m.relevanceScore || 0);
           ragContext = buildRAGContext(relevantMessages, scores);
           systemPrompt = SYSTEM_PROMPTS.assistantWithRAG; // Use RAG-aware prompt
           console.log(`[AI Agent] 🔍 Retrieved ${totalResults} relevant messages for context`);
+          
+          // Calculate confidence based on average relevance score
+          const avgRelevance = scores.reduce((a, b) => a + b, 0) / scores.length;
+          confidence = Math.min(0.95, 0.7 + (avgRelevance * 0.25)); // Scale 0.7-0.95 based on relevance
+          
+          // Store RAG context items for transparency display
+          ragContextItems = relevantMessages.map(m => ({
+            messageId: m.id,
+            content: m.content.substring(0, 200) + (m.content.length > 200 ? '...' : ''),
+            authorId: m.authorId,
+            authorName: m.author?.name,
+            relevanceScore: m.relevanceScore || 0,
+            createdAt: m.createdAt
+          }));
         }
       }
     } catch (error) {
       console.warn('[AI Agent] RAG context retrieval failed, continuing without:', error);
+      confidence = 0.6; // Lower confidence when RAG fails
     }
 
     const response = await this.llm.generate({
@@ -206,11 +268,12 @@ export class AIAgentController {
         ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...conversationHistory,
       ],
+      model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for direct interactions
       maxTokens: parseInt(process.env.AI_MAX_TOKENS || '2048'),
       temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
     });
 
-    return response;
+    return { ...response, ragContextItems, confidence };
   }
 
   /**
@@ -333,7 +396,7 @@ export class AIAgentController {
 
   /**
    * Evaluate chime rules for autonomous AI responses
-   * Phase 3: Chime Rules Engine Integration
+   * Phase 6: Unified Rule Engine Integration
    */
   private static async evaluateChimeRules(
     message: MessageDTO, 
@@ -341,8 +404,6 @@ export class AIAgentController {
   ): Promise<void> {
     try {
       console.log(`[AI Agent] 🔔 Evaluating chime rules for message ${message.id}`);
-      console.log(`[AI Agent] 📝 Message content: "${message.content}"`);
-      console.log(`[AI Agent] 📚 Total messages in context: ${messages.length}`);
 
       // 0. Check if AI is enabled for this team
       if (!this.isAIEnabled(message.teamId)) {
@@ -350,65 +411,8 @@ export class AIAgentController {
         return;
       }
 
-      // 1. Get active rules for this team
-      const rules = await RuleProvider.getRulesForTeam(message.teamId);
-      
-      console.log(`[AI Agent] 📋 Found ${rules.length} active chime rules for team ${message.teamId}`);
-      
-      if (rules.length === 0) {
-        console.log('[AI Agent] ⚠️  No active chime rules for this team');
-        return;
-      }
-
-      // Log each rule being evaluated
-      rules.forEach((rule, i) => {
-        console.log(`[AI Agent] Rule ${i + 1}: ${rule.name} (${rule.type}, priority: ${rule.priority})`);
-      });
-
-      // 2. Create evaluator with team's active rules
-      const evaluator = new ChimeEvaluator(rules);
-
-      // 3. Build evaluation context
-      // STRATEGY: Use recent message window, but only trigger if NEW message contributes to pattern
-      // This prevents:
-      // - False positives from old messages (old messages alone won't trigger)
-      // - Threshold rules never triggering (messageCount > 1 can accumulate)
-      //
-      // The evaluator will check if patterns appear in recent messages,
-      // but we ensure the NEW message is part of the triggering set
-      const recentMessages = messages.slice(-5); // Last 5 messages for context
-      
-      const context = {
-        teamId: message.teamId,
-        recentMessages: recentMessages,
-        newMessageId: message.id, // Track which message is new
-        recentInsights: [],
-        currentTime: new Date(),
-      };
-
-      console.log(`[AI Agent] 🔍 Evaluating with ${recentMessages.length} recent messages, new message: ${message.id}`);
-
-      // 4. Evaluate all rules
-      const decisions = await evaluator.evaluate(context);
-
-      if (decisions.length === 0) {
-        console.log('[AI Agent] No chime rules triggered');
-        return;
-      }
-
-      console.log(`[AI Agent] ✅ ${decisions.length} chime rule(s) triggered`);
-
-      // 🚨 ANTI-SPAM: Only execute the HIGHEST PRIORITY rule to avoid overwhelming the chat
-      // Rules are already sorted by priority (critical > high > medium > low)
-      const topDecision = decisions[0];
-      
-      if (decisions.length > 1) {
-        console.log(`[AI Agent] ⚠️  Multiple rules triggered, executing only highest priority: ${topDecision.rule.name}`);
-        console.log(`[AI Agent] 🔕 Skipped rules: ${decisions.slice(1).map(d => d.rule.name).join(', ')}`);
-      }
-
-      // 5. Execute only the top priority rule
-      await this.executeChime(topDecision, messages);
+      // Use Unified Rule Engine for Sync evaluation
+      await UnifiedRuleEngine.getInstance().evaluateSync(message);
 
     } catch (error) {
       console.error('[AI Agent] Error evaluating chime rules:', error);
@@ -542,5 +546,24 @@ export class AIAgentController {
         errorMsg: error instanceof Error ? error.message : 'Unknown error',
       });
     }
+  }
+
+  /**
+   * Calculate estimated cost of LLM usage
+   */
+  private static calculateCost(model: string, inputTokens: number, outputTokens: number): number {
+    // Prices per 1M tokens (approximate)
+    let inputPrice = 0;
+    let outputPrice = 0;
+
+    if (model.includes('mini')) {
+      inputPrice = 0.15;
+      outputPrice = 0.60;
+    } else if (model.includes('gpt-4o')) {
+      inputPrice = 2.50;
+      outputPrice = 10.00;
+    }
+
+    return (inputTokens * inputPrice + outputTokens * outputPrice) / 1_000_000;
   }
 }

@@ -71,6 +71,7 @@ export interface Message {
   content: string
   contentType: string  // ContentType as string (Prisma generates this as string)
   metadata: string | null  // JSON string
+  agentMetadata: string | null  // JSON string for agent details (model, cost, tier)
   createdAt: Date
 }
 
