@@ -37,6 +37,20 @@ export interface Team {
     updatedAt: Date;
 }
 /**
+ * TeamAgentPreference Entity
+ * Represents per-team AI behavior preferences
+ */
+export interface TeamAgentPreference {
+    id: string;
+    teamId: string;
+    personality: string;
+    proactivity: string;
+    responseLength: string;
+    modelTierOverride: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+/**
  * TeamMember Entity
  * Join table linking users to teams with role information
  *
@@ -97,4 +111,5 @@ export declare function isUser(obj: any): obj is User;
 export declare function isTeam(obj: any): obj is Team;
 export declare function isMessage(obj: any): obj is Message;
 export declare function isAIInsight(obj: any): obj is AIInsight;
+export declare function isTeamAgentPreference(obj: any): obj is TeamAgentPreference;
 //# sourceMappingURL=entities.d.ts.map

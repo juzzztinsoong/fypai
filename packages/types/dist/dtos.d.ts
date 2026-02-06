@@ -65,6 +65,26 @@ export interface TeamWithMembersDTO {
     members: TeamMemberDTO[];
 }
 /**
+ * Agent Preference Types (Team-level)
+ */
+export type AgentPersonality = 'formal' | 'casual';
+export type AgentProactivity = 'silent' | 'helpful' | 'proactive';
+export type AgentResponseLength = 'concise' | 'balanced' | 'detailed';
+export type AgentModelTierOverride = 'auto' | 'tier1' | 'tier2';
+/**
+ * Team Agent Preferences DTO
+ */
+export interface TeamAgentPreferencesDTO {
+    id: string;
+    teamId: string;
+    personality: AgentPersonality;
+    proactivity: AgentProactivity;
+    responseLength: AgentResponseLength;
+    modelTierOverride: AgentModelTierOverride;
+    createdAt: string;
+    updatedAt: string;
+}
+/**
  * Message Metadata
  * Parsed metadata object for messages
  */
@@ -181,6 +201,12 @@ export interface CreateTeamRequest {
 }
 export interface UpdateTeamRequest {
     name?: string;
+}
+export interface UpdateTeamAgentPreferencesRequest {
+    personality?: AgentPersonality;
+    proactivity?: AgentProactivity;
+    responseLength?: AgentResponseLength;
+    modelTierOverride?: AgentModelTierOverride;
 }
 export interface AddTeamMemberRequest {
     userId: string;

@@ -6,7 +6,7 @@
  */
 // Enums and Constants
 export { UserRole, TeamRole, ContentType, InsightType, Priority, isValidUserRole, isValidTeamRole, isValidContentType, isValidInsightType, isValidPriority, } from './enums.js';
-export { isUser, isTeam, isMessage, isAIInsight, } from './entities.js';
+export { isUser, isTeam, isMessage, isAIInsight, isTeamAgentPreference, } from './entities.js';
 // Utility Functions
 export { 
 // Date utilities
@@ -16,11 +16,11 @@ parseJSON, stringifyJSON,
 // Enum utilities
 enumToString, stringToEnum, 
 // Entity to DTO transformers
-userToDTO, teamToDTO, messageToDTO, aiInsightToDTO, teamWithMembersToDTO, 
+userToDTO, teamToDTO, messageToDTO, aiInsightToDTO, teamWithMembersToDTO, teamAgentPreferencesToDTO, 
 // DTO to Entity helpers
 messageDTOToMetadataString, aiInsightDTOToTagsString, aiInsightDTOToRelatedMessageIdsString, 
 // Batch transformers
-usersToDTO, teamsToDTO, messagesToDTO, aiInsightsToDTO, 
+usersToDTO, teamsToDTO, messagesToDTO, aiInsightsToDTO, teamAgentPreferencesListToDTO, 
 // Validation helpers
 isValidDate, isValidISOString, isValidJSON, 
 // Safe parsing helpers

@@ -51,3 +51,14 @@ export function isAIInsight(obj) {
         obj.createdAt instanceof Date &&
         (obj.relatedMessageIds === null || typeof obj.relatedMessageIds === 'string'));
 }
+export function isTeamAgentPreference(obj) {
+    return (obj &&
+        typeof obj.id === 'string' &&
+        typeof obj.teamId === 'string' &&
+        typeof obj.personality === 'string' &&
+        typeof obj.proactivity === 'string' &&
+        typeof obj.responseLength === 'string' &&
+        typeof obj.modelTierOverride === 'string' &&
+        obj.createdAt instanceof Date &&
+        obj.updatedAt instanceof Date);
+}

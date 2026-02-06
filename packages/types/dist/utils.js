@@ -103,6 +103,18 @@ export function aiInsightToDTO(insight) {
         relatedMessageIds: parseJSON(insight.relatedMessageIds),
     };
 }
+export function teamAgentPreferencesToDTO(preferences) {
+    return {
+        id: preferences.id,
+        teamId: preferences.teamId,
+        personality: preferences.personality,
+        proactivity: preferences.proactivity,
+        responseLength: preferences.responseLength,
+        modelTierOverride: preferences.modelTierOverride,
+        createdAt: dateToISOString(preferences.createdAt),
+        updatedAt: dateToISOString(preferences.updatedAt),
+    };
+}
 /**
  * Create TeamWithMembersDTO from Team + TeamMembers + Users
  * This is commonly used when fetching a team with its members
@@ -151,6 +163,9 @@ export function messagesToDTO(messages) {
 }
 export function aiInsightsToDTO(insights) {
     return insights.map(aiInsightToDTO);
+}
+export function teamAgentPreferencesListToDTO(preferences) {
+    return preferences.map(teamAgentPreferencesToDTO);
 }
 /**
  * Validation Helpers

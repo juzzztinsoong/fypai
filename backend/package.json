@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "db:reset": "tsx src/reset.ts",
-    "db:seed": "tsx src/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "seed": "tsx scripts/seed.ts"
   },
   "keywords": [],
   "author": "",

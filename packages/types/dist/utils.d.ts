@@ -8,8 +8,8 @@
  * - JSON string ↔ Parsed object/array
  * - Entity ↔ DTO
  */
-import type { User, Team, TeamMember, Message, AIInsight } from './entities.js';
-import type { UserDTO, TeamDTO, TeamWithMembersDTO, MessageDTO, MessageMetadata, AIInsightDTO } from './dtos.js';
+import type { User, Team, TeamMember, Message, AIInsight, TeamAgentPreference } from './entities.js';
+import type { UserDTO, TeamDTO, TeamWithMembersDTO, MessageDTO, MessageMetadata, AIInsightDTO, TeamAgentPreferencesDTO } from './dtos.js';
 /**
  * Date Utilities
  */
@@ -37,6 +37,7 @@ export declare function messageToDTO(message: Message, author?: {
     role: string;
 }): MessageDTO;
 export declare function aiInsightToDTO(insight: AIInsight): AIInsightDTO;
+export declare function teamAgentPreferencesToDTO(preferences: TeamAgentPreference): TeamAgentPreferencesDTO;
 /**
  * Create TeamWithMembersDTO from Team + TeamMembers + Users
  * This is commonly used when fetching a team with its members
@@ -66,6 +67,7 @@ export declare function messagesToDTO(messages: Array<{
     };
 }>): MessageDTO[];
 export declare function aiInsightsToDTO(insights: AIInsight[]): AIInsightDTO[];
+export declare function teamAgentPreferencesListToDTO(preferences: TeamAgentPreference[]): TeamAgentPreferencesDTO[];
 /**
  * Validation Helpers
  */
