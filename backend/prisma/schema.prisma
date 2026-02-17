@@ -45,11 +45,27 @@ model Team {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
-  teamMemberships TeamMember[]
-  messages        Message[]
-  aiInsights      AIInsight[]
-  chimeLogs       ChimeLog[]
-  chimeRules      ChimeRule[]
+  teamMemberships    TeamMember[]
+  messages           Message[]
+  aiInsights         AIInsight[]
+  chimeLogs          ChimeLog[]
+  chimeRules         ChimeRule[]
+  agentPreferences   TeamAgentPreference?
+}
+
+model TeamAgentPreference {
+  id                String   @id @default(uuid())
+  teamId            String   @unique
+  personality       String   @default("casual")     // 'formal' | 'balanced' | 'casual'
+  proactivity       String   @default("helpful")    // 'silent' | 'helpful' | 'proactive'
+  responseLength    String   @default("balanced")    // 'concise' | 'balanced' | 'detailed'
+  modelTierOverride String   @default("auto")        // 'auto' | 'tier1' | 'tier2'
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  @@index([teamId])
 }
 
 model TeamMember {

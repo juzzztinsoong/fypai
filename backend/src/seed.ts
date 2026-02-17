@@ -21,9 +21,9 @@
  *   - Timestamps use relative helpers so seed data always looks "recent"
  */
 
-import { prisma } from '../src/db.js';
-import { RuleSeederService } from '../src/services/ruleSeederService.js';
-import { pineconeService } from '../src/services/pineconeService.js';
+import { prisma } from './db.js';
+import { RuleSeederService } from './services/ruleSeederService.js';
+import { pineconeService } from './services/pineconeService.js';
 
 // ─── Timestamp Helpers ──────────────────────────────────────
 

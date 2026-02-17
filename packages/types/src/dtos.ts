@@ -317,3 +317,57 @@ export interface PresenceState {
   onlineUsers: Set<string>
   lastSeen: Record<string, string>  // userId -> ISO timestamp
 }
+
+// ============================================================================
+// Agent Preferences DTOs (Phase 6.5.2)
+// ============================================================================
+
+/**
+ * Personality types for the AI agent
+ * Controls tone and formality of responses
+ */
+export type AgentPersonality = 'formal' | 'balanced' | 'casual'
+
+/**
+ * Proactivity levels for the AI agent
+ * Controls how often the agent chimes in autonomously
+ */
+export type AgentProactivity = 'silent' | 'helpful' | 'proactive'
+
+/**
+ * Response length preferences
+ * Controls verbosity of AI responses
+ */
+export type AgentResponseLength = 'concise' | 'balanced' | 'detailed'
+
+/**
+ * Model tier override
+ * Allows forcing a specific model tier or using automatic selection
+ */
+export type AgentModelTier = 'auto' | 'tier1' | 'tier2'
+
+/**
+ * Agent Preferences DTO
+ * Per-team AI agent behavior configuration
+ */
+export interface AgentPreferencesDTO {
+  id: string
+  teamId: string
+  personality: AgentPersonality
+  proactivity: AgentProactivity
+  responseLength: AgentResponseLength
+  modelTierOverride: AgentModelTier
+  createdAt: string  // ISO string
+  updatedAt: string  // ISO string
+}
+
+/**
+ * Update Agent Preferences Request
+ * All fields optional - only send what changed
+ */
+export interface UpdateAgentPreferencesRequest {
+  personality?: AgentPersonality
+  proactivity?: AgentProactivity
+  responseLength?: AgentResponseLength
+  modelTierOverride?: AgentModelTier
+}

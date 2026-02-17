@@ -9,7 +9,7 @@
  */
 
 import { GitHubModelsClient } from '../ai/core/llm.js';
-import { SYSTEM_PROMPTS, buildConversationContext, buildRAGContext } from '../ai/core/prompts.js';
+import { SYSTEM_PROMPTS, buildConversationContext, buildRAGContext, applyPreferences, getModelForPreferences } from '../ai/core/prompts.js';
 import { shouldAgentRespond } from '../ai/reactive/reactiveRules.js';
 import { ChimeEvaluator } from '../ai/autonomous/chimeEngine.js';
 import { UnifiedRuleEngine } from '../ai/autonomous/unifiedRuleEngine.js';
@@ -19,6 +19,7 @@ import { AIInsightController } from './aiInsightController.js';
 import { ChimeRuleController } from './chimeRuleController.js';
 import { RuleProvider } from '../ai/rules/ruleProvider.js';
 import { ragService } from '../services/ragService.js';
+import { AgentPreferencesService } from '../services/agentPreferencesService.js';
 import { MessageDTO, CreateAIInsightRequest } from '@fypai/types';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -209,6 +210,15 @@ export class AIAgentController {
   ): Promise<{ content: string; model: string; usage: any; ragContextItems?: any[]; confidence: number }> {
     const conversationHistory = buildConversationContext(messages, team, 20);
 
+    // Phase 6.5.2: Load team agent preferences
+    let preferences = null;
+    try {
+      preferences = await AgentPreferencesService.getOrCreate(triggerMessage.teamId);
+      console.log(`[AI Agent] 🎛️  Preferences: personality=${preferences.personality}, length=${preferences.responseLength}, proactivity=${preferences.proactivity}, tier=${preferences.modelTierOverride}`);
+    } catch (error) {
+      console.warn('[AI Agent] Failed to load preferences, using defaults:', error);
+    }
+
     // Determine system prompt based on trigger
     let systemPrompt = SYSTEM_PROMPTS.assistant;
     if (triggerMessage.content.toLowerCase().includes('summarize') || 
@@ -262,13 +272,19 @@ export class AIAgentController {
       confidence = 0.6; // Lower confidence when RAG fails
     }
 
+    // Phase 6.5.2: Apply team preferences to system prompt
+    systemPrompt = applyPreferences(systemPrompt, preferences);
+
+    // Phase 6.5.2: Select model based on team preferences
+    const model = getModelForPreferences(preferences, 'tier2');
+
     const response = await this.llm.generate({
       messages: [
         { role: 'system' as const, content: systemPrompt },
         ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...conversationHistory,
       ],
-      model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for direct interactions
+      model, // Use preference-based model selection
       maxTokens: parseInt(process.env.AI_MAX_TOKENS || '2048'),
       temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
     });
@@ -299,14 +315,25 @@ export class AIAgentController {
       ? SYSTEM_PROMPTS.codeGenerator
       : SYSTEM_PROMPTS.assistant;
 
+    // Phase 6.5.2: Load and apply team preferences
+    let preferences = null;
+    try {
+      preferences = await AgentPreferencesService.getOrCreate(teamId);
+    } catch (error) {
+      console.warn('[AI Agent] Failed to load preferences for long-form:', error);
+    }
+    const finalPrompt = applyPreferences(systemPrompt, preferences);
+    const model = getModelForPreferences(preferences, 'tier2');
+
     console.log(`[AI Agent] Generating ${longFormType} for team ${teamId}`);
 
     const response = await this.llm.generate({
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: finalPrompt },
         ...conversationHistory,
         { role: 'user', content: prompt },
       ],
+      model,
       maxTokens: 4096,
       temperature: 0.7,
     });

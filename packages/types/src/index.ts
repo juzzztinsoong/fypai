@@ -70,6 +70,12 @@ export type {
   AITaskStatusEvent,
   ChatState,
   PresenceState,
+  AgentPreferencesDTO,
+  UpdateAgentPreferencesRequest,
+  AgentPersonality,
+  AgentProactivity,
+  AgentResponseLength,
+  AgentModelTier,
 } from './dtos.js'
 
 // Utility Functions

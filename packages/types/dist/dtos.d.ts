@@ -65,26 +65,6 @@ export interface TeamWithMembersDTO {
     members: TeamMemberDTO[];
 }
 /**
- * Agent Preference Types (Team-level)
- */
-export type AgentPersonality = 'formal' | 'casual';
-export type AgentProactivity = 'silent' | 'helpful' | 'proactive';
-export type AgentResponseLength = 'concise' | 'balanced' | 'detailed';
-export type AgentModelTierOverride = 'auto' | 'tier1' | 'tier2';
-/**
- * Team Agent Preferences DTO
- */
-export interface TeamAgentPreferencesDTO {
-    id: string;
-    teamId: string;
-    personality: AgentPersonality;
-    proactivity: AgentProactivity;
-    responseLength: AgentResponseLength;
-    modelTierOverride: AgentModelTierOverride;
-    createdAt: string;
-    updatedAt: string;
-}
-/**
  * Message Metadata
  * Parsed metadata object for messages
  */
@@ -202,12 +182,6 @@ export interface CreateTeamRequest {
 export interface UpdateTeamRequest {
     name?: string;
 }
-export interface UpdateTeamAgentPreferencesRequest {
-    personality?: AgentPersonality;
-    proactivity?: AgentProactivity;
-    responseLength?: AgentResponseLength;
-    modelTierOverride?: AgentModelTierOverride;
-}
 export interface AddTeamMemberRequest {
     userId: string;
     teamRole?: TeamRoleString;
@@ -294,5 +268,49 @@ export interface ChatState {
 export interface PresenceState {
     onlineUsers: Set<string>;
     lastSeen: Record<string, string>;
+}
+/**
+ * Personality types for the AI agent
+ * Controls tone and formality of responses
+ */
+export type AgentPersonality = 'formal' | 'balanced' | 'casual';
+/**
+ * Proactivity levels for the AI agent
+ * Controls how often the agent chimes in autonomously
+ */
+export type AgentProactivity = 'silent' | 'helpful' | 'proactive';
+/**
+ * Response length preferences
+ * Controls verbosity of AI responses
+ */
+export type AgentResponseLength = 'concise' | 'balanced' | 'detailed';
+/**
+ * Model tier override
+ * Allows forcing a specific model tier or using automatic selection
+ */
+export type AgentModelTier = 'auto' | 'tier1' | 'tier2';
+/**
+ * Agent Preferences DTO
+ * Per-team AI agent behavior configuration
+ */
+export interface AgentPreferencesDTO {
+    id: string;
+    teamId: string;
+    personality: AgentPersonality;
+    proactivity: AgentProactivity;
+    responseLength: AgentResponseLength;
+    modelTierOverride: AgentModelTier;
+    createdAt: string;
+    updatedAt: string;
+}
+/**
+ * Update Agent Preferences Request
+ * All fields optional - only send what changed
+ */
+export interface UpdateAgentPreferencesRequest {
+    personality?: AgentPersonality;
+    proactivity?: AgentProactivity;
+    responseLength?: AgentResponseLength;
+    modelTierOverride?: AgentModelTier;
 }
 //# sourceMappingURL=dtos.d.ts.map

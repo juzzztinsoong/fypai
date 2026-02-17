@@ -3,9 +3,12 @@
  * 
  * Following copilot-instructions.md: Centralized prompt engineering
  * for AI agent behavior in collaborative chat context
+ * 
+ * Phase 6.5.2: Supports per-team personality, response length, and
+ * proactivity customization via AgentPreferences.
  */
 
-import { MessageDTO, TeamWithMembersDTO } from '@fypai/types';
+import { MessageDTO, TeamWithMembersDTO, AgentPreferencesDTO } from '@fypai/types';
 
 export const SYSTEM_PROMPTS = {
   assistant: `You are an AI collaboration assistant embedded in a team productivity app.
@@ -161,5 +164,82 @@ function getRelativeTime(timestamp: string): string {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
   return `${Math.floor(diffMins / 1440)}d ago`;
+}
+
+// ─── Phase 6.5.2: Preference-aware Prompt Modifiers ─────────
+
+const PERSONALITY_MODIFIERS: Record<string, string> = {
+  formal: `
+Tone: Professional and formal. Use complete sentences, avoid contractions, maintain a respectful and structured communication style. Address team members by name where possible.`,
+  balanced: `
+Tone: Friendly but professional. Balance clarity with warmth. Use a natural conversational style while maintaining professionalism.`,
+  casual: `
+Tone: Casual and approachable. Use contractions, be conversational, add occasional emoji where appropriate. Think of yourself as a friendly teammate, not a formal assistant.`,
+}
+
+const RESPONSE_LENGTH_MODIFIERS: Record<string, string> = {
+  concise: `
+Response Length: Keep responses SHORT and focused. Use bullet points. Aim for 1-2 short paragraphs maximum. Avoid unnecessary elaboration. Get straight to the point.`,
+  balanced: `
+Response Length: Aim for 2-4 paragraphs. Provide enough detail for clarity but don't over-explain. Use formatting (bullets, headers) for longer responses.`,
+  detailed: `
+Response Length: Provide thorough, comprehensive responses. Include examples, explanations, and context. Use headers, bullet points, and code blocks liberally. Aim for 4-8 paragraphs when the topic warrants it.`,
+}
+
+const PROACTIVITY_MODIFIERS: Record<string, string> = {
+  silent: `
+Proactivity: Only respond when directly asked. Do NOT volunteer suggestions, action items, or follow-up questions. Answer what was asked, nothing more.`,
+  helpful: `
+Proactivity: Respond when asked and occasionally offer helpful suggestions. If you notice important action items or decisions, mention them briefly. Ask follow-up questions when context is unclear.`,
+  proactive: `
+Proactivity: Be highly proactive. Volunteer suggestions, identify risks, propose next steps, and ask follow-up questions. Act as an engaged team member who anticipates needs.`,
+}
+
+/**
+ * Apply team preferences to a base system prompt.
+ * Returns a modified prompt string that includes personality, length, and proactivity directives.
+ * 
+ * @param basePrompt - The base system prompt (e.g., SYSTEM_PROMPTS.assistant)
+ * @param preferences - The team's agent preferences (or null for defaults)
+ */
+export function applyPreferences(
+  basePrompt: string,
+  preferences?: AgentPreferencesDTO | null
+): string {
+  if (!preferences) return basePrompt
+
+  const personalityMod = PERSONALITY_MODIFIERS[preferences.personality] || ''
+  const lengthMod = RESPONSE_LENGTH_MODIFIERS[preferences.responseLength] || ''
+  const proactivityMod = PROACTIVITY_MODIFIERS[preferences.proactivity] || ''
+
+  // Only append modifiers if they differ from the default "balanced" behaviors
+  const modifiers = [personalityMod, lengthMod, proactivityMod]
+    .filter(Boolean)
+    .join('\n')
+
+  if (!modifiers.trim()) return basePrompt
+
+  return `${basePrompt}\n\n--- Team Preferences ---${modifiers}`
+}
+
+/**
+ * Determine which LLM model to use based on team preferences.
+ * Returns the model environment variable name or undefined for default.
+ */
+export function getModelForPreferences(
+  preferences?: AgentPreferencesDTO | null,
+  defaultTier: 'tier1' | 'tier2' = 'tier2'
+): string | undefined {
+  if (!preferences || preferences.modelTierOverride === 'auto') {
+    return defaultTier === 'tier1' 
+      ? process.env.LLM_MODEL_TIER_1 
+      : process.env.LLM_MODEL_TIER_2
+  }
+
+  if (preferences.modelTierOverride === 'tier1') {
+    return process.env.LLM_MODEL_TIER_1
+  }
+  
+  return process.env.LLM_MODEL_TIER_2
 }
 

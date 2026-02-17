@@ -31,17 +31,20 @@ export class ChimeRuleController {
         ],
       });
 
-      // Parse JSON fields
-      const parsedRules: ChimeRule[] = rules.map(rule => ({
+      // Parse JSON fields and include all fields the frontend needs
+      const parsedRules = rules.map(rule => ({
         id: rule.id,
         name: rule.name,
-        type: rule.type as any,
+        description: rule.description || null,
+        type: rule.type,
+        execution: rule.execution || 'sync',
         enabled: rule.enabled,
-        priority: rule.priority as any,
+        priority: rule.priority,           // numeric 0-100
         cooldownMinutes: rule.cooldownMinutes,
         conditions: JSON.parse(rule.conditions),
         action: JSON.parse(rule.action),
         teamId: rule.teamId || undefined,
+        sourceRuleId: rule.sourceRuleId || undefined,
         createdAt: rule.createdAt,
         updatedAt: rule.updatedAt,
       }));
@@ -68,16 +71,19 @@ export class ChimeRuleController {
         return res.status(404).json({ error: 'Chime rule not found' });
       }
 
-      const parsedRule: ChimeRule = {
+      const parsedRule = {
         id: rule.id,
         name: rule.name,
-        type: rule.type as any,
+        description: rule.description || null,
+        type: rule.type,
+        execution: rule.execution || 'sync',
         enabled: rule.enabled,
-        priority: rule.priority as any,
+        priority: rule.priority,
         cooldownMinutes: rule.cooldownMinutes,
         conditions: JSON.parse(rule.conditions),
         action: JSON.parse(rule.action),
         teamId: rule.teamId || undefined,
+        sourceRuleId: rule.sourceRuleId || undefined,
         createdAt: rule.createdAt,
         updatedAt: rule.updatedAt,
       };
@@ -109,16 +115,19 @@ export class ChimeRuleController {
         },
       });
 
-      const parsedRule: ChimeRule = {
+      const parsedRule = {
         id: rule.id,
         name: rule.name,
-        type: rule.type as any,
+        description: rule.description || null,
+        type: rule.type,
+        execution: rule.execution || 'sync',
         enabled: rule.enabled,
-        priority: rule.priority as any,
+        priority: rule.priority,
         cooldownMinutes: rule.cooldownMinutes,
         conditions: JSON.parse(rule.conditions),
         action: JSON.parse(rule.action),
         teamId: rule.teamId || undefined,
+        sourceRuleId: rule.sourceRuleId || undefined,
         createdAt: rule.createdAt,
         updatedAt: rule.updatedAt,
       };
@@ -152,16 +161,19 @@ export class ChimeRuleController {
         },
       });
 
-      const parsedRule: ChimeRule = {
+      const parsedRule = {
         id: rule.id,
         name: rule.name,
-        type: rule.type as any,
+        description: rule.description || null,
+        type: rule.type,
+        execution: rule.execution || 'sync',
         enabled: rule.enabled,
-        priority: rule.priority as any,
+        priority: rule.priority,
         cooldownMinutes: rule.cooldownMinutes,
         conditions: JSON.parse(rule.conditions),
         action: JSON.parse(rule.action),
         teamId: rule.teamId || undefined,
+        sourceRuleId: rule.sourceRuleId || undefined,
         createdAt: rule.createdAt,
         updatedAt: rule.updatedAt,
       };
@@ -197,11 +209,22 @@ export class ChimeRuleController {
   static async toggleRule(req: Request, res: Response) {
     try {
       const { ruleId } = req.params;
-      const { enabled } = req.body;
+
+      // If body has explicit enabled value use it, otherwise invert current state
+      let newEnabled: boolean;
+      if (req.body && typeof req.body.enabled === 'boolean') {
+        newEnabled = req.body.enabled;
+      } else {
+        const current = await prisma.chimeRule.findUnique({ where: { id: ruleId } });
+        if (!current) {
+          return res.status(404).json({ error: 'Rule not found' });
+        }
+        newEnabled = !current.enabled;
+      }
 
       const rule = await prisma.chimeRule.update({
         where: { id: ruleId },
-        data: { enabled },
+        data: { enabled: newEnabled },
       });
 
       res.json({ id: rule.id, enabled: rule.enabled });
@@ -312,13 +335,16 @@ export class ChimeRuleController {
     return rules.map(rule => ({
       id: rule.id,
       name: rule.name,
+      description: rule.description,
       type: rule.type as any,
+      execution: (rule.execution || 'sync') as any,
       enabled: rule.enabled,
       priority: rule.priority as any,
       cooldownMinutes: rule.cooldownMinutes,
       conditions: JSON.parse(rule.conditions),
       action: JSON.parse(rule.action),
       teamId: rule.teamId || undefined,
+      sourceRuleId: rule.sourceRuleId || undefined,
       createdAt: rule.createdAt,
       updatedAt: rule.updatedAt,
     }));

@@ -28,6 +28,7 @@ import * as Sentry from '@sentry/node'
 import { nodeProfilingIntegration } from '@sentry/profiling-node'
 
 import { prisma } from './db.js'
+import { RuleSeederService } from './services/ruleSeederService.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { setupSocketHandlers } from './socket/socketHandlers.js'
 import { getRedisClient, checkRedisHealth, disconnectRedis } from './services/redis.js'
@@ -42,6 +43,7 @@ import messageRoutes, { setSocketIO as setMessageSocketIO } from './routes/messa
 import userRoutes from './routes/userRoutes.js'
 import aiInsightRoutes from './routes/aiInsightRoutes.js'
 import chimeRuleRoutes from './routes/chimeRuleRoutes.js'
+import agentPreferenceRoutes from './routes/agentPreferenceRoutes.js'
 import { AIAgentController } from './controllers/aiAgentController.js'
 import { AIInsightController } from './controllers/aiInsightController.js'
 import { ragService } from './services/ragService.js'
@@ -154,6 +156,7 @@ app.use('/api/messages', messageRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/insights', aiInsightRoutes)
 app.use('/api/chime', chimeRuleRoutes)
+app.use('/api', agentPreferenceRoutes)
 
 // Error handler (must be last)
 if (process.env.SENTRY_DSN) {
@@ -173,6 +176,16 @@ server.listen(PORT, async () => {
   try {
     await prisma.$connect()
     console.log('✅ Database connected')
+    
+    // Auto-seed chime rules for any teams that don't have them yet
+    try {
+      const { seeded, skipped } = await RuleSeederService.seedAllTeams()
+      if (seeded > 0) {
+        console.log(`✅ Auto-seeded rules for ${seeded} teams (${skipped} already had rules)`)
+      }
+    } catch (seedError) {
+      console.warn('⚠️  Rule auto-seeding failed:', seedError)
+    }
   } catch (error) {
     console.error('❌ Database connection failed:', error)
   }

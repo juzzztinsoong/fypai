@@ -1,13 +1,14 @@
 /**
  * RightPanel Component
  *
- * Per Refactoring Guide Section 1.3:
- * - Uses EntityStore for insights data (normalized)
- * - Uses UIStore for current team context and view state (filters)
- * - Uses SessionStore for AI toggle state
- * - No aiInsightsStore, no teamStore, no RealtimeStore
+ * Three-section layout:
+ *   1. Fixed header (team name, insight count)
+ *   2. Filter tabs: All | Summaries | Actions | Suggestions | ⚙ Rules
+ *   3. Scrollable content area (insights OR rule toggles grouped by type)
+ *   4. Collapsible AI Controls footer (toggle + action buttons + settings drawer)
  *
- * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
+ * The "Rules" tab shows chime rules grouped by the insight type they produce,
+ * visually linking rules to the insight categories in the other tabs.
  */
 import { useEntityStore } from '@/stores/entityStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -16,10 +17,21 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
 import { InsightsList } from './InsightsList';
 import { LongFormContentViewer } from './LongFormContentViewer';
-import { AIToggle } from './AIToggle';
-import { ActionButtons } from './ActionButtons';
-import { EmptyState } from './EmptyState';
+import { AIControlsDrawer } from './AIControlsDrawer';
+import { RuleTogglePanel } from './RuleTogglePanel';
 import { getInsights } from '@/services/insightService';
+
+type ContentFilter = 'all' | 'summaries' | 'actions' | 'suggestions' | 'rules';
+
+// ── Filter tab config ──────────────────────────────────────
+
+const TABS: { key: ContentFilter; label: string; emoji?: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'summaries', label: 'Summaries', emoji: '📊' },
+  { key: 'actions', label: 'Actions', emoji: '✅' },
+  { key: 'suggestions', label: 'Suggestions', emoji: '💡' },
+  { key: 'rules', label: 'Rules', emoji: '⚙️' },
+];
 
 export const RightPanel = () => {
   
@@ -44,7 +56,7 @@ export const RightPanel = () => {
   // AI enabled state from team settings
   const isTeamAIEnabled = currentTeam?.isChimeEnabled ?? true;
   
-  const [contentFilter, setContentFilter] = useState<'all' | 'summaries' | 'actions' | 'suggestions'>('all');
+  const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch insights when team changes
@@ -93,26 +105,34 @@ export const RightPanel = () => {
 
   const handleToggleAI = () => {
     if (!currentTeamId) return;
-
-    // Toggle based on current state
     const newState = !isTeamAIEnabled;
-
-    // Update local state optimistically (will be confirmed by socket broadcast)
     useEntityStore.getState().updateTeam(currentTeamId, { isChimeEnabled: newState });
-
-    // Emit socket event to persist and broadcast to other clients
     socketService.toggleTeamAI(currentTeamId, newState);
   };
   
   // Show empty state when no team selected (AFTER all hooks)
   if (!currentTeamId) {
     return (
-      <EmptyState
-        isAIEnabled={isTeamAIEnabled}
-        onToggleAI={handleToggleAI}
-      />
+      <aside className="w-1/2 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
+        <div className="p-6 flex-1">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">AI Insights</h2>
+          <p className="text-gray-500">
+            Select a team to view AI-generated insights and recommendations
+          </p>
+        </div>
+      </aside>
     );
   }
+
+  const countForTab = (key: ContentFilter): number | null => {
+    switch (key) {
+      case 'all': return totalContent;
+      case 'summaries': return summaryCount;
+      case 'actions': return actionCount;
+      case 'suggestions': return suggestionCount;
+      default: return null; // rules tab has no count badge
+    }
+  };
 
   return (
     <aside className="w-1/2 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
@@ -124,54 +144,35 @@ export const RightPanel = () => {
       {/* Content Type Tabs */}
       <div className="flex-shrink-0 border-b border-gray-200 bg-white">
         <div className="flex space-x-1 p-2">
-          <button
-            onClick={() => setContentFilter('all')}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-              contentFilter === 'all'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            All ({totalContent})
-          </button>
-          <button
-            onClick={() => setContentFilter('summaries')}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-              contentFilter === 'summaries'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            📊 Summaries ({summaryCount})
-          </button>
-          <button
-            onClick={() => setContentFilter('actions')}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-              contentFilter === 'actions'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            ✅ Actions ({actionCount})
-          </button>
-          <button
-            onClick={() => setContentFilter('suggestions')}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-              contentFilter === 'suggestions'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            � Suggestions ({suggestionCount})
-          </button>
+          {TABS.map((tab) => {
+            const count = countForTab(tab.key);
+            const isActive = contentFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setContentFilter(tab.key)}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {tab.emoji && <span className="mr-1">{tab.emoji}</span>}
+                {tab.label}
+                {count !== null && ` (${count})`}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Scrollable Content Area - Auto-scroll to bottom */}
+      {/* Scrollable Content Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-        {displayedContent.length > 0 ? (
+        {contentFilter === 'rules' ? (
+          /* ── Rules Tab: Grouped rule toggles ── */
+          <RuleTogglePanel teamId={currentTeamId} />
+        ) : displayedContent.length > 0 ? (
           displayedContent.map((insight) => {
-            // Render summaries and documents with LongFormContentViewer
             if (insight.type === 'summary' || insight.type === 'document') {
               return (
                 <LongFormContentViewer 
@@ -180,7 +181,6 @@ export const RightPanel = () => {
                 />
               );
             } else {
-              // Render other insights (actions, suggestions, etc.) with InsightsList
               return (
                 <InsightsList 
                   key={insight.id} 
@@ -199,11 +199,12 @@ export const RightPanel = () => {
         )}
       </div>
 
-      {/* Fixed Action Buttons Footer */}
-      <div className="flex-shrink-0 border-t border-gray-200 bg-white p-4">
-        <AIToggle isEnabled={isTeamAIEnabled} onToggle={handleToggleAI} />
-        <ActionButtons />
-      </div>
+      {/* Collapsible AI Controls Footer */}
+      <AIControlsDrawer
+        teamId={currentTeamId}
+        isAIEnabled={isTeamAIEnabled}
+        onToggleAI={handleToggleAI}
+      />
     </aside>
   );
 };
