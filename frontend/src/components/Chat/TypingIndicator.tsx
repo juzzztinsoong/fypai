@@ -16,9 +16,10 @@
 interface TypingIndicatorProps {
   userNames: string[]
   isAgentTyping?: boolean
+  aiStage?: 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
 }
 
-export const TypingIndicator = ({ userNames, isAgentTyping }: TypingIndicatorProps) => {
+export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: TypingIndicatorProps) => {
   if (!isAgentTyping && userNames.length === 0) {
     return null
   }
@@ -46,12 +47,19 @@ export const TypingIndicator = ({ userNames, isAgentTyping }: TypingIndicatorPro
 
   // Agent typing indicator (center-aligned, purple)
   if (isAgentTyping) {
+    const stageMessage =
+      aiStage === 'searching-memory'
+        ? 'AI is searching memory'
+        : aiStage === 'analyzing'
+        ? 'AI is analyzing'
+        : 'AI is thinking'
+
     return (
       <div className="flex justify-center">
         <div className="flex flex-col items-center">
           <span className="text-xs text-purple-700 mb-1 font-bold">AI Assistant</span>
           <div className="bg-purple-100 border-2 border-purple-500 text-purple-700 rounded-xl px-4 py-2 shadow-sm flex items-center gap-2">
-            <span className="text-sm font-medium">Generating response</span>
+            <span className="text-sm font-medium">{stageMessage}</span>
             <AnimatedDots />
           </div>
           <div className="mt-2">

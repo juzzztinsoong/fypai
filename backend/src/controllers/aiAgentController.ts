@@ -36,6 +36,19 @@ export class AIAgentController {
     console.log('[AIAgentController] ✅ Socket.IO instance configured for AI broadcasts');
   }
 
+  private static emitProcessingStage(
+    teamId: string,
+    stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
+  ): void {
+    if (!this.io) return;
+    this.io.to(`team:${teamId}`).emit('ai:processing', {
+      teamId,
+      userId: 'agent',
+      stage,
+    });
+    console.log(`[AI Agent] 🧭 Emitted ai:processing stage=${stage} for team=${teamId}`);
+  }
+
   /**
    * Set AI enabled state for a team
    */
@@ -121,6 +134,7 @@ export class AIAgentController {
           console.log(`[AI Agent] Not responding: ${decision.reason}`);
         } else {
           console.log(`[AI Agent] Responding due to: ${decision.reason} (rules: ${decision.triggeredRules.join(', ')})`);
+          this.emitProcessingStage(message.teamId, 'thinking');
 
           // Emit typing indicator - agent is generating
           if (this.io) {
@@ -170,6 +184,7 @@ export class AIAgentController {
             });
             console.log(`[AI Agent] ⌨️  Emitted typing:stop for agent`);
           }
+          this.emitProcessingStage(message.teamId, 'idle');
 
           // 5. Broadcast agent message via WebSocket
           if (this.io) {
@@ -234,6 +249,7 @@ export class AIAgentController {
     let ragContextItems: any[] = [];
     let confidence = 0.85; // Default confidence for responses without RAG
     try {
+      this.emitProcessingStage(triggerMessage.teamId, 'searching-memory');
       const isRAGReady = await ragService.healthCheck();
       console.log(`[AI Agent] 🔍 RAG health check: ${isRAGReady ? 'ready' : 'not ready'}`);
       if (isRAGReady) {
@@ -277,6 +293,7 @@ export class AIAgentController {
 
     // Phase 6.5.2: Select model based on team preferences
     const model = getModelForPreferences(preferences, 'tier2');
+    this.emitProcessingStage(triggerMessage.teamId, 'analyzing');
 
     const response = await this.llm.generate({
       messages: [
@@ -478,6 +495,7 @@ export class AIAgentController {
         });
         console.log(`[AI Agent] ⌨️  Emitted typing:start for chime rule: ${rule.name}`);
       }
+      this.emitProcessingStage(teamId, 'analyzing');
 
       // 3. Call LLM with rule's prompt template
       const response = await this.llm.generate({
@@ -498,6 +516,7 @@ export class AIAgentController {
         });
         console.log(`[AI Agent] ⌨️  Emitted typing:stop for chime rule: ${rule.name}`);
       }
+      this.emitProcessingStage(teamId, 'idle');
 
       // 4. Create insight or message based on rule action type
       if (rule.action.type === 'insight' || rule.action.type === 'both') {
@@ -564,6 +583,7 @@ export class AIAgentController {
 
     } catch (error) {
       console.error('[AI Agent] Error executing chime:', error);
+      this.emitProcessingStage(decision.teamId, 'idle');
       
       // Log failed execution
       await ChimeRuleController.logChimeExecution({

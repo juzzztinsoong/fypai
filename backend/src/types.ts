@@ -58,6 +58,11 @@ export type {
   ApiSuccessResponse,
   ApiErrorResponse,
   PaginatedResponse,
+  FeedbackDTO,
+  CreateFeedbackRequest,
+  FeedbackType,
+  FeedbackReason,
+  FeedbackRuleAction,
 } from '@fypai/types'
 
 // Re-export type guard functions

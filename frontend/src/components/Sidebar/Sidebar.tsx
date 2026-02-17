@@ -16,6 +16,9 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils'
 import { socketService } from '@/services/socketService'
 import { getTeamsForUser } from '@/services/teamService'
+import { exportSession } from '@/services/exportService'
+import { resetTeamSession } from '@/services/messageService'
+import { resetTeamInsights } from '@/services/insightService'
 
 // Mock users for testing typing indicators
 const TEST_USERS = [
@@ -69,6 +72,49 @@ export const Sidebar = () => {
   }, [])
   
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [isResetting, setIsResetting] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+
+  const handleSessionExport = async (format: 'json' | 'csv') => {
+    if (!currentTeamId || isExporting) return
+
+    try {
+      setIsExporting(true)
+      setExportError(null)
+      await exportSession(currentTeamId, format)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Failed to export session')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleSessionReset = async () => {
+    if (!currentTeamId || isResetting) return
+
+    const confirmed = window.confirm('Reset this team session? This will delete all messages and insights for the current team.')
+    if (!confirmed) return
+
+    try {
+      setIsResetting(true)
+      setResetError(null)
+      await resetTeamSession(currentTeamId)
+      await resetTeamInsights(currentTeamId)
+
+      const sessionStore = useSessionStore.getState()
+      const typingUsers = [...sessionStore.getTypingUsers(currentTeamId)]
+      for (const userId of typingUsers) {
+        sessionStore.removeTypingUser(currentTeamId, userId)
+      }
+      sessionStore.setAIProcessingStage(currentTeamId, 'idle')
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'Failed to reset session')
+    } finally {
+      setIsResetting(false)
+    }
+  }
 
   // Only show teams where current user is a member
   const visibleTeams = allTeams.filter(team =>
@@ -208,6 +254,39 @@ export const Sidebar = () => {
           </button>
         </div>
         <p className="mt-1 text-xs text-gray-400">Show model, tokens, cost on AI messages</p>
+
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs font-medium text-gray-600 mb-2">Session Export</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleSessionExport('json')}
+              disabled={!currentTeamId || isExporting}
+              className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              JSON
+            </button>
+            <button
+              onClick={() => handleSessionExport('csv')}
+              disabled={!currentTeamId || isExporting}
+              className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              CSV
+            </button>
+          </div>
+          {exportError && <p className="mt-2 text-xs text-red-500">{exportError}</p>}
+        </div>
+
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-xs font-medium text-gray-600 mb-2">Session Reset</p>
+          <button
+            onClick={handleSessionReset}
+            disabled={!currentTeamId || isResetting}
+            className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isResetting ? 'Resetting…' : 'Reset Current Team'}
+          </button>
+          {resetError && <p className="mt-2 text-xs text-red-500">{resetError}</p>}
+        </div>
       </div>
 
       {/* User Profile Section with Switcher (for testing typing indicators) */}

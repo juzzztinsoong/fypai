@@ -28,6 +28,7 @@ import { MessageDTO } from '@fypai/types';
 // Buffer configuration
 const BATCH_SIZE = 20;
 const FLUSH_TIMEOUT_MS = 60000; // 60 seconds
+const ASYNC_CHIME_MAX_AGE_MS = parseInt(process.env.ASYNC_CHIME_MAX_AGE_MS || '120000', 10); // 2 minutes default
 
 // Trivial content filter
 const TRIVIAL_WORDS = new Set([
@@ -74,15 +75,12 @@ async function flushBuffer() {
     flushTimeout = null;
   }
 
-  console.log(`[EmbeddingWorker] 🔄 Flushing batch of ${batch.length} messages...`);
-
   try {
     const texts = batch.map(b => b.job.data.content);
     
     // Step 1: Generate batch embeddings
     // This uses 1 API call for N messages
     const result = await embeddingService.generateBatch(texts);
-    console.log(`[EmbeddingWorker] ✅ Generated batch embeddings (${result.totalTokens} tokens)`);
 
     // Step 2: Process each result
     // We process them in parallel to speed up DB/Pinecone ops
@@ -92,6 +90,16 @@ async function flushBuffer() {
       const { messageId, teamId, authorId, content, createdAt } = job.data;
 
       try {
+        const existingMessage = await prisma.message.findUnique({
+          where: { id: messageId },
+          select: { metadata: true },
+        });
+
+        if (!existingMessage) {
+          resolve();
+          return;
+        }
+
         // Build MessageDTO for classification
         const messageDTO: MessageDTO = {
           id: messageId,
@@ -123,17 +131,16 @@ async function flushBuffer() {
 
         // Await classification result
         const classification = await classificationPromise;
-        console.log(`[EmbeddingWorker] 🏷️ Classified ${messageId}: intent=${classification.intent}, urgency=${classification.urgency}`);
 
         // Update Message record with embedding and classification
-        await prisma.message.update({
+        const updateResult = await prisma.message.updateMany({
           where: { id: messageId },
           data: {
             embeddingId: vectorId,
             embeddedAt: new Date(),
             // Store classification in metadata (JSON merge)
             metadata: JSON.stringify({
-              ...JSON.parse((await prisma.message.findUnique({ where: { id: messageId } }))?.metadata || '{}'),
+              ...JSON.parse(existingMessage.metadata || '{}'),
               classification: {
                 intent: classification.intent,
                 sentiment: classification.sentiment,
@@ -145,13 +152,20 @@ async function flushBuffer() {
           },
         });
 
+        if (updateResult.count === 0) {
+          await pineconeService.deleteVector(vectorId).catch(() => undefined);
+          resolve();
+          return;
+        }
+
         // Phase 6: Async Semantic Rule Evaluation with Classification
         // Fire and forget (don't block worker completion)
-        UnifiedRuleEngine.getInstance().evaluateAsync(messageDTO, embedding, classification).catch(err => {
-          console.error(`[EmbeddingWorker] Error in async rule evaluation for ${messageId}:`, err);
-        });
-
-        console.log(`[EmbeddingWorker] ✅ Processed message: ${messageId}`);
+        const messageAgeMs = Date.now() - new Date(createdAt).getTime();
+        if (messageAgeMs <= ASYNC_CHIME_MAX_AGE_MS) {
+          UnifiedRuleEngine.getInstance().evaluateAsync(messageDTO, embedding, classification).catch(err => {
+            console.error(`[EmbeddingWorker] Error in async rule evaluation for ${messageId}:`, err);
+          });
+        }
         resolve();
       } catch (err) {
         console.error(`[EmbeddingWorker] ❌ Failed to process message ${messageId} in batch:`, err);
@@ -159,7 +173,6 @@ async function flushBuffer() {
       }
     }));
 
-    // Log cost estimate for the whole batch
     const cost = embeddingService.estimateCost(result.totalTokens);
     console.log(`[EmbeddingWorker] 💰 Batch cost: $${cost.toFixed(6)}`);
 
@@ -179,14 +192,12 @@ async function processEmbeddingJob(job: Job<EmbeddingJobData>): Promise<void> {
 
   // Step 0: Cost Optimization - Skip trivial messages
   if (!isSemanticallySignificant(content)) {
-    console.log(`[EmbeddingWorker] ⏭️ Skipping trivial message ${messageId}: "${content.substring(0, 20)}..."`);
     return Promise.resolve();
   }
 
   return new Promise((resolve, reject) => {
     // Add to buffer
     jobBuffer.push({ job, resolve, reject });
-    console.log(`[EmbeddingWorker] 📥 Buffered job ${job.id} (Buffer: ${jobBuffer.length}/${BATCH_SIZE})`);
 
     // Trigger flush if buffer full
     if (jobBuffer.length >= BATCH_SIZE) {
@@ -199,7 +210,6 @@ async function processEmbeddingJob(job: Job<EmbeddingJobData>): Promise<void> {
     // Start timeout if not running
     else if (!flushTimeout) {
       flushTimeout = setTimeout(() => {
-        console.log('[EmbeddingWorker] ⏰ Flush timeout reached');
         flushTimeout = null;
         flushBuffer();
       }, FLUSH_TIMEOUT_MS);
@@ -223,9 +233,7 @@ export function createEmbeddingWorker(): Worker {
   );
 
   // Event listeners
-  worker.on('completed', (job) => {
-    console.log(`[EmbeddingWorker] ✅ Job ${job.id} completed`);
-  });
+  worker.on('completed', () => {});
 
   worker.on('failed', (job, error) => {
     console.error(`[EmbeddingWorker] ❌ Job ${job?.id} failed:`, error.message);

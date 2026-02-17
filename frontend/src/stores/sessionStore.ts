@@ -46,6 +46,7 @@ interface SessionState {
   presence: {
     onlineUsers: string[]  // userId array (for HMR compatibility)
     typingUsers: Record<string, string[]>  // teamId -> userId[]
+    aiProcessing: Record<string, 'thinking' | 'searching-memory' | 'analyzing' | 'idle'> // teamId -> stage
   }
   
   // API Status (per guide section 2.1)
@@ -83,6 +84,8 @@ interface SessionActions {
   addTypingUser: (teamId: string, userId: string) => void
   removeTypingUser: (teamId: string, userId: string) => void
   getTypingUsers: (teamId: string) => string[]
+  setAIProcessingStage: (teamId: string, stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle') => void
+  getAIProcessingStage: (teamId: string) => 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
   
   // API status methods
   addInFlightRequest: (requestId: string, metadata: any) => void
@@ -114,6 +117,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   presence: {
     onlineUsers: [],
     typingUsers: {},
+    aiProcessing: {},
   },
   
   apiStatus: {
@@ -142,6 +146,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     presence: {
       onlineUsers: [],
       typingUsers: {},
+      aiProcessing: {},
     },
     apiStatus: {
       inFlightRequests: {},
@@ -300,6 +305,20 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   getTypingUsers: (teamId) => {
     const typingUsers = get().presence.typingUsers[teamId]
     return typingUsers || EMPTY_ARRAY
+  },
+
+  setAIProcessingStage: (teamId, stage) => set((state) => ({
+    presence: {
+      ...state.presence,
+      aiProcessing: {
+        ...state.presence.aiProcessing,
+        [teamId]: stage,
+      },
+    },
+  })),
+
+  getAIProcessingStage: (teamId) => {
+    return get().presence.aiProcessing[teamId] || 'idle'
   },
   
   // ============================================================================

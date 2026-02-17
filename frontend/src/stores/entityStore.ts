@@ -210,15 +210,32 @@ export const useEntityStore = create<EntityStore>((set, get) => ({
   // ============================================================================
   
   addMessage: (message) => set((state) => {
-    // Skip if message already exists (deduplication)
-    if (state.entities.messages[message.id]) {
-      return state
-    }
-    
+    const existingMessage = state.entities.messages[message.id]
+
     // Check if already in relationships (happens when socket broadcasts after confirmMessage)
     const teamMessageIds = state.relationships.teamMessages[message.teamId] || []
-    if (teamMessageIds.includes(message.id)) {
-      return state
+
+    // Upsert path: merge message updates, ensure relationship link exists
+    if (existingMessage) {
+      const merged = { ...existingMessage, ...message }
+      const hasRelationship = teamMessageIds.includes(message.id)
+
+      return {
+        entities: {
+          ...state.entities,
+          messages: {
+            ...state.entities.messages,
+            [message.id]: merged,
+          },
+        },
+        relationships: {
+          ...state.relationships,
+          teamMessages: {
+            ...state.relationships.teamMessages,
+            [message.teamId]: hasRelationship ? teamMessageIds : [...teamMessageIds, message.id],
+          },
+        },
+      }
     }
     
     // Check if this is a server response for an optimistic message

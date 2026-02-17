@@ -17,6 +17,7 @@ import { getMessages } from '@/services/messageService'
 import { TypingIndicator } from './TypingIndicator'
 import { AgentMetadataTag } from './AgentMetadataTag'
 import { RAGContextPanel } from './RAGContextPanel'
+import { FeedbackButtons } from './FeedbackButtons'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
@@ -51,6 +52,9 @@ export const MessageList = () => {
   
   // Get current user from SessionStore
   const currentUser = useSessionStore((state) => state.currentUser)
+  const aiProcessingStage = useSessionStore((state) =>
+    state.getAIProcessingStage(currentTeamId || '')
+  )
   
   // Get loading/error states from UIStore
   const isLoading = useUIStore((state) => state.getLoading('messages'))
@@ -155,6 +159,14 @@ export const MessageList = () => {
         } else if (message.authorId === 'agent') {
           // Agent: center, bright purple
           const tier = message.agentMetadata?.tier;
+          const isAutonomous = Boolean(message.metadata?.chimeRuleName);
+          const isLongForm = message.contentType === 'ai_longform';
+          const isReactive = !isAutonomous && !isLongForm;
+          const parentId = message.metadata?.parentMessageId;
+          const parentPreview = parentId
+            ? messagesById[parentId]?.content?.slice(0, 100)
+            : undefined;
+
           return (
             <div key={message.id} className="flex justify-center">
               <div className="flex flex-col items-center max-w-[80%]">
@@ -169,14 +181,44 @@ export const MessageList = () => {
                       {tier === 'tier1' ? '⚡ Fast' : '🧠 Smart'}
                     </span>
                   )}
+                  {isReactive && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                      💬 Reply
+                    </span>
+                  )}
                   {/* Show chime indicator if triggered by rule */}
-                  {message.metadata?.chimeRuleName && (
+                  {isAutonomous && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700 border border-orange-200">
                       🔔 Auto
                     </span>
                   )}
+                  {isLongForm && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      📄 Insight
+                    </span>
+                  )}
                 </div>
-                <div className="bg-purple-500 text-white rounded-xl p-3 shadow-lg w-full">
+                {parentPreview && (
+                  <div className="w-full mb-1 text-[11px] text-purple-900/80 bg-purple-50 border border-purple-200 rounded-md px-2 py-1">
+                    Replying to: {parentPreview}{messagesById[parentId!]?.content && messagesById[parentId!]?.content.length > 100 ? '…' : ''}
+                  </div>
+                )}
+                <div className={`text-[11px] w-full mb-1 ${
+                  isAutonomous ? 'text-orange-700' : isLongForm ? 'text-emerald-700' : 'text-blue-700'
+                }`}>
+                  {isAutonomous
+                    ? 'Autonomous AI chime'
+                    : isLongForm
+                    ? 'AI long-form response'
+                    : 'Reactive AI response'}
+                </div>
+                <div className={`text-white rounded-xl p-3 shadow-lg w-full border-2 ${
+                  isAutonomous
+                    ? 'bg-orange-500 border-orange-600'
+                    : isLongForm
+                    ? 'bg-emerald-500 border-emerald-600'
+                    : 'bg-purple-500 border-purple-600'
+                }`}>
                   <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere font-semibold">{message.content}</p>
                 </div>
                 
@@ -200,6 +242,12 @@ export const MessageList = () => {
                 {showAIDetails && message.agentMetadata?.ragContext && (
                   <RAGContextPanel ragContext={message.agentMetadata.ragContext} />
                 )}
+
+                <FeedbackButtons
+                  messageId={message.id}
+                  userId={currentUser?.id}
+                  chimeRuleId={message.metadata?.chimeRuleId}
+                />
                 
                 <div className="mt-2 relative">
                   <svg className="w-8 h-8 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
@@ -243,7 +291,11 @@ export const MessageList = () => {
       
       {/* Typing indicator */}
       {(typingUserNames.length > 0 || isAgentTyping) && (
-        <TypingIndicator userNames={typingUserNames} isAgentTyping={isAgentTyping} />
+        <TypingIndicator
+          userNames={typingUserNames}
+          isAgentTyping={isAgentTyping}
+          aiStage={aiProcessingStage}
+        />
       )}
     </div>
   )

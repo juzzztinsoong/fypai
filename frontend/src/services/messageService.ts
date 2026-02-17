@@ -170,9 +170,36 @@ export async function deleteMessage(messageId: string, teamId: string): Promise<
   }
 }
 
+/**
+ * Reset all messages for a team session
+ * DELETE /messages/team/:teamId
+ */
+export async function resetTeamSession(
+  teamId: string
+): Promise<{ teamId: string; deletedCount: number; deletedMessageIds: string[] }> {
+  const entityStore = useEntityStore.getState()
+
+  try {
+    const response = await api.delete<{ teamId: string; deletedCount: number; deletedMessageIds: string[] }>(
+      `/messages/team/${teamId}`
+    )
+
+    for (const messageId of response.data.deletedMessageIds) {
+      entityStore.deleteMessage(messageId, teamId)
+    }
+
+    console.log('[MessageService] ✅ Team session reset:', teamId, '| deleted:', response.data.deletedCount)
+    return response.data
+  } catch (error) {
+    console.error(`[MessageService] Failed to reset session for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  }
+}
+
 export default {
   getMessages,
   createMessage,
   updateMessage,
   deleteMessage,
+  resetTeamSession,
 }

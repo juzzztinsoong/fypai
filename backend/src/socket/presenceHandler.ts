@@ -50,7 +50,6 @@ function startTypingCleanup(io: Server): void {
         if (now - timestamp > maxAge) {
           teamTyping.delete(userId)
           changed = true
-          console.log(`[PRESENCE] \u23f1\ufe0f Auto-removed stale typing for user ${userId} in team ${teamId}`)
         }
       })
       
@@ -62,11 +61,9 @@ function startTypingCleanup(io: Server): void {
     
     // Broadcast if anything changed (optional - could broadcast per-team)
     if (changed) {
-      console.log('[PRESENCE] \ud83e\uddf9 Cleaned up stale typing indicators')
+      // state cleaned silently
     }
   }, 5000)
-  
-  console.log('[PRESENCE] \u23f0 Started typing indicator cleanup (5s interval)')
 }
 
 /**
@@ -94,7 +91,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
     
     // Broadcast new user online
     io.emit('presence:update', { userId, online: true })
-    console.log(`[PRESENCE] User ${userId} is online (${onlineUsers.size} total)`)
     
     // If this socket was previously mapped to a different user, check if that user should go offline
     if (oldUserId && oldUserId !== userId && oldUserId !== 'agent') {
@@ -105,9 +101,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
         // No other sockets for old user, mark them offline
         onlineUsers.delete(oldUserId)
         io.emit('presence:update', { userId: oldUserId, online: false })
-        console.log(`[PRESENCE] User ${oldUserId} went offline (no other sockets) (${onlineUsers.size} total)`)
-      } else {
-        console.log(`[PRESENCE] User ${oldUserId} still has other active sockets, keeping online`)
       }
     }
   })
@@ -123,8 +116,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
     
     // Broadcast to all clients
     io.emit('presence:update', { userId, online: false })
-    
-    console.log(`[PRESENCE] User ${userId} is offline (${onlineUsers.size} total)`)
   })
   
   /**
@@ -133,7 +124,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
   socket.on('presence:get', () => {
     const onlineUsersList = Array.from(onlineUsers)
     socket.emit('presence:list', onlineUsersList)
-    console.log(`[PRESENCE] Sent list of ${onlineUsersList.length} online users to ${socket.id}`)
   })
   
   /**
@@ -155,7 +145,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
     // Only broadcast if this is a new typing user (prevent spam)
     if (!wasTyping) {
       socket.to(`team:${teamId}`).emit('typing:start', { teamId, userId })
-      console.log(`[PRESENCE] \u2328\ufe0f  User ${userId} started typing in team ${teamId}`)
     }
   })
   
@@ -178,7 +167,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
     // Only broadcast if user was actually typing
     if (wasTyping) {
       socket.to(`team:${teamId}`).emit('typing:stop', { teamId, userId })
-      console.log(`[PRESENCE] \u270b User ${userId} stopped typing in team ${teamId}`)
     }
   })
   
@@ -196,8 +184,6 @@ export function setupPresenceHandlers(io: Server, socket: Socket): void {
         
         // Broadcast offline status
         io.emit('presence:update', { userId, online: false })
-        
-        console.log(`[PRESENCE] User ${userId} disconnected (${onlineUsers.size} total)`)
       }
     }
   })

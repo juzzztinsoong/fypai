@@ -1,8 +1,8 @@
 # Master Implementation Plan: Phases 5-9
 
 **Project**: FYP AI - Collaborative Team AI Assistant  
-**Status**: Phase 6.5.1 Complete (Agent Transparency Layer) / Phase 6.5.2 Next  
-**Last Updated**: February 2, 2026  
+**Status**: Phase 6.5.5 Complete (LAN Testing Setup) / Sprint D Next  
+**Last Updated**: February 18, 2026  
 **Purpose**: Unified source of truth merging strategic vision, detailed planning, and actionable implementation steps for the remaining project phases.
 
 > **Research Pivot**: This project is being prepared for **user testing as an HCI study**. Phases 7 (Auth) and 8 (Production) are **deprioritized**. Testing will occur on **localhost via LAN** with mock users. New focus: **Agent Transparency, Customization, and Interface Legibility**.
@@ -220,11 +220,11 @@
         *   Updated `AgentMetadataTag.tsx` - Confidence display in both collapsed and expanded views
         *   Updated `packages/types/src/dtos.ts` - Added `confidence` field to `AgentMetadata`
 
-### 6.5.2 Agent Customization UI (NEXT)
+### 6.5.2 Agent Customization UI (✅ Complete)
 
 *Let users/researchers adjust AI behavior in real-time without code changes.*
 
-1.  **Agent Settings Panel** (📋 TODO)
+1.  **Agent Settings Panel** (✅ Complete)
     *   **Task**: Create settings modal/drawer accessible from sidebar.
     *   **Controls**:
         *   **Personality Slider**: Formal ↔ Casual (affects system prompt)
@@ -235,7 +235,7 @@
     *   **State**: Add to `uiStore.ts` or create `agentPreferencesStore.ts`
     *   **Backend**: Create `POST /api/agent/preferences` endpoint
 
-2.  **Prompt Template Editor** (📋 TODO - Researcher Tool)
+2.  **Prompt Template Editor** (✅ Complete - Researcher Tool)
     *   **Task**: Admin-only UI to edit system prompts without restarting server.
     *   **Features**:
         *   View current prompts (summarizer, agent, chime)
@@ -246,7 +246,7 @@
     *   **Backend**: Create `GET/PUT /api/admin/prompts` endpoints
     *   **Storage**: Add `SystemConfig` table to Prisma or use `backend/config/prompts.json`
 
-3.  **Rule Toggle Dashboard** (📋 TODO)
+3.  **Rule Toggle Dashboard** (✅ Complete)
     *   **Task**: UI to enable/disable individual chime rules per team.
     *   **Features**:
         *   List all rules with descriptions
@@ -256,41 +256,41 @@
     *   **Files**: Create `frontend/src/components/Settings/RuleTogglePanel.tsx`
     *   **Backend**: Already have `PATCH /api/chime-rules/:id` - extend for bulk updates
 
-### 6.5.3 Feedback & Logging for Research
+### 6.5.3 Feedback & Logging for Research (✅ Complete)
 
 *Capture user reactions and AI decisions for analysis.*
 
-1.  **Response Feedback Buttons** (📋 TODO)
+1.  **Response Feedback Buttons** (✅ Complete)
     *   **Task**: Add 👍/👎 buttons to AI messages.
     *   **Data Captured**:
         *   Message ID
         *   Feedback type (positive/negative)
         *   Optional text comment
         *   Timestamp
-    *   **Files**: Create `frontend/src/components/Chat/FeedbackButtons.tsx`
-    *   **Backend**: Create `POST /api/feedback` endpoint
-    *   **Schema**: Add `Feedback` model to Prisma
+    *   **Files**: Created `frontend/src/components/Chat/FeedbackButtons.tsx` and integrated in `frontend/src/components/Chat/MessageList.tsx`
+    *   **Backend**: Implemented `POST /api/feedback`
+    *   **Schema**: Added `Feedback` model to Prisma
 
-2.  **"Not Helpful" Expansion** (📋 TODO)
+2.  **"Not Helpful" Expansion** (✅ Complete)
     *   **Task**: When user clicks 👎, show follow-up options:
         *   "Irrelevant to conversation"
         *   "Factually incorrect"
         *   "Too verbose / Too brief"
         *   "Didn't understand my question"
         *   "Other" (free text)
-    *   **Files**: Extend `FeedbackButtons.tsx`
+    *   **Files**: Implemented reason picker + optional comment in `FeedbackButtons.tsx`
 
-3.  **Session Export for Research** (📋 TODO)
+3.  **Session Export for Research** (✅ Complete)
     *   **Task**: Export conversation + AI metadata as JSON/CSV for analysis.
     *   **Data Included**:
         *   All messages (user + AI)
         *   AI metadata (model, tokens, latency, triggered rules)
         *   Feedback received
         *   Timestamps
-    *   **Files**: Create `backend/src/controllers/exportController.ts`
-    *   **Endpoint**: `GET /api/export/session/:teamId?format=json|csv`
+    *   **Files**: Created `backend/src/controllers/exportController.ts`, `backend/src/routes/exportRoutes.ts`, and frontend `exportService.ts` with Sidebar controls
+    *   **Endpoint**: Implemented `GET /api/export/session/:teamId?format=json|csv`
 
-4.  **AI Decision Log** (📋 TODO)
+4.  **AI Decision Log** (✅ Complete - Lightweight Logging)
     *   **Task**: Backend logging of every AI decision for post-hoc analysis.
     *   **Log Fields**:
         *   Timestamp
@@ -300,22 +300,22 @@
         *   Response generated
         *   RAG context IDs
         *   Latency
-    *   **Storage**: Append to `logs/ai-decisions.jsonl` or dedicated DB table
+    *   **Storage**: Lightweight runtime logging active via backend controller logs. Structured `jsonl` sink deferred to Sprint D instrumentation hardening.
 
-### 6.5.4 Interface Legibility Improvements
+### 6.5.4 Interface Legibility Improvements (✅ Complete)
 
 *Visual clarity for understanding AI behavior.*
 
-1.  **Message Type Indicators** (📋 TODO)
+1.  **Message Type Indicators** (✅ Complete)
     *   **Task**: Visually distinguish message types.
     *   **Types**:
         *   User message (default style)
         *   AI reactive response (blue accent, "In reply to @agent")
         *   AI autonomous chime (orange accent, "🔔 AI noticed...")
         *   AI insight (green accent, link to right panel)
-    *   **Files**: `frontend/src/components/Chat/MessageBubble.tsx`
+    *   **Files**: Implemented in `frontend/src/components/Chat/MessageList.tsx`
 
-2.  **Typing Indicator Enhancement** (📋 TODO)
+2.  **Typing Indicator Enhancement** (✅ Complete)
     *   **Task**: Show what the AI is doing while "typing".
     *   **States**:
         *   "AI is thinking..." (processing)
@@ -323,18 +323,18 @@
         *   "AI is analyzing..." (Tier 2 reasoning)
     *   **Implementation**: Emit socket events for AI processing stages
 
-3.  **Conversation Threading** (📋 TODO - Nice to Have)
+3.  **Conversation Threading** (✅ Complete - Lightweight)
     *   **Task**: Visual threading to show which message AI is responding to.
     *   **Options**:
         *   Reply line connector
         *   "Replying to: [message preview]" header
-    *   **Files**: `MessageBubble.tsx`, requires `parentMessageId` in Message model
+    *   **Files**: Implemented in `frontend/src/components/Chat/MessageList.tsx` using `metadata.parentMessageId` preview
 
-### 6.5.5 LAN Testing Setup
+### 6.5.5 LAN Testing Setup (✅ Complete)
 
 *Enable multi-user testing on local network.*
 
-1.  **Network Access Configuration** (📋 TODO)
+1.  **Network Access Configuration** (✅ Complete)
     *   **Task**: Document and script LAN access setup.
     *   **Steps**:
         ```powershell
@@ -349,18 +349,18 @@
         New-NetFirewallRule -DisplayName "FYP AI Frontend" -Direction Inbound -Port 3000 -Protocol TCP -Action Allow
         New-NetFirewallRule -DisplayName "FYP AI Backend" -Direction Inbound -Port 5000 -Protocol TCP -Action Allow
         ```
-    *   **File**: Create `docs/LAN_TESTING_SETUP.md`
+    *   **File**: Created `docs/LAN_TESTING_SETUP.md`
 
-2.  **Mock User Switcher** (📋 TODO)
+2.  **Mock User Switcher** (✅ Complete)
     *   **Task**: Dropdown in UI to switch between mock users.
     *   **Users**: `user1`, `user2`, `user3` (pre-seeded)
-    *   **Files**: Create `frontend/src/components/DevTools/UserSwitcher.tsx`
-    *   **State**: Update `sessionStore.ts` to support user switching
+    *   **Files**: Implemented in `frontend/src/components/Sidebar/Sidebar.tsx`
+    *   **State**: Uses existing `sessionStore.ts` session switching and presence sync
 
-3.  **Session Reset Button** (📋 TODO)
+3.  **Session Reset Button** (✅ Complete)
     *   **Task**: Button to clear conversation and start fresh (for new test participant).
-    *   **Action**: Clears messages from current team, resets AI state
-    *   **Files**: Add to `DevTools/` or Settings panel
+    *   **Action**: Clears messages and insights from current team, resets AI state
+    *   **Files**: Added to Sidebar settings panel with backend endpoint `DELETE /api/messages/team/:teamId`
 
 ### 6.5.6 Implementation Priority
 
@@ -747,33 +747,233 @@
 | Phase | Status | Priority | Notes |
 |-------|--------|----------|-------|
 | Phase 5 | ✅ Complete | - | RAG infrastructure done |
-| Phase 6 | 🚧 75% Complete | High | Finish Intent Classifier, then move on |
-| **Phase 6.5** | 📋 Planned | **Highest** | HCI focus - transparency, customization, feedback |
+| Phase 6 | ✅ Core Complete | High | Tiered agent + hybrid rule engine completed |
+| **Phase 6.5** | 🚧 In Progress (6.5.1 + 6.5.2 + 6.5.3 + 6.5.4 + 6.5.5 complete) | **Highest** | HCI focus - LAN readiness and research instrumentation |
 | Phase 7 | ⏸️ Deprioritized | Low | Use mock users for testing |
 | Phase 8 | ⏸️ Deprioritized | Low | LAN testing sufficient |
 | Phase 9 | 📋 Planned | Medium | Some tasks merged into 6.5 |
 
-### Recommended Implementation Sequence
+### Recommended Implementation Sequence (Post-6.5.2)
 
-1. **Complete Phase 6** (~2-4 hours remaining)
-   - Finish Intent Classifier integration
-   - Verify async semantic chime works
+1. **Sprint A: Feedback & Research Logging (6.5.3)** (✅ Complete)
+    - Delivered feedback capture UI + backend persistence
+    - Delivered structured "Not Helpful" reasons + optional comments
+    - Delivered session export (JSON/CSV)
+    - Migration and runtime validation completed
 
-2. **Phase 6.5 Sprint 1: Core Fixes & Testing Setup** (~10 hours)
-   - Mock User Switcher (testing enabler)
-   - Insight Lifecycle States (gap fix)
-   - Mutable Action Items (gap fix)
-   - Feedback Buttons + Chime Rule Feedback (research + behavior shaping)
-   - Response Metadata Display (transparency)
+2. **Sprint B: Interface Legibility (6.5.4)** (✅ Complete)
+    - Message type indicators implemented (reactive, chime, insight-linked)
+    - Typing indicators enhanced with stage states (`thinking/searching-memory/analyzing/idle`)
+    - Lightweight conversation threading implemented (`Replying to: <preview>`)
+    - Frontend/backend implementation files compile clean in diagnostics
 
-3. **Phase 6.5 Sprint 2: Agency & Transparency** (~10 hours)
-   - Memory Context Control (pin/exclude)
-   - Conversational Repair Flow
-   - Agent Settings Panel (basic)
-   - RAG Context Viewer
+3. **Sprint C: LAN Testing Enablement (6.5.5)** (✅ Complete)
+    - LAN setup documentation and startup checklist completed
+    - Mock user switcher (`user1`, `user2`, `user3`) completed
+    - Session reset control for participant handoff completed
+    - Session reset extended to clear both messages and insights
 
-4. **Phase 6.5 Sprint 3: Research Tools & Polish** (~6 hours)
-   - Session Export
-   - Message Type Indicators
-   - LAN Testing Documentation
-   - Final bug fixes
+4. **Sprint D: Gap Remediation Priority Items (6.5.7 High)** (~8-10 hours)
+    - Insight lifecycle states (`new/reviewed/accepted/dismissed/archived`)
+    - Mutable action items (assignee, due date, completion)
+    - Chime rule inline feedback loop (reduce frequency / disable)
+    - Add acceptance checks: actionable insight conversion + reduced repeated false-positive chimes
+
+5. **Execution Governance (Continuous)**
+    - Use feature flags for research-sensitive features
+    - Run quick usability checkpoints after each sprint (3 mock users, 15-20 min each)
+    - Track metrics: feedback rate, insight acceptance rate, chime disable frequency, repair attempts
+
+### Sprint A Detailed Execution Checklist (6.5.3)
+
+**Objective**: Deliver end-to-end feedback capture and research export with minimal UX disruption and strong data quality.
+
+#### A1. Data Model + Types (start here)
+
+1. **Prisma schema updates**
+    - File: `backend/prisma/schema.prisma`
+    - Add `Feedback` model (messageId, userId, type, reason, comment, ruleId, ruleAction, createdAt)
+    - Add indexes for `messageId`, `userId`, `createdAt`, and optional `ruleId`
+
+2. **Migration + client generation**
+    - Commands:
+      - `cd backend`
+      - `npx prisma migrate dev --name add_feedback_model`
+      - `npx prisma generate`
+
+3. **Shared DTO updates**
+    - File: `packages/types/src/dtos.ts`
+    - Add `FeedbackDTO`, `CreateFeedbackRequest`, `FeedbackReason`, `FeedbackType`
+    - Ensure `MessageDTO.metadata` can carry `chimeRuleName`/`ruleId` link for chime-specific feedback
+
+4. **Types package build**
+    - Commands:
+      - `cd packages/types`
+      - `npm run build`
+
+#### A2. Backend APIs
+
+5. **Feedback controller**
+    - Create file: `backend/src/controllers/feedbackController.ts`
+    - Add `createFeedback()` with validation:
+      - Require `messageId`, `userId`, `type`
+      - If `type === 'negative'`, accept optional `reason` and `comment`
+      - If chime-related, accept optional `ruleId` and `ruleAction`
+
+6. **Feedback route**
+    - Create file: `backend/src/routes/feedbackRoutes.ts`
+    - Endpoint: `POST /api/feedback`
+    - Register route in `backend/src/index.ts`
+
+7. **Session export controller**
+    - Create file: `backend/src/controllers/exportController.ts`
+    - Endpoint behavior for `GET /api/export/session/:teamId?format=json|csv`:
+      - Fetch messages + AI metadata + feedback
+      - Return deterministic shape for `json`
+      - Return flat rows for `csv`
+
+8. **Session export route**
+    - Create file: `backend/src/routes/exportRoutes.ts`
+    - Register route in `backend/src/index.ts`
+
+9. **Validation and guardrails**
+    - Ensure export excludes secrets/internal tokens
+    - Sanitize nullable fields in CSV output
+    - Return `400` for unsupported format
+
+#### A3. Frontend UX + Services
+
+10. **Feedback API client**
+     - Create file: `frontend/src/services/feedbackService.ts`
+     - Add `submitFeedback(payload)` for `POST /api/feedback`
+
+11. **Feedback UI components**
+     - Create file: `frontend/src/components/Chat/FeedbackButtons.tsx`
+     - Behavior:
+        - Always show 👍/👎 on AI messages
+        - On 👎, open reason picker + optional free-text comment
+        - Submit feedback and show success/failure inline state
+
+12. **Integrate into message rendering**
+     - Modify file: `frontend/src/components/Chat/MessageBubble.tsx` (or active AI message renderer)
+     - Render `FeedbackButtons` only for agent-authored messages
+
+13. **Export action in UI**
+     - Modify file: `frontend/src/components/Sidebar/Sidebar.tsx` (or Settings area)
+     - Add “Export Session” control with JSON/CSV options
+     - Create/extend service: `frontend/src/services/exportService.ts`
+
+#### A4. Verification + Acceptance
+
+14. **Backend verification script/tests**
+     - Add/update tests under `backend/tests/`:
+        - Feedback create success
+        - Negative feedback reason persistence
+        - Export JSON schema includes feedback and agent metadata
+        - Export CSV shape/headers stable
+
+15. **Manual UX verification checklist**
+     - Submit 👍 and 👎 on at least 5 AI messages
+     - Verify “Not Helpful” reason is stored and queryable
+     - Export both JSON and CSV for one team
+     - Confirm exported rows include timestamps + message linkage
+
+16. **Definition of Done (Sprint A)**
+     - `POST /api/feedback` active and validated
+     - 👎 flow captures structured reason + optional comment
+     - Session export works for JSON and CSV with stable schema
+     - At least one backend test and one manual run pass for each endpoint
+
+### Sprint A Commit Sequence (Recommended)
+
+1. **`feat(db): add feedback model and migration`**
+    - `backend/prisma/schema.prisma` + migration files
+
+2. **`feat(types): add feedback and export DTO contracts`**
+    - `packages/types/src/dtos.ts` (+ exports)
+
+3. **`feat(api): add feedback endpoint`**
+    - `backend/src/controllers/feedbackController.ts`
+    - `backend/src/routes/feedbackRoutes.ts`
+    - `backend/src/index.ts`
+
+4. **`feat(api): add session export endpoint (json/csv)`**
+    - `backend/src/controllers/exportController.ts`
+    - `backend/src/routes/exportRoutes.ts`
+    - `backend/src/index.ts`
+
+5. **`feat(ui): add ai feedback buttons with not-helpful reasons`**
+    - `frontend/src/components/Chat/FeedbackButtons.tsx`
+    - `frontend/src/components/Chat/MessageBubble.tsx`
+    - `frontend/src/services/feedbackService.ts`
+
+6. **`feat(ui): add session export action`**
+    - `frontend/src/components/Sidebar/Sidebar.tsx`
+    - `frontend/src/services/exportService.ts`
+
+7. **`test: add sprint-a feedback/export verification`**
+    - `backend/tests/*` additions/updates
+
+### Sprint B Detailed Execution Checklist (6.5.4)
+
+**Objective**: Improve interface legibility so participants can quickly identify why AI responded and what the AI is doing in real time.
+
+#### B1. Message Type Indicators
+
+1. **Define visible message types in chat renderer**
+    - User message (default)
+    - AI reactive response (`In reply to @agent`)
+    - AI autonomous chime (`🔔 Auto`)
+    - AI long-form/insight-linked response (`📄 Insight`)
+
+2. **Implementation files**
+    - Modify `frontend/src/components/Chat/MessageList.tsx`
+    - Add compact badges and type-specific label copy
+
+3. **Acceptance check**
+    - In a pilot run, users identify message origin (reactive vs auto) without opening metadata panel
+
+#### B2. AI Typing Stage Transparency
+
+4. **Backend stage events**
+    - Emit `ai:processing` socket events with stage values:
+      - `thinking`
+      - `searching-memory`
+      - `analyzing`
+      - `idle`
+    - Modify `backend/src/controllers/aiAgentController.ts`
+
+5. **Frontend state wiring**
+    - Add AI processing stage state to `sessionStore`
+    - Listen to `ai:processing` in `realtimeInit`
+    - Show stage-specific text in `TypingIndicator`
+    - Files:
+      - `frontend/src/stores/sessionStore.ts`
+      - `frontend/src/services/realtimeInit.ts`
+      - `frontend/src/components/Chat/TypingIndicator.tsx`
+      - `frontend/src/components/Chat/MessageList.tsx`
+
+6. **Acceptance check**
+    - While AI is responding, users see stage transitions instead of generic "Generating response"
+
+#### B3. Lightweight Conversation Threading
+
+7. **Minimal reply context (no full thread model yet)**
+    - If AI message has `metadata.parentMessageId`, show `Replying to: <preview>` above bubble
+    - Use truncated preview (80-100 chars)
+    - Modify `frontend/src/components/Chat/MessageList.tsx`
+
+8. **Acceptance check**
+    - Users can identify target message for at least 90% of AI replies in quick test
+
+#### B4. Verification
+
+9. **Build checks**
+    - `cd frontend && npm run build`
+    - `cd backend && npm run dev` (manual runtime verification)
+
+10. **Manual scenario script**
+    - Send `@agent summarize this thread`
+    - Confirm `thinking -> searching-memory -> analyzing -> idle` flow appears
+    - Confirm reply context shows originating message preview
+    - Trigger a chime and confirm `🔔 Auto` indicator appears

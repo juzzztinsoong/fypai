@@ -95,6 +95,32 @@ export class AIInsightController {
   }
 
   /**
+   * Delete all AI insights for a team (session reset)
+   * @param {string} teamId - Team ID
+   * @returns {Promise<string[]>} Deleted insight IDs
+   */
+  static async deleteInsightsByTeam(teamId: string): Promise<string[]> {
+    const existing = await prisma.aIInsight.findMany({
+      where: { teamId },
+      select: { id: true },
+    })
+
+    await prisma.aIInsight.deleteMany({
+      where: { teamId },
+    })
+
+    await CacheService.invalidateTeamCache(teamId)
+
+    if (this.io) {
+      for (const insight of existing) {
+        this.io.to(`team:${teamId}`).emit('insight:deleted', { id: insight.id, teamId })
+      }
+    }
+
+    return existing.map((insight) => insight.id)
+  }
+
+  /**
    * Generate AI-powered summary insight
    * Analyzes recent conversation and creates a summary insight
    * @param {string} teamId - Team ID

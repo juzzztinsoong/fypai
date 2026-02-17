@@ -313,4 +313,27 @@ export interface UpdateAgentPreferencesRequest {
     responseLength?: AgentResponseLength;
     modelTierOverride?: AgentModelTier;
 }
+export type FeedbackType = 'positive' | 'negative';
+export type FeedbackReason = 'irrelevant' | 'incorrect' | 'too-verbose' | 'too-brief' | 'misunderstood' | 'other';
+export type FeedbackRuleAction = 'reduce-frequency' | 'disable' | 'none';
+export interface FeedbackDTO {
+    id: string;
+    messageId: string;
+    userId: string;
+    type: FeedbackType;
+    reason?: FeedbackReason;
+    comment?: string;
+    ruleId?: string;
+    ruleAction?: FeedbackRuleAction;
+    createdAt: string;
+}
+export interface CreateFeedbackRequest {
+    messageId: string;
+    userId: string;
+    type: FeedbackType;
+    reason?: FeedbackReason;
+    comment?: string;
+    ruleId?: string;
+    ruleAction?: FeedbackRuleAction;
+}
 //# sourceMappingURL=dtos.d.ts.map

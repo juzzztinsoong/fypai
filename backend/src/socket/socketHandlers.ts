@@ -26,14 +26,6 @@ import { Server, Socket } from 'socket.io'
  */
 export function setupSocketHandlers(io: Server): void {
   io.on('connection', (socket: Socket) => {
-    const transport = socket.conn.transport.name;
-    console.log(`[SOCKET] Client connected: ${socket.id} (transport: ${transport})`);
-
-    // Log transport upgrades
-    socket.conn.on('upgrade', (transport: any) => {
-      console.log(`[SOCKET] ⬆️  ${socket.id} upgraded to ${transport.name}`);
-    });
-
     // Setup presence tracking handlers
     setupPresenceHandlers(io, socket);
 
@@ -43,7 +35,6 @@ export function setupSocketHandlers(io: Server): void {
      */
     socket.on('ping', () => {
       socket.emit('pong')
-      console.log(`[SOCKET] 💓 Ping received from ${socket.id}, sent pong`)
     })
 
     /**
@@ -52,8 +43,6 @@ export function setupSocketHandlers(io: Server): void {
      */
     socket.on('team:join', ({ teamId }) => {
       socket.join(`team:${teamId}`)
-      const roomSize = io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0
-      console.log(`[SOCKET] ✅ ${socket.id} joined team:${teamId} (room size: ${roomSize})`)
     })
 
     /**
@@ -62,7 +51,6 @@ export function setupSocketHandlers(io: Server): void {
      */
     socket.on('team:leave', ({ teamId }) => {
       socket.leave(`team:${teamId}`)
-      console.log(`[SOCKET] ${socket.id} left team:${teamId}`)
     })
 
     /**
@@ -107,7 +95,6 @@ export function setupSocketHandlers(io: Server): void {
         
         // Broadcast to all OTHER team members (sender already updated locally)
         socket.to(`team:${teamId}`).emit('ai:toggle', { teamId, enabled });
-        console.log(`[SOCKET] 🤖 AI ${enabled ? 'enabled' : 'disabled'} for team:${teamId} (persisted to DB)`);
       } catch (error) {
         console.error('[SOCKET] ai:toggle error:', error);
         socket.emit('error', { message: 'Failed to toggle AI' });
@@ -122,7 +109,6 @@ export function setupSocketHandlers(io: Server): void {
       try {
         const message = await MessageController.updateMessage(messageId, { content })
         io.to(`team:${teamId}`).emit('message:edited', message)
-        console.log(`[SOCKET] Message ${messageId} edited`)
       } catch (error) {
         console.error('[SOCKET] message:edit error:', error)
         socket.emit('error', { message: 'Failed to edit message' })
@@ -137,7 +123,6 @@ export function setupSocketHandlers(io: Server): void {
       try {
         await MessageController.deleteMessage(messageId)
         io.to(`team:${teamId}`).emit('message:deleted', { messageId })
-        console.log(`[SOCKET] Message ${messageId} deleted`)
       } catch (error) {
         console.error('[SOCKET] message:delete error:', error)
         socket.emit('error', { message: 'Failed to delete message' })
@@ -152,10 +137,8 @@ export function setupSocketHandlers(io: Server): void {
       // Broadcast to team room if teamId provided, otherwise broadcast globally
       if (data.teamId) {
         io.to(`team:${data.teamId}`).emit('ai:task:status', data)
-        console.log(`[SOCKET] AI task ${data.taskId} status: ${data.status} (team: ${data.teamId})`)
       } else {
         io.emit('ai:task:status', data)
-        console.log(`[SOCKET] AI task ${data.taskId} status: ${data.status} (global)`)
       }
     })
 
@@ -165,7 +148,6 @@ export function setupSocketHandlers(io: Server): void {
      */
     socket.on('insight:created', ({ insight, teamId }) => {
       io.to(`team:${teamId}`).emit('insight:created', insight)
-      console.log(`[SOCKET] New AI insight created for team:${teamId}`)
     })
 
     /**
@@ -174,7 +156,6 @@ export function setupSocketHandlers(io: Server): void {
      */
     socket.on('insight:deleted', ({ insightId, teamId }) => {
       io.to(`team:${teamId}`).emit('insight:deleted', { insightId })
-      console.log(`[SOCKET] AI insight ${insightId} deleted from team:${teamId}`)
     })
 
     /**
@@ -185,8 +166,6 @@ export function setupSocketHandlers(io: Server): void {
       socket.emit('error', { userId, error })
     })
 
-    socket.on('disconnect', () => {
-      console.log('[SOCKET] Client disconnected:', socket.id)
-    })
+    socket.on('disconnect', () => {})
   })
 }

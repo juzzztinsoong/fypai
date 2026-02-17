@@ -51,6 +51,24 @@ router.post('/', async (req, res, next) => {
 })
 
 /**
+ * DELETE /api/insights/team/:teamId
+ * Reset team insights by deleting all AI insights for team
+ */
+router.delete('/team/:teamId', async (req, res, next) => {
+  try {
+    const { teamId } = req.params
+    if (!teamId || typeof teamId !== 'string') {
+      return res.status(400).json({ error: 'teamId is required' })
+    }
+
+    const deletedInsightIds = await AIInsightController.deleteInsightsByTeam(teamId)
+    res.json({ teamId, deletedCount: deletedInsightIds.length, deletedInsightIds })
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
  * DELETE /api/insights/:id
  * Delete an AI insight
  */

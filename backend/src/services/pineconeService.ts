@@ -72,9 +72,6 @@ class PineconeService {
         const remaining = Math.ceil((PineconeService.CIRCUIT_RESET_TIME - timeSinceLastFailure) / 1000);
         console.warn(`[Pinecone] 🔌 Circuit breaker OPEN. Skipping request. (Reset in ${remaining}s)`);
         throw new Error('Pinecone circuit breaker is open');
-      } else {
-        // Half-open state: allow one request to try and reset
-        console.log('[Pinecone] 🔌 Circuit breaker half-open. Retrying...');
       }
     }
   }
@@ -95,7 +92,6 @@ class PineconeService {
    */
   private recordSuccess(): void {
     if (this.failureCount > 0) {
-      console.log('[Pinecone] 🔌 Circuit breaker reset. Service is healthy.');
       this.failureCount = 0;
       this.lastFailureTime = 0;
     }
@@ -120,7 +116,6 @@ class PineconeService {
       const indexExists = indexList.indexes?.some(index => index.name === this.indexName);
 
       if (!indexExists) {
-        console.log(`[Pinecone] Creating index: ${this.indexName} (${this.dimensions} dimensions)`);
         await this.client.createIndex({
           name: this.indexName,
           dimension: this.dimensions,
@@ -132,9 +127,6 @@ class PineconeService {
             },
           },
         });
-        console.log(`[Pinecone] ✅ Index created successfully`);
-      } else {
-        console.log(`[Pinecone] ✅ Connected to existing index: ${this.indexName}`);
       }
 
       this.initialized = true;
@@ -231,7 +223,6 @@ class PineconeService {
           createdAt: (match.metadata?.createdAt as string) || '',
         }));
 
-      console.log(`[Pinecone] 🔍 Found ${results.length} similar vectors (score >= ${minScore})`);
       this.recordSuccess();
       return results;
     } catch (error) {
@@ -248,7 +239,6 @@ class PineconeService {
     try {
       const index = this.getIndex();
       await index.deleteOne(vectorId);
-      console.log(`[Pinecone] 🗑️ Deleted vector: ${vectorId}`);
     } catch (error) {
       console.error('[Pinecone] ❌ Delete failed:', error);
       throw error;
@@ -262,7 +252,6 @@ class PineconeService {
     try {
       const index = this.getIndex();
       await index.deleteMany({ teamId });
-      console.log(`[Pinecone] 🗑️ Deleted all vectors for team: ${teamId}`);
     } catch (error) {
       console.error('[Pinecone] ❌ Failed to delete team vectors:', error);
       throw error;
@@ -280,7 +269,6 @@ class PineconeService {
       
       // Pinecone deleteAll requires namespace or deleteAll flag
       await index.deleteAll();
-      console.log('[Pinecone] 🗑️ Deleted ALL vectors from index');
     } catch (error) {
       console.error('[Pinecone] ❌ Failed to delete all vectors:', error);
       throw error;
@@ -294,8 +282,7 @@ class PineconeService {
     try {
       if (!this.client) return false;
       
-      const stats = await this.getIndex().describeIndexStats();
-      console.log(`[Pinecone] 💚 Health check OK - ${stats.totalRecordCount || 0} vectors indexed`);
+      await this.getIndex().describeIndexStats();
       return true;
     } catch (error) {
       console.error('[Pinecone] ❤️ Health check failed:', error);

@@ -76,6 +76,11 @@ export type {
   AgentProactivity,
   AgentResponseLength,
   AgentModelTier,
+  FeedbackDTO,
+  CreateFeedbackRequest,
+  FeedbackType,
+  FeedbackReason,
+  FeedbackRuleAction,
 } from './dtos.js'
 
 // Utility Functions

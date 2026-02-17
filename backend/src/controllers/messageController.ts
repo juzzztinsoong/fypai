@@ -83,7 +83,6 @@ export class MessageController {
           createdAt: message.createdAt.toISOString(),
           priority: 1,
         })
-        console.log(`[MessageController] ✅ Queued embedding for message: ${message.id}`)
       } catch (error) {
         // Don't fail message creation if embedding queue fails
         console.error('[MessageController] ⚠️ Failed to queue embedding:', error)
@@ -122,6 +121,26 @@ export class MessageController {
     await prisma.message.delete({
       where: { id }
     })
+  }
+
+  /**
+   * Delete all messages for a team (session reset)
+   * @param {string} teamId - Team ID
+   * @returns {Promise<string[]>} Deleted message IDs
+   */
+  static async deleteMessagesByTeam(teamId: string): Promise<string[]> {
+    const existing = await prisma.message.findMany({
+      where: { teamId },
+      select: { id: true },
+    })
+
+    await prisma.message.deleteMany({
+      where: { teamId },
+    })
+
+    await CacheService.invalidateTeamCache(teamId)
+
+    return existing.map((m) => m.id)
   }
 
   /**

@@ -102,6 +102,32 @@ export async function deleteInsight(insightId: string, teamId: string): Promise<
 }
 
 /**
+ * Reset all AI insights for a team session
+ * DELETE /insights/team/:teamId
+ */
+export async function resetTeamInsights(
+  teamId: string
+): Promise<{ teamId: string; deletedCount: number; deletedInsightIds: string[] }> {
+  const entityStore = useEntityStore.getState()
+
+  try {
+    const response = await api.delete<{ teamId: string; deletedCount: number; deletedInsightIds: string[] }>(
+      `/insights/team/${teamId}`
+    )
+
+    for (const insightId of response.data.deletedInsightIds) {
+      entityStore.deleteInsight(insightId, teamId)
+    }
+
+    console.log('[InsightService] ✅ Team insights reset:', teamId, '| deleted:', response.data.deletedCount)
+    return response.data
+  } catch (error) {
+    console.error(`[InsightService] Failed to reset insights for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  }
+}
+
+/**
  * Generate AI-powered conversation summary as insight
  * POST /insights/generate/summary
  * @param teamId - Team ID to generate summary for
@@ -152,6 +178,7 @@ export default {
   getInsights,
   createInsight,
   deleteInsight,
+  resetTeamInsights,
   generateSummary,
   generateReport,
 }

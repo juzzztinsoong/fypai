@@ -136,6 +136,16 @@ export async function initializeRealtime(userId: string): Promise<void> {
         console.log('[RealtimeInit] ⌨️  Socket: typing:stop ->', data.userId, 'in', data.teamId)
         useSessionStore.getState().removeTypingUser(data.teamId, data.userId)
       })
+
+      socket.on('ai:processing', (data: {
+        teamId: string
+        userId: string
+        stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
+      }) => {
+        if (data.userId !== 'agent') return
+        console.log('[RealtimeInit] 🧭 Socket: ai:processing ->', data.stage, 'in', data.teamId)
+        useSessionStore.getState().setAIProcessingStage(data.teamId, data.stage)
+      })
       
       // ========================================================================
       // SOCKET CONNECTION EVENTS

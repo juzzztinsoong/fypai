@@ -36,6 +36,7 @@ model User {
   
   teamMemberships TeamMember[]
   messages        Message[]
+  feedbacks       Feedback[]
 }
 
 model Team {
@@ -97,9 +98,30 @@ model Message {
   
   team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  feedbacks   Feedback[]
   
   @@index([teamId, createdAt])
   @@index([embeddingId])
+}
+
+model Feedback {
+  id          String   @id @default(uuid())
+  messageId   String
+  userId      String
+  type        String   // 'positive' | 'negative'
+  reason      String?  // 'irrelevant' | 'incorrect' | 'too-verbose' | 'too-brief' | 'misunderstood' | 'other'
+  comment     String?
+  ruleId      String?  // If feedback was submitted for chime-triggered message
+  ruleAction  String?  // 'reduce-frequency' | 'disable' | 'none'
+  createdAt   DateTime @default(now())
+
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([ruleId])
 }
 
 model AIInsight {

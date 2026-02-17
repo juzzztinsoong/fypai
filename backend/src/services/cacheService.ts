@@ -48,11 +48,9 @@ export class CacheService {
       const cached = await getRedisClient().get(key)
       
       if (!cached) {
-        console.log(`[CacheService] ❌ Cache miss: ${key}`)
         return null
       }
-      
-      console.log(`[CacheService] ✅ Cache hit: ${key}`)
+
       return JSON.parse(cached)
     } catch (error) {
       console.error('[CacheService] getConversationContext error:', error)
@@ -78,7 +76,6 @@ export class CacheService {
     try {
       const key = `conversation:${teamId}:context`
       await getRedisClient().setex(key, ttl, JSON.stringify(messages))
-      console.log(`[CacheService] 💾 Cached conversation context for team ${teamId} (TTL: ${ttl}s)`)
     } catch (error) {
       console.error('[CacheService] setConversationContext error:', error)
     }
@@ -95,11 +92,9 @@ export class CacheService {
       const cached = await getRedisClient().get(key)
       
       if (!cached) {
-        console.log(`[CacheService] ❌ Cache miss: ${key}`)
         return null
       }
-      
-      console.log(`[CacheService] ✅ Cache hit: ${key}`)
+
       return cached
     } catch (error) {
       console.error('[CacheService] getAIResponse error:', error)
@@ -121,7 +116,6 @@ export class CacheService {
     try {
       const key = `ai:response:${promptHash}`
       await getRedisClient().setex(key, ttl, response)
-      console.log(`[CacheService] 💾 Cached AI response ${promptHash} (TTL: ${ttl}s)`)
     } catch (error) {
       console.error('[CacheService] setAIResponse error:', error)
     }
@@ -151,8 +145,6 @@ export class CacheService {
           deletedCount += keys.length
         }
       }
-      
-      console.log(`[CacheService] 🗑️  Invalidated ${deletedCount} cache entries for team ${teamId}`)
     } catch (error) {
       console.error('[CacheService] invalidateTeamCache error:', error)
     }
@@ -197,7 +189,6 @@ export class CacheService {
   static async del(key: string): Promise<void> {
     try {
       await getRedisClient().del(key)
-      console.log(`[CacheService] 🗑️  Deleted cache key: ${key}`)
     } catch (error) {
       console.error('[CacheService] del error:', error)
     }

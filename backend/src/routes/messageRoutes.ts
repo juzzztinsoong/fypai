@@ -28,7 +28,6 @@ let ioInstance: SocketIOServer | null = null
 
 export function setSocketIO(io: SocketIOServer) {
   ioInstance = io
-  console.log('[MessageRoutes] ✅ Socket.IO instance configured for broadcasting')
 }
 
 /**
@@ -43,6 +42,31 @@ router.get('/', async (req, res, next) => {
     }
     const messages = await MessageController.getMessages(teamId)
     res.json(messages)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * DELETE /api/messages/team/:teamId
+ * Reset a team session by deleting all team messages
+ */
+router.delete('/team/:teamId', async (req, res, next) => {
+  try {
+    const { teamId } = req.params
+    if (!teamId || typeof teamId !== 'string') {
+      return res.status(400).json({ error: 'teamId is required' })
+    }
+
+    const deletedMessageIds = await MessageController.deleteMessagesByTeam(teamId)
+
+    if (ioInstance) {
+      for (const messageId of deletedMessageIds) {
+        ioInstance.to(`team:${teamId}`).emit('message:deleted', { messageId })
+      }
+    }
+
+    res.json({ teamId, deletedCount: deletedMessageIds.length, deletedMessageIds })
   } catch (error) {
     next(error)
   }
@@ -75,11 +99,7 @@ router.post('/', async (req, res, next) => {
     
     // Broadcast message to team room via WebSocket
     if (ioInstance) {
-      const roomSize = ioInstance.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0
       ioInstance.to(`team:${message.teamId}`).emit('message:new', message)
-      console.log('[MessageRoutes] 📤 Broadcasted message:new to team:', message.teamId, '| message:', message.id, '| clients in room:', roomSize)
-    } else {
-      console.warn('[MessageRoutes] ⚠️  Socket.IO not available, cannot broadcast message:', message.id)
     }
     
     // 🚨 CRITICAL: Trigger AI agent evaluation (reactive + chime rules)
@@ -106,7 +126,6 @@ router.patch('/:id', async (req, res, next) => {
     // Broadcast message edit to team room via WebSocket
     if (ioInstance) {
       ioInstance.to(`team:${message.teamId}`).emit('message:edited', message)
-      console.log('[MessageRoutes] Broadcasted message edit via socket:', message.id)
     }
     
     res.json(message)
@@ -136,7 +155,6 @@ router.delete('/:id', async (req, res, next) => {
     // Broadcast message deletion to team room via WebSocket
     if (ioInstance) {
       ioInstance.to(`team:${message.teamId}`).emit('message:deleted', { messageId: id })
-      console.log('[MessageRoutes] Broadcasted message deletion via socket:', id)
     }
     
     res.status(204).send()

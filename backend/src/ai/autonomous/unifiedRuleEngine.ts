@@ -8,11 +8,16 @@ import { GitHubModelsClient } from '../core/llm.js';
 import { SYSTEM_PROMPTS } from '../core/prompts.js';
 import { embeddingService } from '../../services/embeddingService.js';
 import { MessageClassification, IntentType, UrgencyLevel } from '../core/intentClassifier.js';
+import { Server as SocketIOServer } from 'socket.io';
 
 export class UnifiedRuleEngine {
   private static instance: UnifiedRuleEngine;
+  private static io: SocketIOServer | null = null;
   private llm: GitHubModelsClient;
   private ruleEmbeddings: Map<string, number[]> = new Map();
+  private processedMessageTriggers: Map<string, number> = new Map(); // messageId -> timestamp
+  private readonly processedMessageTtlMs = 10 * 60 * 1000; // 10 minutes
+  private readonly asyncMaxMessageAgeMs = parseInt(process.env.ASYNC_CHIME_MAX_AGE_MS || '120000', 10);
 
   private constructor() {
     this.llm = new GitHubModelsClient();
@@ -25,11 +30,40 @@ export class UnifiedRuleEngine {
     return UnifiedRuleEngine.instance;
   }
 
+  public static setSocketIO(io: SocketIOServer): void {
+    UnifiedRuleEngine.io = io;
+    console.log('[UnifiedRuleEngine] ✅ Socket.IO instance configured');
+  }
+
+  private pruneProcessedTriggers(): void {
+    const now = Date.now();
+    for (const [messageId, timestamp] of this.processedMessageTriggers.entries()) {
+      if (now - timestamp > this.processedMessageTtlMs) {
+        this.processedMessageTriggers.delete(messageId);
+      }
+    }
+  }
+
+  private hasProcessedTrigger(messageId: string): boolean {
+    this.pruneProcessedTriggers();
+    return this.processedMessageTriggers.has(messageId);
+  }
+
+  private markProcessedTrigger(messageId: string): void {
+    this.pruneProcessedTriggers();
+    this.processedMessageTriggers.set(messageId, Date.now());
+  }
+
   /**
    * Sync Evaluation: Checks Regex/Keyword rules immediately
    * Called by MessageController/aiAgentController on new message
    */
   async evaluateSync(message: MessageDTO): Promise<void> {
+    if (this.hasProcessedTrigger(message.id)) {
+      console.log(`[UnifiedRuleEngine] ⏭️ Sync skipped (already processed message ${message.id})`);
+      return;
+    }
+
     // 1. Fetch Sync rules (System + Team)
     const rules = await prisma.chimeRule.findMany({
       where: {
@@ -78,7 +112,15 @@ export class UnifiedRuleEngine {
     // 4. Execute highest priority decision
     if (decisions.length > 0) {
       const topDecision = decisions[0];
+      const triggeringMessageId = topDecision.triggeringMessageIds?.[0] || message.id;
+
+      if (this.hasProcessedTrigger(triggeringMessageId)) {
+        console.log(`[UnifiedRuleEngine] ⏭️ Sync top decision skipped (already processed ${triggeringMessageId})`);
+        return;
+      }
+
       await this.executeDecision(topDecision);
+      this.markProcessedTrigger(triggeringMessageId);
     }
   }
 
@@ -93,6 +135,20 @@ export class UnifiedRuleEngine {
     messageEmbedding: number[], 
     classification?: MessageClassification
   ): Promise<void> {
+    const messageAgeMs = Date.now() - new Date(message.createdAt).getTime();
+    if (messageAgeMs > this.asyncMaxMessageAgeMs) {
+      console.log(
+        `[UnifiedRuleEngine] ⏭️ Async skipped stale message ${message.id} ` +
+        `(age=${Math.round(messageAgeMs / 1000)}s, max=${Math.round(this.asyncMaxMessageAgeMs / 1000)}s)`
+      );
+      return;
+    }
+
+    if (this.hasProcessedTrigger(message.id)) {
+      console.log(`[UnifiedRuleEngine] ⏭️ Async skipped (already processed message ${message.id})`);
+      return;
+    }
+
     // Skip agent messages to prevent loops
     if (message.authorId === 'agent') {
       console.log(`[UnifiedRuleEngine] ⏭️ Skipping agent message`);
@@ -212,8 +268,16 @@ export class UnifiedRuleEngine {
       });
 
       const topDecision = triggeredDecisions[0];
+      const triggeringMessageId = topDecision.triggeringMessageIds?.[0] || message.id;
+
+      if (this.hasProcessedTrigger(triggeringMessageId)) {
+        console.log(`[UnifiedRuleEngine] ⏭️ Async top decision skipped (already processed ${triggeringMessageId})`);
+        return;
+      }
+
       console.log(`[UnifiedRuleEngine] 🏆 Executing top decision: ${topDecision.rule.name}`);
       await this.executeDecision(topDecision);
+      this.markProcessedTrigger(triggeringMessageId);
     }
   }
 
@@ -270,7 +334,9 @@ export class UnifiedRuleEngine {
           metadata: { chimeRuleName: rule.name }
         });
       } else if (rule.action.type === 'chat_message') {
-        await MessageController.createMessage({
+        const parentMessageId = decision.triggeringMessageIds?.[0];
+
+        const chimeMessage = await MessageController.createMessage({
           teamId,
           authorId: 'agent',
           content: response.content,
@@ -278,7 +344,8 @@ export class UnifiedRuleEngine {
           metadata: { 
             chimeRuleName: rule.name,
             chimeRuleId: rule.id,
-            confidence: decision.confidence
+            confidence: decision.confidence,
+            parentMessageId,
           },
           agentMetadata: {
             model: response.model,
@@ -291,6 +358,12 @@ export class UnifiedRuleEngine {
             confidence: decision.confidence
           }
         });
+
+        if (UnifiedRuleEngine.io) {
+          const roomSize = UnifiedRuleEngine.io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0;
+          UnifiedRuleEngine.io.to(`team:${teamId}`).emit('message:new', chimeMessage);
+          console.log(`[UnifiedRuleEngine] 📤 Broadcasted chime message ${chimeMessage.id} to team:${teamId} (${roomSize} clients)`);
+        }
       }
 
       // Log success
