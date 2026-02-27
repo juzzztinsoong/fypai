@@ -87,8 +87,14 @@ function sleep(ms: number): Promise<void> {
 /**
  * Create Axios instance with base configuration
  */
+const rawApiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const trimmedApiBaseUrl = rawApiBaseUrl.replace(/\/+$/, '')
+const normalizedApiBaseUrl = trimmedApiBaseUrl.endsWith('/api')
+  ? trimmedApiBaseUrl
+  : `${trimmedApiBaseUrl}/api`
+
 export const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: normalizedApiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
