@@ -19,6 +19,7 @@ import { AgentMetadataTag } from './AgentMetadataTag'
 import { RAGContextPanel } from './RAGContextPanel'
 import { FeedbackButtons } from './FeedbackButtons'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
+import ReactMarkdown from 'react-markdown'
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
 
@@ -130,7 +131,7 @@ export const MessageList = () => {
   }
 
   return (
-    <div ref={scrollRef} className="h-full overflow-y-auto p-4 space-y-4">
+    <div ref={scrollRef} className="h-full overflow-y-auto overflow-x-hidden p-4 space-y-4">
       {messages.map((message) => {
         // Message alignment and style
         if (message.authorId === currentUser?.id) {
@@ -141,8 +142,8 @@ export const MessageList = () => {
               <div className="flex items-center space-x-2">
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-500 mb-1">You</span>
-                  <div className="bg-blue-600 text-white rounded-lg p-3 max-w-[70%]">
-                    <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+                  <div className="bg-blue-600 text-white rounded-lg p-3 w-fit min-w-[4rem] max-w-[70%]">
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                 </div>
                 <div className="relative">
@@ -219,7 +220,18 @@ export const MessageList = () => {
                     ? 'bg-emerald-500 border-emerald-600'
                     : 'bg-purple-500 border-purple-600'
                 }`}>
-                  <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere font-semibold">{message.content}</p>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="whitespace-pre-wrap break-words font-semibold mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                      li: ({ children }) => <li className="break-words">{children}</li>,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                 </div>
                 
                 {/* Phase 6.5: Agent Metadata Display */}
@@ -279,8 +291,8 @@ export const MessageList = () => {
                 </div>
                 <div className="flex flex-col items-start">
                   <span className="text-xs text-gray-500 mb-1">{member?.name || 'User'}</span>
-                  <div className={`border-2 ${borderColor} rounded-lg p-3 max-w-[70%] bg-white text-gray-900`}> 
-                    <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
+                  <div className={`border-2 ${borderColor} rounded-lg p-3 w-fit min-w-[4rem] max-w-[70%] bg-white text-gray-900`}> 
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                 </div>
               </div>

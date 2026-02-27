@@ -170,6 +170,17 @@ export interface AIInsightMetadata {
 }
 
 /**
+ * Insight Lifecycle Status (Sprint D)
+ */
+export type InsightStatus = 'new' | 'reviewed' | 'accepted' | 'dismissed' | 'archived'
+
+/**
+ * Action Item Priority (Sprint D)
+ * Extends standard priority with 'urgent'
+ */
+export type ActionPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+/**
  * AIInsight DTO
  * Frontend-friendly AI insight with parsed JSON fields
  */
@@ -185,6 +196,15 @@ export interface AIInsightDTO {
   relatedMessageIds?: string[]  // Parsed from JSON array string
   metadata?: AIInsightMetadata  // Additional context
   agentMetadata?: AgentMetadata // Agent execution details
+  // Insight lifecycle (Sprint D - Part 2)
+  status?: InsightStatus
+  reviewedAt?: string  // ISO string
+  reviewedBy?: string
+  // Mutable action items (Sprint D - Part 3)
+  assigneeId?: string
+  dueDate?: string  // ISO string
+  completedAt?: string  // ISO string
+  actionPriority?: ActionPriority
 }
 
 /**
@@ -249,6 +269,41 @@ export interface UpdateAIInsightRequest {
   content?: string
   priority?: PriorityString
   tags?: string[]
+  // Action item fields (Sprint D - Part 3)
+  assigneeId?: string | null
+  dueDate?: string | null  // ISO string
+  completedAt?: string | null  // ISO string
+  actionPriority?: ActionPriority | null
+}
+
+/**
+ * Update Insight Status Request (Sprint D - Part 2)
+ */
+export interface UpdateInsightStatusRequest {
+  status: InsightStatus
+  userId: string
+}
+
+// ============================================================================
+// Task Context DTOs (Sprint D - Part 5)
+// ============================================================================
+
+/**
+ * Task Context DTO
+ * Shared team task context for grounding AI responses
+ */
+export interface TaskContextDTO {
+  content: string | null
+  updatedAt: string | null  // ISO timestamp
+  updatedBy: string | null  // userId or 'agent'
+}
+
+/**
+ * Update Task Context Request
+ */
+export interface UpdateTaskContextRequest {
+  content: string
+  userId: string
 }
 
 /**

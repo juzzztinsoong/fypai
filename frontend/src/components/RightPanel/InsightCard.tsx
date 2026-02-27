@@ -1,6 +1,9 @@
 import type { AIInsightDTO } from '../../types';
 import { InsightTypeIcon } from './InsightTypeIcon';
 import { PriorityBadge } from './PriorityBadge';
+import { InsightStatusBadge } from './InsightStatusBadge';
+import { InsightActions } from './InsightActions';
+import { ActionItemControls } from './ActionItemControls';
 import { getInsightTypeColor } from './insightUtils';
 import ReactMarkdown from 'react-markdown';
 
@@ -9,9 +12,13 @@ interface InsightCardProps {
 }
 
 export const InsightCard = ({ insight }: InsightCardProps) => {
+  const isDismissed = insight.status === 'dismissed' || insight.status === 'archived';
+
   return (
     <div
-      className={`border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow ${getInsightTypeColor(insight.type)}`}
+      className={`border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow ${getInsightTypeColor(insight.type)} ${
+        isDismissed ? 'opacity-60' : ''
+      }`}
     >
       {/* Insight Header */}
       <div className="flex items-start justify-between mb-3">
@@ -26,7 +33,10 @@ export const InsightCard = ({ insight }: InsightCardProps) => {
             </p>
           </div>
         </div>
-        <PriorityBadge priority={insight.priority} />
+        <div className="flex items-center space-x-2">
+          <InsightStatusBadge status={insight.status} />
+          <PriorityBadge priority={insight.priority} />
+        </div>
       </div>
 
       {/* Insight Content */}
@@ -77,6 +87,16 @@ export const InsightCard = ({ insight }: InsightCardProps) => {
           ))}
         </div>
       )}
+
+      {/* Action Item Controls (Sprint D - Part 3) */}
+      {insight.type === 'action' && (
+        <ActionItemControls insight={insight} />
+      )}
+
+      {/* Actions */}
+      <div className="mt-3 pt-2 border-t border-gray-100 flex justify-end">
+        <InsightActions insightId={insight.id} status={insight.status} />
+      </div>
     </div>
   );
 };

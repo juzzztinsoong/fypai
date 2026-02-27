@@ -78,6 +78,41 @@ export class RuleSeederService {
   }
   
   /**
+   * Syncs rules for ALL existing teams with latest system definitions.
+   * - Teams without rules get seeded
+   * - Teams with rules get synced (add new, update existing, remove obsolete)
+   */
+  static async syncAllTeams(): Promise<{ seeded: number; synced: number }> {
+    const teams = await prisma.team.findMany({
+      select: { id: true, name: true }
+    });
+    
+    console.log(`[RuleSeeder] Syncing ${teams.length} teams with system rules`);
+    
+    let seeded = 0;
+    let synced = 0;
+    
+    for (const team of teams) {
+      const existingCount = await prisma.chimeRule.count({
+        where: { teamId: team.id }
+      });
+      
+      if (existingCount === 0) {
+        await this.seedTeamRules(team.id);
+        seeded++;
+      } else {
+        const result = await this.syncTeamRules(team.id);
+        if (result.added > 0 || result.removed > 0) {
+          synced++;
+        }
+      }
+    }
+    
+    console.log(`[RuleSeeder] Sync complete: ${seeded} seeded, ${synced} synced`);
+    return { seeded, synced };
+  }
+  
+  /**
    * Syncs a team's rules with latest system rule definitions.
    * - Adds new rules that don't exist
    * - Updates conditions/action (template changes)
@@ -86,10 +121,18 @@ export class RuleSeederService {
    * @param teamId - The team to sync
    * @returns Count of added and updated rules
    */
-  static async syncTeamRules(teamId: string): Promise<{ added: number; updated: number }> {
+  static async syncTeamRules(teamId: string): Promise<{ added: number; updated: number; removed: number }> {
     const existingRules = await prisma.chimeRule.findMany({
       where: { teamId }
     });
+    
+    // Check if this is a legacy team (rules without sourceRuleId => pre-Sprint D)
+    const hasSourceIds = existingRules.some(r => r.sourceRuleId);
+    if (!hasSourceIds && existingRules.length > 0) {
+      // Legacy rules from before Sprint D - reset entirely
+      console.log(`[RuleSeeder] Legacy rules detected for team ${teamId} (${existingRules.length} rules without sourceRuleId), resetting`);
+      return this.resetTeamRules(teamId).then(count => ({ added: count, updated: 0, removed: existingRules.length }));
+    }
     
     // Map existing rules by their source ID for quick lookup
     const existingBySourceId = new Map(
@@ -97,7 +140,19 @@ export class RuleSeederService {
     );
     
     let added = 0;
-    let updated = 0;
+    let removed = 0;
+    
+    // Build set of current system rule IDs
+    const systemRuleIds = new Set(ALL_SYSTEM_RULES.map(r => r.id));
+    
+    // Remove obsolete rules (sourceRuleId no longer in system definitions)
+    for (const existing of existingRules) {
+      if (existing.sourceRuleId && !systemRuleIds.has(existing.sourceRuleId)) {
+        await prisma.chimeRule.delete({ where: { id: existing.id } });
+        removed++;
+        console.log(`[RuleSeeder] Removed obsolete rule: ${existing.name} (source: ${existing.sourceRuleId})`);
+      }
+    }
     
     for (const systemRule of ALL_SYSTEM_RULES) {
       const existing = existingBySourceId.get(systemRule.id);
@@ -122,25 +177,14 @@ export class RuleSeederService {
         added++;
         console.log(`[RuleSeeder] Added new rule: ${systemRule.name}`);
       } else {
-        // Existing rule - update template/conditions but preserve user settings
-        await prisma.chimeRule.update({
-          where: { id: existing.id },
-          data: {
-            description: systemRule.description,
-            conditions: JSON.stringify(systemRule.conditions),
-            action: JSON.stringify(systemRule.action),
-            // Preserve user customizations:
-            // - enabled (user may have disabled)
-            // - priority (user may have changed)
-            // - cooldownMinutes (user may have adjusted)
-          }
-        });
-        updated++;
+        // Rule already exists with this sourceRuleId — leave it alone
+        // User may have customized enabled, cooldown, priority, etc.
+        console.log(`[RuleSeeder] Skipping existing rule: ${existing.name} (preserving user settings)`);
       }
     }
     
-    console.log(`[RuleSeeder] Sync complete for team ${teamId}: ${added} added, ${updated} updated`);
-    return { added, updated };
+    console.log(`[RuleSeeder] Sync complete for team ${teamId}: ${added} added, ${removed} removed (existing rules preserved)`);
+    return { added, updated: 0, removed };
   }
   
   /**

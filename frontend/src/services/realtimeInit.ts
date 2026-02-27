@@ -92,6 +92,11 @@ export async function initializeRealtime(userId: string): Promise<void> {
         console.log('[RealtimeInit] 🗑️  Socket: insight:deleted ->', data.id)
         useEntityStore.getState().deleteInsight(data.id, data.teamId)
       })
+
+      socket.on('insight:updated', (insight: AIInsightDTO) => {
+        console.log('[RealtimeInit] 📝 Socket: insight:updated ->', insight.id, 'status:', insight.status)
+        useEntityStore.getState().updateInsight(insight.id, insight)
+      })
       
       // ========================================================================
       // PRESENCE EVENTS
@@ -145,6 +150,16 @@ export async function initializeRealtime(userId: string): Promise<void> {
         if (data.userId !== 'agent') return
         console.log('[RealtimeInit] 🧭 Socket: ai:processing ->', data.stage, 'in', data.teamId)
         useSessionStore.getState().setAIProcessingStage(data.teamId, data.stage)
+      })
+
+      // Sprint D: Task context updates
+      socket.on('team:context:updated', (data: { teamId: string; content: string | null; updatedAt: string | null; updatedBy: string | null }) => {
+        console.log('[RealtimeInit] 📋 Socket: team:context:updated for team:', data.teamId)
+        useEntityStore.getState().setTaskContext(data.teamId, {
+          content: data.content,
+          updatedAt: data.updatedAt,
+          updatedBy: data.updatedBy,
+        })
       })
       
       // ========================================================================

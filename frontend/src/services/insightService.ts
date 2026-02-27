@@ -17,7 +17,7 @@
  */
 
 import { api, getErrorMessage } from './api'
-import type { AIInsightDTO, CreateAIInsightRequest } from '@fypai/types'
+import type { AIInsightDTO, CreateAIInsightRequest, InsightStatus, UpdateAIInsightRequest } from '@fypai/types'
 import { useEntityStore } from '@/stores/entityStore'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -181,4 +181,63 @@ export default {
   resetTeamInsights,
   generateSummary,
   generateReport,
+  updateInsightStatus,
+  updateInsight,
+}
+
+/**
+ * Update insight lifecycle status (Sprint D - Part 2)
+ * PATCH /insights/:id/status
+ * @param insightId - Insight ID
+ * @param status - New status
+ * @param userId - User performing the action
+ * @returns Updated insight
+ */
+export async function updateInsightStatus(
+  insightId: string,
+  status: InsightStatus,
+  userId: string
+): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+
+  try {
+    const response = await api.patch<AIInsightDTO>(`/insights/${insightId}/status`, {
+      status,
+      userId,
+    })
+
+    entityStore.updateInsight(insightId, response.data)
+
+    console.log(`[InsightService] ✅ Insight status updated: ${insightId} → ${status}`)
+    return response.data
+  } catch (error) {
+    console.error(`[InsightService] Failed to update insight status ${insightId}:`, getErrorMessage(error))
+    throw error
+  }
+}
+
+/**
+ * Update insight fields (Sprint D - Part 3: Mutable Action Items)
+ * PATCH /insights/:id
+ * @param insightId - Insight ID
+ * @param data - Fields to update
+ * @returns Updated insight
+ */
+export async function updateInsight(
+  insightId: string,
+  data: UpdateAIInsightRequest
+): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+
+  try {
+    const response = await api.patch<AIInsightDTO>(`/insights/${insightId}`, data)
+
+    entityStore.updateInsight(insightId, response.data)
+
+    console.log(`[InsightService] ✅ Insight updated: ${insightId}`)
+    return response.data
+  } catch (error) {
+    console.error(`[InsightService] Failed to update insight ${insightId}:`, getErrorMessage(error))
+    throw error
+  }
 }

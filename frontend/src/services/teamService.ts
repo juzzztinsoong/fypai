@@ -11,7 +11,7 @@
  */
 
 import { api, getErrorMessage } from './api'
-import type { TeamWithMembersDTO, CreateTeamRequest, AddTeamMemberRequest } from '@fypai/types'
+import type { TeamWithMembersDTO, CreateTeamRequest, AddTeamMemberRequest, TaskContextDTO, UpdateTaskContextRequest } from '@fypai/types'
 import { useEntityStore } from '@/stores/entityStore'
 
 /**
@@ -120,10 +120,52 @@ export async function removeMemberFromTeam(
   }
 }
 
+/**
+ * Get the shared task context for a team
+ * GET /teams/:id/context
+ * @param teamId - Team ID
+ * @returns Task context DTO
+ */
+export async function getTaskContext(teamId: string): Promise<TaskContextDTO> {
+  try {
+    const response = await api.get<TaskContextDTO>(`/teams/${teamId}/context`)
+    return response.data
+  } catch (error) {
+    console.error(`[TeamService] Failed to fetch task context for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  }
+}
+
+/**
+ * Update the shared task context for a team
+ * PUT /teams/:id/context
+ * @param teamId - Team ID
+ * @param content - New context content (markdown)
+ * @param userId - User making the update
+ * @returns Updated task context DTO
+ */
+export async function updateTaskContext(
+  teamId: string,
+  content: string,
+  userId: string
+): Promise<TaskContextDTO> {
+  try {
+    const data: UpdateTaskContextRequest = { content, userId }
+    const response = await api.put<TaskContextDTO>(`/teams/${teamId}/context`, data)
+    console.log('[TeamService] Task context updated for team:', teamId)
+    return response.data
+  } catch (error) {
+    console.error(`[TeamService] Failed to update task context for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  }
+}
+
 export default {
   getTeamsForUser,
   getTeamById,
   createTeam,
   addMemberToTeam,
   removeMemberFromTeam,
+  getTaskContext,
+  updateTaskContext,
 }

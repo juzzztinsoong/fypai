@@ -101,6 +101,15 @@ export function aiInsightToDTO(insight) {
         tags: parseJSON(insight.tags),
         createdAt: dateToISOString(insight.createdAt),
         relatedMessageIds: parseJSON(insight.relatedMessageIds),
+        // Insight lifecycle (Sprint D - Part 2)
+        status: (insight.status || 'new'),
+        reviewedAt: insight.reviewedAt ? dateToISOString(insight.reviewedAt) : undefined,
+        reviewedBy: insight.reviewedBy || undefined,
+        // Mutable action items (Sprint D - Part 3)
+        assigneeId: insight.assigneeId || undefined,
+        dueDate: insight.dueDate ? dateToISOString(insight.dueDate) : undefined,
+        completedAt: insight.completedAt ? dateToISOString(insight.completedAt) : undefined,
+        actionPriority: insight.actionPriority ? insight.actionPriority : undefined,
     };
 }
 /**

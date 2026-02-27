@@ -10,8 +10,6 @@
 
 import { GitHubModelsClient } from '../ai/core/llm.js';
 import { SYSTEM_PROMPTS, buildConversationContext, buildRAGContext, applyPreferences, getModelForPreferences } from '../ai/core/prompts.js';
-import { shouldAgentRespond } from '../ai/reactive/reactiveRules.js';
-import { ChimeEvaluator } from '../ai/autonomous/chimeEngine.js';
 import { UnifiedRuleEngine } from '../ai/autonomous/unifiedRuleEngine.js';
 import { MessageController } from './messageController.js';
 import { TeamController } from './teamController.js';
@@ -20,6 +18,9 @@ import { ChimeRuleController } from './chimeRuleController.js';
 import { RuleProvider } from '../ai/rules/ruleProvider.js';
 import { ragService } from '../services/ragService.js';
 import { AgentPreferencesService } from '../services/agentPreferencesService.js';
+import { embeddingService } from '../services/embeddingService.js';
+import { IntentClassifier, MessageClassification } from '../ai/core/intentClassifier.js';
+import { prisma } from '../db.js';
 import { MessageDTO, CreateAIInsightRequest } from '@fypai/types';
 import { Server as SocketIOServer } from 'socket.io';
 
@@ -92,48 +93,62 @@ export class AIAgentController {
       // 2. Check if this is an @agent mention (reactive mode)
       const hasAgentMention = message.content.toLowerCase().includes('@agent');
 
-      // 2.5 Check if this is a reply to an agent question (Conversational Mode)
-      let isReplyToAgent = false;
-      if (!hasAgentMention && messages.length >= 2) {
+      // 2.5 Conversational Mode gate (strict by default)
+      // Default behavior: only explicit replies to an agent message continue the
+      // conversation (or explicit @agent mention above).
+      const parentMessageId = this.getParentMessageId(message);
+      const parentMessage = parentMessageId
+        ? messages.find((m) => m.id === parentMessageId)
+        : undefined;
+
+      let isReplyToAgent = Boolean(parentMessage && parentMessage.authorId === 'agent');
+      if (isReplyToAgent) {
+        console.log('[AI Agent] 🗣️ Explicit reply-to-agent detected via parentMessageId');
+      }
+
+      // Optional implicit mode (off by default): use Tier 1 only when enabled.
+      const enableImplicitConversationalMode = process.env.ENABLE_IMPLICIT_CONVERSATIONAL_MODE === 'true';
+      if (!hasAgentMention && !isReplyToAgent && enableImplicitConversationalMode && messages.length >= 2) {
         const previousMessage = messages[messages.length - 2];
         const timeDiff = new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
         const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutes
 
         if (previousMessage.authorId === 'agent' && isRecent) {
-           // Check if agent asked a question or requested info
-           // Updated to handle multi-line responses, bullet points, and polite closing statements
-           const content = previousMessage.content;
-           const lowerContent = content.toLowerCase();
-           
-           if (content.includes('?') || 
-               lowerContent.includes('let me know') ||
-               lowerContent.includes('elaborate') ||
-               lowerContent.includes('please clarify') ||
-               lowerContent.includes('what do you mean') ||
-               lowerContent.includes('can you') ||
-               lowerContent.includes('could you')) {
-             isReplyToAgent = true;
-             console.log(`[AI Agent] 🗣️ Detected reply to agent question - entering conversational mode`);
-           }
+          const fallback = await this.detectConversationalReplyWithLLM(message, previousMessage);
+          if (fallback.isConversational && fallback.confidence >= 0.8) {
+            isReplyToAgent = true;
+            console.log(
+              `[AI Agent] 🧠 Tier1 conversational fallback matched (confidence=${fallback.confidence.toFixed(2)}): ${fallback.reason}`
+            );
+          }
         }
       }
 
       if (hasAgentMention || isReplyToAgent) {
         console.log(`[AI Agent] 🎯 ${hasAgentMention ? '@agent mention' : 'Reply to agent'} detected - responding in reactive mode`);
         
-        // Decide if agent should respond (cooldown check)
-        // For direct replies/mentions, we generally want to respond unless spammed
-        const decision = shouldAgentRespond(message, {
-          recentMessages: messages,
-          agentLastResponseTime: this.getLastAgentResponseTime(messages),
-          isConversationalReply: isReplyToAgent, // Pass the flag
-          teamSettings: { autoRespond: true, cooldownMinutes: isReplyToAgent ? 0 : 2 }, // No cooldown for replies
-        });
+        // Inline cooldown check (replaces shouldAgentRespond from reactiveRules.ts)
+        // Direct mentions and conversational replies bypass cooldown
+        let shouldRespond = true;
+        let skipReason = '';
+        
+        if (!hasAgentMention) {
+          // Apply cooldown for conversational replies. Explicit @agent bypasses cooldown.
+          const lastAgentTime = this.getLastAgentResponseTime(messages);
+          if (lastAgentTime) {
+            const cooldownMs = 2 * 60 * 1000; // 2 minutes cooldown
+            const timeSince = Date.now() - lastAgentTime.getTime();
+            if (timeSince < cooldownMs) {
+              shouldRespond = false;
+              skipReason = 'cooldown_active';
+            }
+          }
+        }
 
-        if (!decision.should) {
-          console.log(`[AI Agent] Not responding: ${decision.reason}`);
+        if (!shouldRespond) {
+          console.log(`[AI Agent] Not responding: ${skipReason}`);
         } else {
-          console.log(`[AI Agent] Responding due to: ${decision.reason} (rules: ${decision.triggeredRules.join(', ')})`);
+          console.log(`[AI Agent] Responding to ${hasAgentMention ? '@agent mention' : 'conversational reply'}`);
           this.emitProcessingStage(message.teamId, 'thinking');
 
           // Emit typing indicator - agent is generating
@@ -145,36 +160,56 @@ export class AIAgentController {
             console.log(`[AI Agent] ⌨️  Emitted typing:start for agent`);
           }
 
-          // 3. Generate response
-          const response = await this.generateResponse(messages, team, message);
+          // 3a. Check if user is requesting an action item be created
+          const isActionRequest = this.isActionCreationRequest(message.content);
+          
+          if (isActionRequest) {
+            // Extract what the action item should be and create a real insight
+            await this.handleActionCreation(message, messages, team);
+          } else {
+            // 3b. Normal conversational response
+            const response = await this.generateResponse(messages, team, message);
 
-          // Calculate cost
-          const cost = this.calculateCost(response.model, response.usage.inputTokens, response.usage.outputTokens);
-          const tier = response.model.includes('mini') ? 'tier1' : 'tier2';
+            // Calculate cost
+            const cost = this.calculateCost(response.model, response.usage.inputTokens, response.usage.outputTokens);
+            const tier = response.model.includes('mini') ? 'tier1' : 'tier2';
 
-          // 4. Post as message (unified with regular messages per copilot-instructions.md)
-          const agentMessage = await MessageController.createMessage({
-            teamId: message.teamId,
-            authorId: 'agent',
-            content: response.content,
-            contentType: 'text',
-            metadata: {
-              parentMessageId: message.id,
-            },
-            agentMetadata: {
-              model: response.model,
-              cost,
-              tier,
-              tokensUsed: {
-                input: response.usage.inputTokens,
-                output: response.usage.outputTokens
+            // 4. Post as message (unified with regular messages per copilot-instructions.md)
+            const agentMessage = await MessageController.createMessage({
+              teamId: message.teamId,
+              authorId: 'agent',
+              content: response.content,
+              contentType: 'text',
+              metadata: {
+                parentMessageId: message.id,
               },
-              confidence: response.confidence,
-              ragContext: response.ragContextItems
-            }
-          });
+              agentMetadata: {
+                model: response.model,
+                cost,
+                tier,
+                tokensUsed: {
+                  input: response.usage.inputTokens,
+                  output: response.usage.outputTokens
+                },
+                confidence: response.confidence,
+                ragContext: response.ragContextItems
+              }
+            });
 
-          console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
+            console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
+
+            // 5. Broadcast agent message via WebSocket
+            if (this.io) {
+              const roomSize = this.io.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0;
+              this.io.to(`team:${message.teamId}`).emit('message:new', agentMessage);
+              console.log(`[AI Agent] 🤖 Broadcasted AI message to team: ${message.teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
+            } else {
+              console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
+            }
+
+            // 6. Extract insights if needed
+            await this.extractInsights(message.teamId, messages, response.content);
+          }
 
           // Stop typing indicator - agent finished generating
           if (this.io) {
@@ -185,23 +220,12 @@ export class AIAgentController {
             console.log(`[AI Agent] ⌨️  Emitted typing:stop for agent`);
           }
           this.emitProcessingStage(message.teamId, 'idle');
-
-          // 5. Broadcast agent message via WebSocket
-          if (this.io) {
-            const roomSize = this.io.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0;
-            this.io.to(`team:${message.teamId}`).emit('message:new', agentMessage);
-            console.log(`[AI Agent] 🤖 Broadcasted AI message to team: ${message.teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
-          } else {
-            console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
-          }
-
-          // 6. Extract insights if needed
-          await this.extractInsights(message.teamId, messages, response.content);
         }
         
-        // ⚠️ IMPORTANT: Skip chime evaluation if @agent was mentioned
-        // User explicitly asked for agent help, don't spam with autonomous responses
-        console.log(`[AI Agent] Skipping chime evaluation due to @agent mention`);
+        // ⚠️ IMPORTANT: Skip chime evaluation if responded reactively
+        // Mark message as handled so async eval (via embedding worker) also skips it
+        UnifiedRuleEngine.getInstance().markHandledExternally(message.id);
+        console.log(`[AI Agent] Skipping chime evaluation — reactive path handled this message`);
         return;
       }
 
@@ -295,8 +319,27 @@ export class AIAgentController {
     const model = getModelForPreferences(preferences, 'tier2');
     this.emitProcessingStage(triggerMessage.teamId, 'analyzing');
 
+    // Sprint D - Part 5: Inject shared task context if available
+    let taskContextMessage: { role: 'system'; content: string } | null = null;
+    try {
+      const teamData = await prisma.team.findUnique({
+        where: { id: triggerMessage.teamId },
+        select: { taskContext: true },
+      });
+      if (teamData?.taskContext) {
+        taskContextMessage = {
+          role: 'system' as const,
+          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+        };
+        console.log(`[AI Agent] 📋 Injecting task context (${teamData.taskContext.length} chars)`);
+      }
+    } catch (error) {
+      console.warn('[AI Agent] Failed to load task context:', error);
+    }
+
     const response = await this.llm.generate({
       messages: [
+        ...(taskContextMessage ? [taskContextMessage] : []),
         { role: 'system' as const, content: systemPrompt },
         ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...conversationHistory,
@@ -342,10 +385,28 @@ export class AIAgentController {
     const finalPrompt = applyPreferences(systemPrompt, preferences);
     const model = getModelForPreferences(preferences, 'tier2');
 
+    // Sprint D - Part 5: Inject shared task context if available
+    let taskCtxMsg: { role: 'system'; content: string } | null = null;
+    try {
+      const teamData = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { taskContext: true },
+      });
+      if (teamData?.taskContext) {
+        taskCtxMsg = {
+          role: 'system' as const,
+          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+        };
+      }
+    } catch (error) {
+      console.warn('[AI Agent] Failed to load task context for long-form:', error);
+    }
+
     console.log(`[AI Agent] Generating ${longFormType} for team ${teamId}`);
 
     const response = await this.llm.generate({
       messages: [
+        ...(taskCtxMsg ? [taskCtxMsg] : []),
         { role: 'system', content: finalPrompt },
         ...conversationHistory,
         { role: 'user', content: prompt },
@@ -430,12 +491,246 @@ export class AIAgentController {
   }
 
   /**
+   * Check if user message is requesting to create an action item
+   */
+  private static isActionCreationRequest(content: string): boolean {
+    const lower = content.toLowerCase();
+    const patterns = [
+      /\b(add|create|make|set|log|track|put)\b.{0,20}\b(action|task|todo|to-do|item)\b/,
+      /\baction (item|list)\b/,
+      /\b(add|put).{0,15}\b(to the|to our|as a|as an)\b.{0,10}\b(list|action|task|todo)\b/,
+      /\bset this.{0,10}(task|for)\b/,
+      /\badd.{0,5}(this|that|it|fixing).{0,15}\b(action|task|list)\b/,
+    ];
+    return patterns.some(p => p.test(lower));
+  }
+
+  /**
+   * Handle action item creation request
+   * Uses LLM to extract the action from conversation context, then creates a real AIInsight
+   */
+  private static async handleActionCreation(
+    triggerMessage: MessageDTO,
+    messages: MessageDTO[],
+    team: any,
+  ): Promise<void> {
+    console.log(`[AI Agent] 📋 Action creation request detected`);
+
+    // Use LLM to extract the action item from recent conversation
+    const recentMessages = messages.slice(-10);
+    const contextStr = recentMessages
+      .map(m => {
+        const name = m.author?.name || m.authorId;
+        return `${name}: ${m.content}`;
+      })
+      .join('\n');
+
+    let taskContextMessage: { role: 'system'; content: string } | null = null;
+    try {
+      const teamData = await prisma.team.findUnique({
+        where: { id: triggerMessage.teamId },
+        select: { taskContext: true },
+      });
+      if (teamData?.taskContext) {
+        taskContextMessage = {
+          role: 'system' as const,
+          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+        };
+        console.log(`[AI Agent] 📋 Injecting task context into action extraction (${teamData.taskContext.length} chars)`);
+      }
+    } catch (error) {
+      console.warn('[AI Agent] Failed to load task context for action extraction:', error);
+    }
+
+    const response = await this.llm.generate({
+      messages: [
+        ...(taskContextMessage ? [taskContextMessage] : []),
+        {
+          role: 'system' as const,
+          content: `You are an action item extractor. The user wants to add something as an action item / task.
+Look at the conversation and the user's request to determine:
+1. A SHORT title for the action (5-10 words max)
+2. A brief description of what needs to be done (1-2 sentences)
+3. Priority: low, medium, or high
+
+Respond in this exact JSON format (no markdown):
+{"title": "...", "description": "...", "priority": "medium"}`
+        },
+        {
+          role: 'user' as const,
+          content: `Recent conversation:\n${contextStr}\n\nThe user's request: "${triggerMessage.content}"\n\nExtract the action item from this conversation.`
+        }
+      ],
+      model: process.env.LLM_MODEL_TIER_1, // Fast model for extraction
+      maxTokens: 200,
+      temperature: 0.3,
+    });
+
+    try {
+      const cleaned = response.content.trim().replace(/```json\n?|\n?```/g, '');
+      const extracted = JSON.parse(cleaned) as { title: string; description: string; priority: string };
+      
+      const validPriority = ['low', 'medium', 'high'].includes(extracted.priority) 
+        ? extracted.priority as 'low' | 'medium' | 'high'
+        : 'medium';
+
+      // Create real AIInsight of type 'action'
+      const insight = await AIInsightController.createInsight({
+        teamId: triggerMessage.teamId,
+        type: 'action',
+        title: extracted.title,
+        content: extracted.description,
+        priority: validPriority,
+        relatedMessageIds: [triggerMessage.id],
+        tags: ['action-item', 'user-requested'],
+      });
+
+      console.log(`[AI Agent] ✅ Created action item insight: ${insight.id} - "${extracted.title}"`);
+
+      // Confirm in chat
+      const confirmMessage = await MessageController.createMessage({
+        teamId: triggerMessage.teamId,
+        authorId: 'agent',
+        content: `✅ Added action item: **${extracted.title}**\n\n${extracted.description}\n\n_Priority: ${validPriority} · Check the Actions tab in the right panel._`,
+        contentType: 'text',
+        metadata: {
+          parentMessageId: triggerMessage.id,
+        },
+      });
+
+      // Broadcast confirmation
+      if (this.io) {
+        this.io.to(`team:${triggerMessage.teamId}`).emit('message:new', confirmMessage);
+      }
+
+    } catch (parseError) {
+      console.error('[AI Agent] Failed to parse action extraction:', parseError);
+      // Fallback: create action with the raw message
+      const insight = await AIInsightController.createInsight({
+        teamId: triggerMessage.teamId,
+        type: 'action',
+        title: 'Action Item',
+        content: triggerMessage.content.replace(/@agent\s*/gi, '').trim(),
+        priority: 'medium',
+        relatedMessageIds: [triggerMessage.id],
+        tags: ['action-item', 'user-requested'],
+      });
+
+      const confirmMessage = await MessageController.createMessage({
+        teamId: triggerMessage.teamId,
+        authorId: 'agent',
+        content: `✅ Added as action item. Check the Actions tab in the right panel.`,
+        contentType: 'text',
+        metadata: { parentMessageId: triggerMessage.id },
+      });
+
+      if (this.io) {
+        this.io.to(`team:${triggerMessage.teamId}`).emit('message:new', confirmMessage);
+      }
+    }
+  }
+
+  /**
    * Get timestamp of last agent response
    */
   private static getLastAgentResponseTime(messages: MessageDTO[]): Date | undefined {
     const agentMessages = messages.filter((m) => m.authorId === 'agent');
     if (agentMessages.length === 0) return undefined;
     return new Date(agentMessages[agentMessages.length - 1].createdAt);
+  }
+
+  private static getParentMessageId(message: MessageDTO): string | undefined {
+    const metadata = (message as any).metadata;
+    if (!metadata) return undefined;
+
+    if (typeof metadata === 'object' && typeof metadata.parentMessageId === 'string') {
+      return metadata.parentMessageId;
+    }
+
+    if (typeof metadata === 'string') {
+      try {
+        const parsed = JSON.parse(metadata);
+        if (parsed && typeof parsed.parentMessageId === 'string') {
+          return parsed.parentMessageId;
+        }
+      } catch {
+        return undefined;
+      }
+    }
+
+    return undefined;
+  }
+
+  private static async detectConversationalReplyWithLLM(
+    currentMessage: MessageDTO,
+    previousAgentMessage: MessageDTO
+  ): Promise<{ isConversational: boolean; confidence: number; reason: string }> {
+    const prompt = `Determine if the user's latest message is a direct conversational reply to the AI assistant's previous message.
+
+Assistant message:
+"${previousAgentMessage.content}"
+
+User message:
+"${currentMessage.content}"
+
+Return JSON only:
+{"isConversational": true/false, "confidence": 0.0-1.0, "reason": "short reason"}`;
+
+    try {
+      const response = await this.llm.generate({
+        messages: [
+          {
+            role: 'system' as const,
+            content: 'You are a strict classifier. Return ONLY valid JSON. Be conservative and avoid false positives.',
+          },
+          { role: 'user' as const, content: prompt },
+        ],
+        model: process.env.LLM_MODEL_TIER_1,
+        temperature: 0.1,
+        maxTokens: 120,
+      });
+
+      const cleaned = response.content.trim().replace(/```json\n?|\n?```/g, '');
+      const parsed = JSON.parse(cleaned) as {
+        isConversational?: boolean;
+        confidence?: number;
+        reason?: string;
+      };
+
+      return {
+        isConversational: Boolean(parsed.isConversational),
+        confidence: Math.max(0, Math.min(1, parsed.confidence ?? 0)),
+        reason: parsed.reason ?? 'no-reason',
+      };
+    } catch (error) {
+      console.warn('[AI Agent] Conversational fallback classification failed:', error);
+      return { isConversational: false, confidence: 0, reason: 'fallback-error' };
+    }
+  }
+
+  private static buildFastClassification(message: MessageDTO): MessageClassification {
+    const sync = IntentClassifier.getInstance().classifySync(message);
+
+    const urgencyFromIntent: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
+      blocker: 'medium',
+      decision_detected: 'medium',
+      action_commitment: 'medium',
+      confusion: 'medium',
+      question: 'low',
+      code_request: 'low',
+      summary_request: 'low',
+      direct_mention: 'low',
+      casual_chat: 'low',
+      none: 'low',
+    };
+
+    return {
+      intent: sync.intent,
+      sentiment: sync.intent === 'confusion' ? 'confused' : 'neutral',
+      urgency: urgencyFromIntent[sync.intent] ?? 'low',
+      topics: [],
+      confidence: sync.confidence,
+    };
   }
 
   /**
@@ -457,6 +752,30 @@ export class AIAgentController {
 
       // Use Unified Rule Engine for Sync evaluation
       await UnifiedRuleEngine.getInstance().evaluateSync(message);
+
+      // Also kick off async evaluation immediately (non-blocking) so chimes
+      // don't wait for embedding worker flush latency.
+      // Worker path remains as fallback and dedup is handled by UnifiedRuleEngine.
+      const enableImmediateAsync = process.env.ENABLE_IMMEDIATE_ASYNC_CHIME !== 'false';
+      if (enableImmediateAsync) {
+        const isAgentMention = message.content.toLowerCase().includes('@agent');
+        if (!isAgentMention && message.authorId !== 'agent') {
+          const fastClassification = this.buildFastClassification(message);
+
+          embeddingService
+            .generateEmbedding(message.content)
+            .then(({ embedding }) => {
+              return UnifiedRuleEngine.getInstance().evaluateAsync(
+                message,
+                embedding,
+                fastClassification
+              );
+            })
+            .catch((error) => {
+              console.warn('[AI Agent] Immediate async chime evaluation failed, worker fallback will handle:', error);
+            });
+        }
+      }
 
     } catch (error) {
       console.error('[AI Agent] Error evaluating chime rules:', error);
@@ -498,8 +817,26 @@ export class AIAgentController {
       this.emitProcessingStage(teamId, 'analyzing');
 
       // 3. Call LLM with rule's prompt template
+      // Sprint D - Part 5: Inject shared task context if available
+      let chimeTaskCtx: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          chimeTaskCtx = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+        }
+      } catch (error) {
+        console.warn('[AI Agent] Failed to load task context for chime:', error);
+      }
+
       const response = await this.llm.generate({
         messages: [
+          ...(chimeTaskCtx ? [chimeTaskCtx] : []),
           { role: 'system', content: SYSTEM_PROMPTS.assistant },
           ...conversationHistory,
           { role: 'user', content: rule.action.template },

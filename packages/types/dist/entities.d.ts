@@ -89,6 +89,13 @@ export interface AIInsight {
     tags: string | null;
     createdAt: Date;
     relatedMessageIds: string | null;
+    status: string;
+    reviewedAt: Date | null;
+    reviewedBy: string | null;
+    assigneeId: string | null;
+    dueDate: Date | null;
+    completedAt: Date | null;
+    actionPriority: string | null;
 }
 /**
  * Type guards to check if an entity matches the expected structure

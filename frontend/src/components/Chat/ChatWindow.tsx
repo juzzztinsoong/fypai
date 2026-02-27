@@ -143,14 +143,14 @@ export const ChatWindow = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col h-screen border-x border-gray-200 ml-60">
+    <main className="flex-1 min-w-0 flex flex-col h-screen border-x border-gray-200">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
         <ChatHeader />
       </div>
 
       {/* Scrollable Message Area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <MessageList />
       </div>
 

@@ -144,6 +144,15 @@ export interface AIInsightMetadata {
     confidence?: number;
 }
 /**
+ * Insight Lifecycle Status (Sprint D)
+ */
+export type InsightStatus = 'new' | 'reviewed' | 'accepted' | 'dismissed' | 'archived';
+/**
+ * Action Item Priority (Sprint D)
+ * Extends standard priority with 'urgent'
+ */
+export type ActionPriority = 'low' | 'medium' | 'high' | 'urgent';
+/**
  * AIInsight DTO
  * Frontend-friendly AI insight with parsed JSON fields
  */
@@ -159,6 +168,13 @@ export interface AIInsightDTO {
     relatedMessageIds?: string[];
     metadata?: AIInsightMetadata;
     agentMetadata?: AgentMetadata;
+    status?: InsightStatus;
+    reviewedAt?: string;
+    reviewedBy?: string;
+    assigneeId?: string;
+    dueDate?: string;
+    completedAt?: string;
+    actionPriority?: ActionPriority;
 }
 /**
  * API Request DTOs
@@ -213,6 +229,33 @@ export interface UpdateAIInsightRequest {
     content?: string;
     priority?: PriorityString;
     tags?: string[];
+    assigneeId?: string | null;
+    dueDate?: string | null;
+    completedAt?: string | null;
+    actionPriority?: ActionPriority | null;
+}
+/**
+ * Update Insight Status Request (Sprint D - Part 2)
+ */
+export interface UpdateInsightStatusRequest {
+    status: InsightStatus;
+    userId: string;
+}
+/**
+ * Task Context DTO
+ * Shared team task context for grounding AI responses
+ */
+export interface TaskContextDTO {
+    content: string | null;
+    updatedAt: string | null;
+    updatedBy: string | null;
+}
+/**
+ * Update Task Context Request
+ */
+export interface UpdateTaskContextRequest {
+    content: string;
+    userId: string;
 }
 /**
  * API Response Wrappers

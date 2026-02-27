@@ -19,6 +19,7 @@ import { InsightsList } from './InsightsList';
 import { LongFormContentViewer } from './LongFormContentViewer';
 import { AIControlsDrawer } from './AIControlsDrawer';
 import { RuleTogglePanel } from './RuleTogglePanel';
+import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
 
 type ContentFilter = 'all' | 'summaries' | 'actions' | 'suggestions' | 'rules';
@@ -57,6 +58,7 @@ export const RightPanel = () => {
   const isTeamAIEnabled = currentTeam?.isChimeEnabled ?? true;
   
   const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
+  const [showDismissed, setShowDismissed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch insights when team changes
@@ -76,19 +78,24 @@ export const RightPanel = () => {
   // Combine and sort all content by date (oldest first, latest at bottom) - MEMOIZED
   // Now all content comes from insights store
   const displayedContent = useMemo(() => {
+    // Filter by status: hide dismissed/archived by default
+    let filtered = showDismissed
+      ? insights
+      : insights.filter(i => i.status !== 'dismissed' && i.status !== 'archived');
+
     // Filter based on selected tab
     switch (contentFilter) {
       case 'summaries':
-        return insights.filter(i => i.type === 'summary' || i.type === 'document');
+        return filtered.filter(i => i.type === 'summary' || i.type === 'document');
       case 'actions':
-        return insights.filter(i => i.type === 'action');
+        return filtered.filter(i => i.type === 'action');
       case 'suggestions':
-        return insights.filter(i => i.type === 'suggestion');
+        return filtered.filter(i => i.type === 'suggestion');
       case 'all':
       default:
-        return insights;
+        return filtered;
     }
-  }, [insights, contentFilter]);
+  }, [insights, contentFilter, showDismissed]);
 
   // Auto-scroll to bottom when content changes
   useEffect(() => {
@@ -97,11 +104,14 @@ export const RightPanel = () => {
     }
   }, [displayedContent.length, currentTeamId]);
 
-  // Calculate counts for filter tabs
-  const summaryCount = insights.filter(i => i.type === 'summary' || i.type === 'document').length;
-  const actionCount = insights.filter(i => i.type === 'action').length;
-  const suggestionCount = insights.filter(i => i.type === 'suggestion').length;
-  const totalContent = insights.length;
+  // Calculate counts for filter tabs (based on visible insights)
+  const visibleInsights = showDismissed
+    ? insights
+    : insights.filter(i => i.status !== 'dismissed' && i.status !== 'archived');
+  const summaryCount = visibleInsights.filter(i => i.type === 'summary' || i.type === 'document').length;
+  const actionCount = visibleInsights.filter(i => i.type === 'action').length;
+  const suggestionCount = visibleInsights.filter(i => i.type === 'suggestion').length;
+  const totalContent = visibleInsights.length;
 
   const handleToggleAI = () => {
     if (!currentTeamId) return;
@@ -113,7 +123,7 @@ export const RightPanel = () => {
   // Show empty state when no team selected (AFTER all hooks)
   if (!currentTeamId) {
     return (
-      <aside className="w-1/2 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
+      <aside className="flex-1 min-w-0 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
         <div className="p-6 flex-1">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">AI Insights</h2>
           <p className="text-gray-500">
@@ -135,39 +145,53 @@ export const RightPanel = () => {
   };
 
   return (
-    <aside className="w-1/2 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
+    <aside className="flex-1 min-w-0 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
         <RightPanelHeader teamName={teamName} insightCount={totalContent} />
+        <TaskContextCard teamId={currentTeamId} />
       </div>
 
       {/* Content Type Tabs */}
       <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-        <div className="flex space-x-1 p-2">
-          {TABS.map((tab) => {
-            const count = countForTab(tab.key);
-            const isActive = contentFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setContentFilter(tab.key)}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {tab.emoji && <span className="mr-1">{tab.emoji}</span>}
-                {tab.label}
-                {count !== null && ` (${count})`}
-              </button>
-            );
-          })}
+        <div className="flex items-center justify-between p-2">
+          <div className="flex space-x-1">
+            {TABS.map((tab) => {
+              const count = countForTab(tab.key);
+              const isActive = contentFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setContentFilter(tab.key)}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {tab.emoji && <span className="mr-1">{tab.emoji}</span>}
+                  {tab.label}
+                  {count !== null && ` (${count})`}
+                </button>
+              );
+            })}
+          </div>
+          {contentFilter !== 'rules' && (
+            <button
+              onClick={() => setShowDismissed(prev => !prev)}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                showDismissed ? 'bg-gray-200 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title={showDismissed ? 'Hide dismissed' : 'Show dismissed'}
+            >
+              {showDismissed ? '👁 All' : '👁‍🗨 Active'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Scrollable Content Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-6 space-y-4">
         {contentFilter === 'rules' ? (
           /* ── Rules Tab: Grouped rule toggles ── */
           <RuleTogglePanel teamId={currentTeamId} />

@@ -1,5 +1,6 @@
 import { MessageDTO } from '@fypai/types';
 import { GitHubModelsClient } from './llm.js';
+import { prisma } from '../../db.js';
 
 export type IntentType = 'direct_mention' | 'question' | 'code_request' | 'summary_request' | 'casual_chat' | 'decision_detected' | 'confusion' | 'action_commitment' | 'blocker' | 'none';
 export type SentimentType = 'positive' | 'negative' | 'neutral' | 'frustrated' | 'confused';
@@ -110,8 +111,25 @@ Respond in this exact JSON format (no markdown, just JSON):
 }`;
 
     try {
+      let taskContextMessage: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: message.teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          taskContextMessage = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+        }
+      } catch (error) {
+        console.warn('[IntentClassifier] Failed to load task context:', error);
+      }
+
       const response = await this.llm.generate({
         messages: [
+          ...(taskContextMessage ? [taskContextMessage] : []),
           { 
             role: 'system' as const, 
             content: 'You are a message classifier for team collaboration. Output ONLY valid JSON, no markdown code blocks.' 

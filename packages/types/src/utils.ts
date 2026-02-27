@@ -141,6 +141,15 @@ export function aiInsightToDTO(insight: AIInsight): AIInsightDTO {
     tags: parseJSON<string[]>(insight.tags),
     createdAt: dateToISOString(insight.createdAt),
     relatedMessageIds: parseJSON<string[]>(insight.relatedMessageIds),
+    // Insight lifecycle (Sprint D - Part 2)
+    status: (insight.status || 'new') as any,
+    reviewedAt: insight.reviewedAt ? dateToISOString(insight.reviewedAt) : undefined,
+    reviewedBy: insight.reviewedBy || undefined,
+    // Mutable action items (Sprint D - Part 3)
+    assigneeId: insight.assigneeId || undefined,
+    dueDate: insight.dueDate ? dateToISOString(insight.dueDate) : undefined,
+    completedAt: insight.completedAt ? dateToISOString(insight.completedAt) : undefined,
+    actionPriority: insight.actionPriority ? (insight.actionPriority as any) : undefined,
   }
 }
 

@@ -4,6 +4,9 @@
  * SINGLE SOURCE OF TRUTH for all system rules.
  * These are templates that get copied to each team.
  * Teams can then customize their copy independently.
+ * 
+ * This is the canonical type system for chime rules.
+ * All other files should import these types.
  */
 
 export interface RuleConditions {
@@ -20,10 +23,6 @@ export interface RuleConditions {
   // Semantic-based (async) - requires vector similarity
   semanticQuery?: string;
   threshold?: number;
-  
-  // Threshold-based
-  messageCount?: number;
-  timeWindow?: number;
 }
 
 export interface RuleAction {
@@ -32,18 +31,30 @@ export interface RuleAction {
   insightType?: 'action' | 'suggestion' | 'analysis' | 'summary';
 }
 
+export type RuleType = 'pattern' | 'semantic' | 'intent' | 'schedule';
+export type RuleExecution = 'sync' | 'async';
+
 export interface RuleDefinition {
   id: string;           // Stable ID for tracking origin
   name: string;
   description: string;
-  execution: 'sync' | 'async';
-  type: 'pattern' | 'semantic' | 'intent' | 'schedule';
+  execution: RuleExecution;
+  type: RuleType;
   enabled: boolean;
   priority: number;     // 0-100, higher = more important
   cooldownMinutes: number;
   conditions: RuleConditions;
   action: RuleAction;
+  teamId?: string;
+  sourceRuleId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
+
+/**
+ * @deprecated Use RuleDefinition instead. Kept as alias for migration.
+ */
+export type ChimeRule = RuleDefinition;
 
 // ═══════════════════════════════════════════════════════════════
 // SYNC RULES - Execute immediately in request loop (<50ms)
@@ -109,12 +120,11 @@ export const ASYNC_RULES: RuleDefinition[] = [
     },
     action: {
       type: 'chat_message',
-      template: `Someone mentioned a blocker. Please:
-1. Acknowledge what's blocking them
-2. Ask one clarifying question if needed
-3. Offer to help brainstorm solutions
+      template: `A team member mentioned they are blocked. Based ONLY on the specific blocking message (not older conversation), respond naturally in 1-2 sentences:
+- Briefly acknowledge what's blocking them
+- Either suggest a concrete workaround OR ask what help they need
 
-Keep response brief (2-3 sentences max).`,
+Do NOT repeat yourself if you've already responded about this blocker. Do NOT use bullet point lists or headers. Write as a natural chat message.`,
     },
   },
   {
@@ -133,40 +143,16 @@ Keep response brief (2-3 sentences max).`,
     action: {
       type: 'insight',
       insightType: 'action',
-      template: `A decision was made in the conversation. Extract and document:
-1. **Decision**: What was decided
-2. **Made by**: Who made or agreed to this decision
-3. **Rationale**: Brief reasoning (if mentioned)
-4. **Next steps**: Action items resulting from this decision
+      template: `A decision was made in the conversation. Look at only the most recent messages to extract:
+- **Decision**: What was decided (one sentence)
+- **Made by**: Who decided
+- **Next steps**: 1-2 concrete action items
 
-Format as clear bullet points.`,
+Be specific. Quote the actual decision from the message.`,
     },
   },
 
-  // Medium Priority - Team dynamics
-  {
-    id: 'ASYNC_FRUSTRATION_HELPER',
-    name: 'Frustration Helper',
-    description: 'Offer help when user seems frustrated',
-    execution: 'async',
-    type: 'intent',
-    enabled: true,
-    priority: 70,
-    cooldownMinutes: 20,
-    conditions: {
-      triggerSentiments: ['frustrated', 'negative'],
-      minUrgency: 'high',
-    },
-    action: {
-      type: 'chat_message',
-      template: `The user seems frustrated. Please:
-1. Acknowledge their frustration empathetically
-2. Ask what specific issue they're facing
-3. Offer one concrete suggestion if you can
-
-Keep tone supportive but solution-focused. Max 2-3 sentences.`,
-    },
-  },
+  // Medium Priority - Action tracking
   {
     id: 'ASYNC_COMMITMENT_TRACKER',
     name: 'Commitment Tracker',
@@ -182,61 +168,12 @@ Keep tone supportive but solution-focused. Max 2-3 sentences.`,
     action: {
       type: 'insight',
       insightType: 'action',
-      template: `An action commitment was detected. Extract:
-1. **Owner**: Who made the commitment
-2. **Task**: What they committed to
-3. **Deadline**: When (if mentioned)
-4. **Context**: Why this task matters
+      template: `An action commitment was detected. From the most recent message, extract:
+- **Owner**: Who committed
+- **Task**: What they will do (one sentence)
+- **Deadline**: When, if mentioned
 
-Format as a trackable action item.`,
-    },
-  },
-
-  // Lower Priority - Nice to have
-  {
-    id: 'ASYNC_CONFUSION_DETECTOR',
-    name: 'Confusion Detector',
-    description: 'Detect when team is confused about a topic',
-    execution: 'async',
-    type: 'semantic',
-    enabled: false, // Disabled by default - can be noisy
-    priority: 50,
-    cooldownMinutes: 30,
-    conditions: {
-      semanticQuery: 'I am confused and don\'t understand what is happening or what to do next',
-      threshold: 0.75,
-    },
-    action: {
-      type: 'chat_message',
-      template: `The team seems confused. Please:
-1. Identify the source of confusion
-2. Provide a clear, concise explanation
-3. Offer to clarify further if needed
-
-Keep explanation simple and practical.`,
-    },
-  },
-  {
-    id: 'ASYNC_KNOWLEDGE_GAP',
-    name: 'Knowledge Gap Detector',
-    description: 'Detect when team is asking about unfamiliar concepts',
-    execution: 'async',
-    type: 'semantic',
-    enabled: false, // Disabled by default
-    priority: 45,
-    cooldownMinutes: 60,
-    conditions: {
-      semanticQuery: 'What does this mean? Can someone explain? I don\'t understand this concept',
-      threshold: 0.7,
-    },
-    action: {
-      type: 'insight',
-      insightType: 'suggestion',
-      template: `A knowledge gap was detected. Provide:
-1. **Concept**: What the team is asking about
-2. **Explanation**: Clear, beginner-friendly explanation
-3. **Example**: A practical example if helpful
-4. **Resources**: Suggestions for learning more`,
+Keep it short — this becomes a trackable action item.`,
     },
   },
 ];
@@ -248,6 +185,17 @@ Keep explanation simple and practical.`,
 /** All system rules - sync first, then async */
 export const ALL_SYSTEM_RULES: RuleDefinition[] = [...SYNC_RULES, ...ASYNC_RULES];
 
+/** 
+ * Backward-compatible alias for ALL_SYSTEM_RULES.
+ * Used by chimeRuleController.ts and ruleProvider.ts.
+ */
+export const DEFAULT_RULES: RuleDefinition[] = ALL_SYSTEM_RULES;
+
+/** Get only enabled default rules */
+export function getDefaultEnabledRules(): RuleDefinition[] {
+  return ALL_SYSTEM_RULES.filter(r => r.enabled);
+}
+
 /** Get rules by execution type */
 export function getSystemRulesByExecution(execution: 'sync' | 'async'): RuleDefinition[] {
   return ALL_SYSTEM_RULES.filter(r => r.execution === execution);
@@ -256,4 +204,11 @@ export function getSystemRulesByExecution(execution: 'sync' | 'async'): RuleDefi
 /** Get rule by ID */
 export function getSystemRuleById(id: string): RuleDefinition | undefined {
   return ALL_SYSTEM_RULES.find(r => r.id === id);
+}
+
+/**
+ * @deprecated Use getSystemRuleById instead
+ */
+export function getRuleById(ruleId: string): RuleDefinition | undefined {
+  return getSystemRuleById(ruleId);
 }

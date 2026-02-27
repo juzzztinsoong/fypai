@@ -21,8 +21,9 @@
 
 import { prisma } from '../db.js'
 import { Team, TeamMember } from '@prisma/client'
-import { TeamDTO, TeamWithMembersDTO, TeamMemberDTO, CreateTeamRequest, UpdateTeamRequest, AddTeamMemberRequest, teamWithMembersToDTO, teamToDTO } from '../types.js'
+import { TeamDTO, TeamWithMembersDTO, TeamMemberDTO, CreateTeamRequest, UpdateTeamRequest, AddTeamMemberRequest, teamWithMembersToDTO, teamToDTO, TaskContextDTO } from '../types.js'
 import { RuleSeederService } from '../services/ruleSeederService.js'
+import { Server as SocketIOServer } from 'socket.io'
 
 export class TeamController {
   /**
@@ -217,5 +218,66 @@ export class TeamController {
         userId
       }
     })
+  }
+
+  // ── Socket.IO instance for task context broadcasts ──
+  private static io: SocketIOServer | null = null;
+
+  static setSocketIO(io: SocketIOServer): void {
+    this.io = io;
+    console.log('[TeamController] ✅ Socket.IO instance configured');
+  }
+
+  /**
+   * Get task context for a team (Sprint D - Part 5)
+   * @param {string} teamId - Team ID
+   * @returns {Promise<TaskContextDTO>}
+   */
+  static async getTaskContext(teamId: string): Promise<TaskContextDTO> {
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { taskContext: true, taskContextUpdatedAt: true, taskContextUpdatedBy: true },
+    });
+
+    if (!team) throw new Error('Team not found');
+
+    return {
+      content: team.taskContext || null,
+      updatedAt: team.taskContextUpdatedAt ? team.taskContextUpdatedAt.toISOString() : null,
+      updatedBy: team.taskContextUpdatedBy || null,
+    };
+  }
+
+  /**
+   * Update task context for a team (Sprint D - Part 5)
+   * @param {string} teamId - Team ID
+   * @param {string} content - Markdown-formatted task context
+   * @param {string} userId - User who updated
+   * @returns {Promise<TaskContextDTO>}
+   */
+  static async updateTaskContext(teamId: string, content: string, userId: string): Promise<TaskContextDTO> {
+    const team = await prisma.team.update({
+      where: { id: teamId },
+      data: {
+        taskContext: content,
+        taskContextUpdatedAt: new Date(),
+        taskContextUpdatedBy: userId,
+      },
+      select: { taskContext: true, taskContextUpdatedAt: true, taskContextUpdatedBy: true },
+    });
+
+    const result: TaskContextDTO = {
+      content: team.taskContext || null,
+      updatedAt: team.taskContextUpdatedAt ? team.taskContextUpdatedAt.toISOString() : null,
+      updatedBy: team.taskContextUpdatedBy || null,
+    };
+
+    // Broadcast to team
+    if (this.io) {
+      this.io.to(`team:${teamId}`).emit('team:context:updated', { teamId, ...result });
+      console.log(`[TeamController] 📋 Broadcasted team:context:updated to team: ${teamId}`);
+    }
+
+    return result;
   }
 }

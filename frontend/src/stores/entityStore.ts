@@ -9,7 +9,7 @@
  */
 
 import { create } from 'zustand'
-import type { UserDTO, TeamWithMembersDTO, MessageDTO, AIInsightDTO } from '@fypai/types'
+import type { UserDTO, TeamWithMembersDTO, MessageDTO, AIInsightDTO, TaskContextDTO } from '@fypai/types'
 
 // ============================================================================
 // STABLE EMPTY REFERENCES
@@ -59,6 +59,9 @@ interface EntityState {
   optimistic: {
     messages: Map<string, { tempId: string; correlationId: string }>
   }
+
+  // Sprint D: Task context per team
+  taskContexts: Record<string, TaskContextDTO>
 }
 
 interface EntityActions {
@@ -93,6 +96,10 @@ interface EntityActions {
   addOptimisticMessage: (tempMessage: MessageDTO, correlationId: string) => void
   confirmMessage: (correlationId: string, serverMessage: MessageDTO) => void
   removeOptimisticMessage: (tempId: string) => void
+
+  // Task context methods
+  setTaskContext: (teamId: string, context: TaskContextDTO) => void
+  getTaskContext: (teamId: string) => TaskContextDTO | null
 }
 
 type EntityStore = EntityState & EntityActions
@@ -120,6 +127,9 @@ export const useEntityStore = create<EntityStore>((set, get) => ({
   optimistic: {
     messages: new Map(),
   },
+
+  // Sprint D: Task context per team
+  taskContexts: {},
   
   // ============================================================================
   // USER METHODS
@@ -580,5 +590,20 @@ export const useEntityStore = create<EntityStore>((set, get) => ({
         },
       }
     })
+  },
+
+  // ============================================================================
+  // TASK CONTEXT METHODS
+  // ============================================================================
+
+  setTaskContext: (teamId, context) => set((state) => ({
+    taskContexts: {
+      ...state.taskContexts,
+      [teamId]: context,
+    },
+  })),
+
+  getTaskContext: (teamId) => {
+    return get().taskContexts[teamId] || null
   },
 }))

@@ -51,6 +51,42 @@ router.post('/', async (req, res, next) => {
 })
 
 /**
+ * PATCH /api/insights/:id/status
+ * Update insight lifecycle status (Sprint D - Part 2)
+ */
+router.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params
+    const { status, userId } = req.body
+    if (!status || !userId) {
+      return res.status(400).json({ error: 'status and userId are required' })
+    }
+    const validStatuses = ['new', 'reviewed', 'accepted', 'dismissed', 'archived']
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` })
+    }
+    const insight = await AIInsightController.updateInsightStatus(id, { status, userId })
+    res.json(insight)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * PATCH /api/insights/:id
+ * Update insight fields (Sprint D - Part 3: Mutable Action Items)
+ */
+router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params
+    const insight = await AIInsightController.updateInsight(id, req.body)
+    res.json(insight)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
  * DELETE /api/insights/team/:teamId
  * Reset team insights by deleting all AI insights for team
  */

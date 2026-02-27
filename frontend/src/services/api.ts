@@ -56,18 +56,24 @@ function isRetryableError(error: AxiosError): boolean {
   }
   
   const status = error.response.status
+  const method = error.config?.method?.toUpperCase() || 'GET'
   
-  // Retry 5xx server errors
+  // Retry 5xx server errors (all methods)
   if (status >= 500) {
     return true
   }
   
-  // Retry 429 rate limit
+  // Retry 429 rate limit — only for idempotent methods (GET, HEAD, OPTIONS)
+  // POST/PUT/DELETE are NOT idempotent: retrying creates duplicates
   if (status === 429) {
-    return true
+    const idempotent = ['GET', 'HEAD', 'OPTIONS'].includes(method)
+    if (!idempotent) {
+      console.warn(`[API] 429 on ${method} — skipping retry (non-idempotent)`)
+    }
+    return idempotent
   }
   
-  // Don't retry 4xx client errors (except 429)
+  // Don't retry 4xx client errors (except 429 for idempotent)
   return false
 }
 
@@ -86,7 +92,7 @@ export const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 30 second timeout (LLM calls can be slow)
 })
 
 /**

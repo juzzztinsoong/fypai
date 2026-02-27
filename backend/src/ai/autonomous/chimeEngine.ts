@@ -4,53 +4,20 @@
  * Core engine for evaluating and executing autonomous AI chime rules.
  * Monitors conversation flow and triggers AI responses based on patterns,
  * thresholds, schedules, or semantic signals.
+ * 
+ * Types imported from ruleDefinitions.ts (single source of truth).
  */
 
-export type ChimeRuleType = 'pattern' | 'threshold' | 'semantic' | 'schedule' | 'hybrid';
-export type ChimeRulePriority = 'low' | 'medium' | 'high' | 'critical';
-export type ChimeActionType = 'chat_message' | 'insight' | 'both';
-export type InsightType = 'action' | 'suggestion' | 'analysis' | 'summary';
+import type { RuleDefinition, RuleConditions, RuleAction, RuleType, RuleExecution } from '../rules/ruleDefinitions.js';
 
-export interface ChimeRuleConditions {
-  patterns?: string[];        // Regex patterns to match
-  keywords?: string[];        // Keywords to detect
-  messageCount?: number;      // Trigger after N messages
-  timeWindow?: number;        // Within X minutes
-  semanticQuery?: string;     // Vector similarity search query
-  schedule?: string;          // Cron expression for scheduled triggers
-  threshold?: number;         // Similarity threshold for semantic rules
-  
-  // Phase 6.2: Intent-based conditions (used by async rules)
-  requiredIntents?: string[]; // IntentTypes that trigger this rule
-  minUrgency?: string;        // Minimum urgency level ('low' | 'medium' | 'high' | 'critical')
-  triggerSentiments?: string[]; // Sentiments that trigger this rule
-}
+// Re-export the canonical types for backward compatibility
+export type { RuleDefinition as ChimeRule, RuleConditions as ChimeRuleConditions, RuleAction as ChimeRuleAction, RuleType as ChimeRuleType, RuleExecution as ChimeRuleExecution };
 
-export interface ChimeRuleAction {
-  type: ChimeActionType;
-  insightType?: InsightType;  // Required if type includes 'insight'
-  template: string;           // Prompt template for LLM
-}
-
-export type ChimeRuleExecution = 'sync' | 'async';
-
-export interface ChimeRule {
-  id: string;
-  name: string;
-  type: ChimeRuleType;
-  enabled: boolean;
-  priority: ChimeRulePriority;
-  cooldownMinutes: number;    // Minimum time between rule triggers
-  conditions: ChimeRuleConditions;
-  action: ChimeRuleAction;
-  execution?: ChimeRuleExecution; // 'sync' = immediate, 'async' = after embedding with intent classification
-  teamId?: string;            // Optional: team-specific rule
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+// Local alias for use within this file
+type ChimeRule = RuleDefinition;
 
 export interface ChimeDecision {
-  rule: ChimeRule;
+  rule: RuleDefinition;
   teamId: string;
   triggeringMessageIds: string[];
   confidence: number;         // 0-1 score for rule match strength
@@ -59,9 +26,9 @@ export interface ChimeDecision {
 
 export interface ChimeEvaluationContext {
   teamId: string;
-  recentMessages: any[];      // MessageDTO[] - will import from types
+  recentMessages: any[];      // MessageDTO[]
   newMessageId?: string;      // ID of the new message that triggered evaluation
-  recentInsights: any[];      // AIInsightDTO[] - will import from types
+  recentInsights: any[];      // AIInsightDTO[]
   currentTime: Date;
 }
 
@@ -72,10 +39,10 @@ export interface ChimeEvaluationContext {
  * when AI should proactively respond.
  */
 export class ChimeEvaluator {
-  private rules: ChimeRule[];
+  private rules: RuleDefinition[];
   private lastChimeTimes: Map<string, Date>; // ruleId -> last trigger time
 
-  constructor(rules: ChimeRule[] = []) {
+  constructor(rules: RuleDefinition[] = []) {
     this.rules = rules.filter(r => r.enabled);
     this.lastChimeTimes = new Map();
   }
@@ -118,10 +85,11 @@ export class ChimeEvaluator {
       }
     }
 
-    // Sort by priority (critical > high > medium > low)
-    const priorityOrder: ChimeRulePriority[] = ['critical', 'high', 'medium', 'low'];
+    // Sort by priority (higher number = higher priority)
     decisions.sort((a, b) => {
-      return priorityOrder.indexOf(a.rule.priority) - priorityOrder.indexOf(b.rule.priority);
+      const priorityA = typeof a.rule.priority === 'number' ? a.rule.priority : 0;
+      const priorityB = typeof b.rule.priority === 'number' ? b.rule.priority : 0;
+      return priorityB - priorityA;
     });
 
     return decisions;
@@ -150,19 +118,15 @@ export class ChimeEvaluator {
     
     switch (rule.type) {
       case 'pattern':
+      case 'intent':
         return this.evaluatePatternRule(rule, context);
-      
-      case 'threshold':
-        return this.evaluateThresholdRule(rule, context);
       
       case 'semantic':
         return this.evaluateSemanticRule(rule, context);
       
       case 'schedule':
-        return this.evaluateScheduleRule(rule, context);
-      
-      case 'hybrid':
-        return this.evaluateHybridRule(rule, context);
+        console.warn('[ChimeEvaluator] Schedule rules not yet implemented');
+        return { triggered: false, confidence: 0, messageIds: [] };
       
       default:
         console.warn(`[ChimeEvaluator] Unknown rule type: ${rule.type}`);
@@ -178,7 +142,8 @@ export class ChimeEvaluator {
     context: ChimeEvaluationContext
   ): { triggered: boolean; confidence: number; messageIds: string[] } {
     
-    const { patterns, keywords, messageCount = 1 } = rule.conditions;
+    const { patterns, keywords } = rule.conditions;
+    const messageCount = 1; // Minimum matches needed to trigger
     const matchingMessages: string[] = [];
     let totalMatches = 0;
     let newMessageMatches = false;
@@ -232,32 +197,7 @@ export class ChimeEvaluator {
     return { triggered, confidence, messageIds: matchingMessages };
   }
 
-  /**
-   * Evaluate threshold-based rule (message count, time window)
-   */
-  private evaluateThresholdRule(
-    rule: ChimeRule,
-    context: ChimeEvaluationContext
-  ): { triggered: boolean; confidence: number; messageIds: string[] } {
-    
-    const { messageCount = 10, timeWindow } = rule.conditions;
-    
-    // Filter messages within time window if specified
-    let relevantMessages = context.recentMessages;
-    if (timeWindow) {
-      const cutoffTime = new Date(context.currentTime.getTime() - (timeWindow * 60 * 1000));
-      relevantMessages = relevantMessages.filter(m => {
-        const msgTime = new Date(m.createdAt);
-        return msgTime >= cutoffTime;
-      });
-    }
 
-    const triggered = relevantMessages.length >= messageCount;
-    const confidence = triggered ? Math.min(relevantMessages.length / (messageCount * 1.5), 1.0) : 0;
-    const messageIds = relevantMessages.map(m => m.id);
-
-    return { triggered, confidence, messageIds };
-  }
 
   /**
    * Evaluate semantic rule (vector similarity)
@@ -279,58 +219,7 @@ export class ChimeEvaluator {
     return { triggered: false, confidence: 0, messageIds: [] };
   }
 
-  /**
-   * Evaluate schedule-based rule (cron expression)
-   * TODO: Implement cron parsing and scheduling
-   */
-  private evaluateScheduleRule(
-    rule: ChimeRule,
-    context: ChimeEvaluationContext
-  ): { triggered: boolean; confidence: number; messageIds: string[] } {
-    
-    console.warn('[ChimeEvaluator] Schedule rules not yet implemented (requires cron parser)');
-    
-    // Simple time-based check as placeholder
-    const { messageCount = 1 } = rule.conditions;
-    const hasEnoughActivity = context.recentMessages.length >= messageCount;
 
-    return { 
-      triggered: hasEnoughActivity, 
-      confidence: hasEnoughActivity ? 0.5 : 0, 
-      messageIds: context.recentMessages.map(m => m.id) 
-    };
-  }
-
-  /**
-   * Evaluate hybrid rule (multiple conditions must all match)
-   */
-  private async evaluateHybridRule(
-    rule: ChimeRule,
-    context: ChimeEvaluationContext
-  ): Promise<{ triggered: boolean; confidence: number; messageIds: string[] }> {
-    
-    // Evaluate as pattern rule first
-    const patternResult = this.evaluatePatternRule(rule, context);
-    if (!patternResult.triggered) {
-      return patternResult;
-    }
-
-    // Then check threshold requirements
-    const thresholdResult = this.evaluateThresholdRule(rule, context);
-    if (!thresholdResult.triggered) {
-      return thresholdResult;
-    }
-
-    // Both conditions met
-    const combinedConfidence = (patternResult.confidence + thresholdResult.confidence) / 2;
-    const allMessageIds = [...new Set([...patternResult.messageIds, ...thresholdResult.messageIds])];
-
-    return { 
-      triggered: true, 
-      confidence: combinedConfidence, 
-      messageIds: allMessageIds 
-    };
-  }
 
   /**
    * Add a new rule to the evaluator

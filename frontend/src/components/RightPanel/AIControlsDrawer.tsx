@@ -143,8 +143,10 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
   }
 
   // ── Action Button handlers ─────────────────────────────
+  const isGenerating = loadingSummary || loadingReport
+
   const handleGenerateSummary = async () => {
-    if (!currentTeam) return
+    if (!currentTeam || isGenerating) return
     setLoadingSummary(true)
     try {
       await insightService.generateSummary(currentTeam.id)
@@ -156,7 +158,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
   }
 
   const handleGenerateReport = async () => {
-    if (!currentTeam) return
+    if (!currentTeam || isGenerating) return
     setLoadingReport(true)
     try {
       await insightService.generateReport(currentTeam.id)
@@ -225,7 +227,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
         <div className="flex gap-1.5">
           <button
             onClick={handleGenerateSummary}
-            disabled={loadingSummary}
+            disabled={isGenerating}
             className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span>{loadingSummary ? '⏳' : '📝'}</span>
@@ -233,7 +235,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
           </button>
           <button
             onClick={handleGenerateReport}
-            disabled={loadingReport}
+            disabled={isGenerating}
             className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span>{loadingReport ? '⏳' : '📊'}</span>

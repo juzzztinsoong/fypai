@@ -160,11 +160,16 @@ async function flushBuffer() {
 
         // Phase 6: Async Semantic Rule Evaluation with Classification
         // Fire and forget (don't block worker completion)
+        // CRITICAL: Skip async chime for @agent messages — they are already handled
+        //          by the reactive path in aiAgentController.handleNewMessage()
+        const isAgentMention = content.toLowerCase().includes('@agent');
         const messageAgeMs = Date.now() - new Date(createdAt).getTime();
-        if (messageAgeMs <= ASYNC_CHIME_MAX_AGE_MS) {
+        if (messageAgeMs <= ASYNC_CHIME_MAX_AGE_MS && !isAgentMention) {
           UnifiedRuleEngine.getInstance().evaluateAsync(messageDTO, embedding, classification).catch(err => {
             console.error(`[EmbeddingWorker] Error in async rule evaluation for ${messageId}:`, err);
           });
+        } else if (isAgentMention) {
+          console.log(`[EmbeddingWorker] ⏭️ Skipping async chime for @agent message ${messageId} (handled reactively)`);
         }
         resolve();
       } catch (err) {

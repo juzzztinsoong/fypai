@@ -46,6 +46,11 @@ model Team {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
+  // Shared task context (Sprint D - Part 5)
+  taskContext           String?   // Markdown-formatted shared task brief
+  taskContextUpdatedAt  DateTime?
+  taskContextUpdatedBy  String?   // userId or 'agent'
+  
   teamMemberships    TeamMember[]
   messages           Message[]
   aiInsights         AIInsight[]
@@ -137,9 +142,21 @@ model AIInsight {
   metadata          String?  // JSON string for chime rule metadata
   agentMetadata     String?  // JSON string for agent details (model, cost, tier)
   
+  // Insight lifecycle (Sprint D - Part 2)
+  status            String   @default("new") // 'new' | 'reviewed' | 'accepted' | 'dismissed' | 'archived'
+  reviewedAt        DateTime?
+  reviewedBy        String?  // userId who changed status
+  
+  // Mutable action items (Sprint D - Part 3)
+  assigneeId        String?
+  dueDate           DateTime?
+  completedAt       DateTime?
+  actionPriority    String?  // 'low' | 'medium' | 'high' | 'urgent'
+  
   team              Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   
   @@index([teamId, createdAt])
+  @@index([status])
 }
 
 model ChimeRule {

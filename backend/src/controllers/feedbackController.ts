@@ -65,6 +65,16 @@ export class FeedbackController {
       throw error
     }
 
+    // Sprint D - Part 4: Act on ruleAction for chime feedback
+    if (data.ruleId && data.ruleAction && data.ruleAction !== 'none') {
+      try {
+        await FeedbackController.applyRuleAction(data.ruleId, data.ruleAction, message.teamId)
+      } catch (error) {
+        console.error('[FeedbackController] Failed to apply rule action:', error)
+        // Don't throw — feedback was still saved successfully
+      }
+    }
+
     return {
       id: feedback.id,
       messageId: feedback.messageId,
@@ -75,6 +85,71 @@ export class FeedbackController {
       ruleId: feedback.ruleId || undefined,
       ruleAction: (feedback.ruleAction || undefined) as FeedbackRuleAction | undefined,
       createdAt: feedback.createdAt.toISOString(),
+    }
+  }
+
+  /**
+   * Apply rule action from user feedback (Sprint D - Part 4)
+   * - reduce-frequency: multiply cooldown by 1.5
+   * - disable: set enabled = false
+   */
+  private static async applyRuleAction(
+    ruleId: string,
+    action: FeedbackRuleAction,
+    teamId: string
+  ): Promise<void> {
+    // Check if rule exists in DB (team override)
+    const existingRule = await prisma.chimeRule.findUnique({ where: { id: ruleId } })
+
+    if (action === 'reduce-frequency') {
+      if (existingRule) {
+        // Update existing rule's cooldown
+        await prisma.chimeRule.update({
+          where: { id: ruleId },
+          data: { cooldownMinutes: Math.round(existingRule.cooldownMinutes * 1.5) },
+        })
+        console.log(`[FeedbackController] ⏱ Rule ${ruleId} cooldown increased to ${Math.round(existingRule.cooldownMinutes * 1.5)}min`)
+      } else {
+        // Create team override with increased cooldown (default system rules have 15min cooldown)
+        await prisma.chimeRule.create({
+          data: {
+            id: ruleId,
+            name: `Override: ${ruleId}`,
+            type: 'pattern',
+            enabled: true,
+            priority: 50,
+            cooldownMinutes: 23, // 15 * 1.5 rounded
+            conditions: '{}',
+            action: '{}',
+            teamId,
+          },
+        })
+        console.log(`[FeedbackController] ⏱ Created team override for rule ${ruleId} with 23min cooldown`)
+      }
+    } else if (action === 'disable') {
+      if (existingRule) {
+        await prisma.chimeRule.update({
+          where: { id: ruleId },
+          data: { enabled: false },
+        })
+        console.log(`[FeedbackController] 🚫 Rule ${ruleId} disabled`)
+      } else {
+        // Create disabled team override
+        await prisma.chimeRule.create({
+          data: {
+            id: ruleId,
+            name: `Override: ${ruleId}`,
+            type: 'pattern',
+            enabled: false,
+            priority: 50,
+            cooldownMinutes: 15,
+            conditions: '{}',
+            action: '{}',
+            teamId,
+          },
+        })
+        console.log(`[FeedbackController] 🚫 Created disabled team override for rule ${ruleId}`)
+      }
     }
   }
 }

@@ -19,6 +19,8 @@ export {
   createTeam,
   addMemberToTeam,
   removeMemberFromTeam,
+  getTaskContext,
+  updateTaskContext,
 } from './teamService'
 
 export { default as teamService } from './teamService'

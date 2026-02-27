@@ -48,6 +48,7 @@ import feedbackRoutes from './routes/feedbackRoutes.js'
 import exportRoutes from './routes/exportRoutes.js'
 import { AIAgentController } from './controllers/aiAgentController.js'
 import { AIInsightController } from './controllers/aiInsightController.js'
+import { TeamController } from './controllers/teamController.js'
 import { ragService } from './services/ragService.js'
 import { UnifiedRuleEngine } from './ai/autonomous/unifiedRuleEngine.js'
 
@@ -149,6 +150,7 @@ setMessageSocketIO(io)
 AIAgentController.setSocketIO(io)
 AIInsightController.setSocketIO(io)
 UnifiedRuleEngine.setSocketIO(io)
+TeamController.setSocketIO(io)
 
 // Mark AI agent as online immediately
 io.emit('presence:update', { userId: 'agent', online: true })
@@ -183,14 +185,14 @@ server.listen(PORT, async () => {
     await prisma.$connect()
     console.log('✅ Database connected')
     
-    // Auto-seed chime rules for any teams that don't have them yet
+    // Auto-sync chime rules: seed new teams + sync existing teams with latest definitions
     try {
-      const { seeded, skipped } = await RuleSeederService.seedAllTeams()
-      if (seeded > 0) {
-        console.log(`✅ Auto-seeded rules for ${seeded} teams (${skipped} already had rules)`)
+      const { seeded, synced } = await RuleSeederService.syncAllTeams()
+      if (seeded > 0 || synced > 0) {
+        console.log(`✅ Rules synced: ${seeded} teams seeded, ${synced} teams updated`)
       }
     } catch (seedError) {
-      console.warn('⚠️  Rule auto-seeding failed:', seedError)
+      console.warn('⚠️  Rule auto-sync failed:', seedError)
     }
   } catch (error) {
     console.error('❌ Database connection failed:', error)

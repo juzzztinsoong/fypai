@@ -1,7 +1,7 @@
 import { MessageDTO } from '@fypai/types';
 import { prisma } from '../../db.js';
-import { ChimeRule, ChimeLog } from '@prisma/client';
-import { ChimeEvaluator, ChimeEvaluationContext, ChimeDecision, ChimeRule as IChimeRule } from './chimeEngine.js';
+import { ChimeEvaluator, ChimeEvaluationContext, ChimeDecision } from './chimeEngine.js';
+import type { RuleDefinition } from '../rules/ruleDefinitions.js';
 import { MessageController } from '../../controllers/messageController.js';
 import { AIInsightController } from '../../controllers/aiInsightController.js';
 import { GitHubModelsClient } from '../core/llm.js';
@@ -55,6 +55,15 @@ export class UnifiedRuleEngine {
   }
 
   /**
+   * Mark a message as already handled (e.g., by the reactive @agent path).
+   * Prevents the async evaluation from producing a duplicate response.
+   */
+  public markHandledExternally(messageId: string): void {
+    this.markProcessedTrigger(messageId);
+    console.log(`[UnifiedRuleEngine] ⏭️ Marked ${messageId} as externally handled (skipping future async eval)`);
+  }
+
+  /**
    * Sync Evaluation: Checks Regex/Keyword rules immediately
    * Called by MessageController/aiAgentController on new message
    */
@@ -91,17 +100,20 @@ export class UnifiedRuleEngine {
     };
 
     // 3. Evaluate
-    // Map Prisma ChimeRule to the interface expected by ChimeEvaluator
-    const mappedRules: IChimeRule[] = rules.map(r => ({
+    // Map Prisma ChimeRule to the RuleDefinition interface
+    const mappedRules: RuleDefinition[] = rules.map(r => ({
       id: r.id,
       name: r.name,
-      type: r.type as any,
+      description: r.description || '',
+      execution: (r.execution || 'sync') as RuleDefinition['execution'],
+      type: r.type as RuleDefinition['type'],
       enabled: r.enabled,
-      priority: r.priority as any,
+      priority: r.priority,
       cooldownMinutes: r.cooldownMinutes,
       conditions: JSON.parse(r.conditions),
       action: JSON.parse(r.action),
       teamId: r.teamId || undefined,
+      sourceRuleId: r.sourceRuleId || undefined,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt
     }));
@@ -178,36 +190,52 @@ export class UnifiedRuleEngine {
         let shouldTrigger = false;
         let confidence = 0;
 
-        // Phase 6.2: Intent-based matching (fast path)
+        // Phase 6.2: Intent + Urgency + Sentiment matching
+        // Logic: ALL specified conditions must pass (AND), not just any one (OR)
+        // Each condition that exists is a filter; if any filter fails, the rule doesn't trigger
+        let intentPassed = true;  // default true = no filter
+        let urgencyPassed = true;
+        let sentimentPassed = true;
+
+        // Intent filter
         if (conditions.requiredIntents && classification) {
           const requiredIntents = conditions.requiredIntents as IntentType[];
           if (requiredIntents.includes(classification.intent)) {
-            shouldTrigger = true;
-            confidence = classification.confidence;
+            confidence = Math.max(confidence, classification.confidence);
             console.log(`[UnifiedRuleEngine] 🎯 Intent match for ${rule.name}: ${classification.intent}`);
+          } else {
+            intentPassed = false;
           }
         }
 
-        // Phase 6.2: Urgency-based matching
+        // Urgency filter (only checked if intent passed or no intent required)
         if (conditions.minUrgency && classification) {
           const urgencyOrder: UrgencyLevel[] = ['low', 'medium', 'high', 'critical'];
           const minIndex = urgencyOrder.indexOf(conditions.minUrgency);
           const messageIndex = urgencyOrder.indexOf(classification.urgency);
           if (messageIndex >= minIndex) {
-            shouldTrigger = true;
             confidence = Math.max(confidence, 0.7 + (messageIndex * 0.1));
             console.log(`[UnifiedRuleEngine] 🚨 Urgency threshold met for ${rule.name}: ${classification.urgency}`);
+          } else {
+            urgencyPassed = false;
           }
         }
 
-        // Phase 6.2: Sentiment-based matching
+        // Sentiment filter
         if (conditions.triggerSentiments && classification) {
           const triggerSentiments = conditions.triggerSentiments as string[];
           if (triggerSentiments.includes(classification.sentiment)) {
-            shouldTrigger = true;
             confidence = Math.max(confidence, classification.confidence);
             console.log(`[UnifiedRuleEngine] 😤 Sentiment match for ${rule.name}: ${classification.sentiment}`);
+          } else {
+            sentimentPassed = false;
           }
+        }
+
+        // Rule triggers only if ALL specified conditions pass
+        if (intentPassed && urgencyPassed && sentimentPassed && 
+            (conditions.requiredIntents || conditions.minUrgency || conditions.triggerSentiments)) {
+          shouldTrigger = true;
         }
 
         // Semantic vector matching (original behavior)
@@ -238,12 +266,19 @@ export class UnifiedRuleEngine {
           
           const decision: ChimeDecision = {
             rule: { 
-              ...rule, 
-              conditions, 
+              id: rule.id,
+              name: rule.name,
+              description: rule.description || '',
+              execution: (rule.execution || 'async') as RuleDefinition['execution'],
+              type: rule.type as RuleDefinition['type'],
+              enabled: rule.enabled,
+              priority: rule.priority,
+              cooldownMinutes: rule.cooldownMinutes,
+              conditions,
               action: JSON.parse(rule.action),
-              type: rule.type as any,
-              priority: rule.priority as any
-            } as any,
+              teamId: rule.teamId || undefined,
+              sourceRuleId: rule.sourceRuleId || undefined,
+            },
             teamId: message.teamId,
             triggeringMessageIds: [message.id],
             confidence,
@@ -259,10 +294,11 @@ export class UnifiedRuleEngine {
 
     // Execute only the highest priority/confidence decision to prevent spam
     if (triggeredDecisions.length > 0) {
-      // Sort by priority then confidence
-      const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      // Sort by priority (numeric, higher = more important) then confidence
       triggeredDecisions.sort((a, b) => {
-        const priorityDiff = (priorityOrder[b.rule.priority] || 0) - (priorityOrder[a.rule.priority] || 0);
+        const priorityA = typeof a.rule.priority === 'number' ? a.rule.priority : 0;
+        const priorityB = typeof b.rule.priority === 'number' ? b.rule.priority : 0;
+        const priorityDiff = priorityB - priorityA;
         if (priorityDiff !== 0) return priorityDiff;
         return b.confidence - a.confidence;
       });
@@ -314,8 +350,26 @@ export class UnifiedRuleEngine {
         ${rule.action.template}
       `;
 
+      let taskContextMessage: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          taskContextMessage = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+          console.log(`[UnifiedRuleEngine] 📋 Injecting task context (${teamData.taskContext.length} chars)`);
+        }
+      } catch (error) {
+        console.warn('[UnifiedRuleEngine] Failed to load task context:', error);
+      }
+
       const response = await this.llm.generate({
         messages: [
+          ...(taskContextMessage ? [taskContextMessage] : []),
           { role: 'system', content: SYSTEM_PROMPTS.chimeAgent || 'You are a helpful AI assistant.' },
           { role: 'user', content: prompt }
         ],
@@ -329,7 +383,7 @@ export class UnifiedRuleEngine {
           type: rule.action.insightType,
           title: `AI: ${rule.name}`,
           content: response.content,
-          priority: rule.priority === 'critical' ? 'high' : 'medium',
+          priority: rule.priority >= 80 ? 'high' : 'medium',
           tags: ['auto-generated', 'chime', rule.name],
           metadata: { chimeRuleName: rule.name }
         });

@@ -1,15 +1,15 @@
 import { prisma } from '../../db.js';
-import { ChimeRule } from '../autonomous/chimeEngine.js';
-import { DEFAULT_RULES } from './systemRules.js';
+import type { RuleDefinition } from './ruleDefinitions.js';
+import { DEFAULT_RULES } from './ruleDefinitions.js';
 
 export class RuleProvider {
   /**
    * Get effective rules for a team
    * Merges system default rules with team-specific overrides from the database
    */
-  static async getRulesForTeam(teamId: string): Promise<ChimeRule[]> {
+  static async getRulesForTeam(teamId: string): Promise<RuleDefinition[]> {
     // 1. Start with system defaults
-    const rulesMap = new Map<string, ChimeRule>();
+    const rulesMap = new Map<string, RuleDefinition>();
     
     DEFAULT_RULES.forEach(rule => {
       rulesMap.set(rule.id, { ...rule }); // Clone to avoid mutation
@@ -28,16 +28,19 @@ export class RuleProvider {
     // 3. Merge DB rules (overwriting system defaults by ID)
     dbRules.forEach(dbRule => {
       try {
-        const rule: ChimeRule = {
+        const rule: RuleDefinition = {
           id: dbRule.id,
           name: dbRule.name,
-          type: dbRule.type as any,
+          description: dbRule.description || '',
+          execution: (dbRule.execution || 'sync') as 'sync' | 'async',
+          type: dbRule.type as RuleDefinition['type'],
           enabled: dbRule.enabled,
-          priority: dbRule.priority as any,
+          priority: dbRule.priority,
           cooldownMinutes: dbRule.cooldownMinutes,
           conditions: JSON.parse(dbRule.conditions),
           action: JSON.parse(dbRule.action),
           teamId: dbRule.teamId || undefined,
+          sourceRuleId: dbRule.sourceRuleId || undefined,
           createdAt: dbRule.createdAt,
           updatedAt: dbRule.updatedAt
         };

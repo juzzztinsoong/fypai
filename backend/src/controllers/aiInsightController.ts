@@ -17,7 +17,7 @@
  */
 
 import { prisma } from '../db.js'
-import { AIInsightDTO, CreateAIInsightRequest, aiInsightToDTO, aiInsightsToDTO } from '../types.js'
+import { AIInsightDTO, CreateAIInsightRequest, UpdateAIInsightRequest, UpdateInsightStatusRequest, aiInsightToDTO, aiInsightsToDTO } from '../types.js'
 import { GitHubModelsClient } from '../ai/core/llm.js'
 import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/core/prompts.js'
 import { MessageController } from './messageController.js'
@@ -84,6 +84,86 @@ export class AIInsightController {
   }
 
   /**
+   * Update insight status (Sprint D - Part 2: Insight Lifecycle)
+   * @param {string} id - Insight ID
+   * @param {UpdateInsightStatusRequest} data - Status update data
+   * @returns {Promise<AIInsightDTO>} Updated insight DTO
+   */
+  static async updateInsightStatus(id: string, data: UpdateInsightStatusRequest): Promise<AIInsightDTO> {
+    const updateData: any = {
+      status: data.status,
+    };
+
+    // Set reviewedAt/reviewedBy on first status change from 'new'
+    if (data.status !== 'new') {
+      updateData.reviewedAt = new Date();
+      updateData.reviewedBy = data.userId;
+    }
+
+    // Set completedAt when accepted
+    if (data.status === 'accepted') {
+      updateData.completedAt = new Date();
+    } else {
+      updateData.completedAt = null;
+    }
+
+    const insight = await prisma.aIInsight.update({
+      where: { id },
+      data: updateData,
+    });
+
+    const insightDTO = aiInsightToDTO(insight);
+
+    // Invalidate team cache
+    await CacheService.invalidateTeamCache(insight.teamId);
+
+    // Broadcast update via WebSocket
+    if (this.io) {
+      this.io.to(`team:${insight.teamId}`).emit('insight:updated', insightDTO);
+      console.log(`[AIInsightController] 📝 Broadcasted insight:updated (status=${data.status}) to team: ${insight.teamId}`);
+    }
+
+    return insightDTO;
+  }
+
+  /**
+   * Update insight fields (Sprint D - Part 3: Mutable Action Items)
+   * @param {string} id - Insight ID
+   * @param {UpdateAIInsightRequest} data - Fields to update
+   * @returns {Promise<AIInsightDTO>} Updated insight DTO
+   */
+  static async updateInsight(id: string, data: UpdateAIInsightRequest): Promise<AIInsightDTO> {
+    const updateData: any = {};
+
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.content !== undefined) updateData.content = data.content;
+    if (data.priority !== undefined) updateData.priority = data.priority;
+    if (data.tags !== undefined) updateData.tags = data.tags ? JSON.stringify(data.tags) : null;
+    if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
+    if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+    if (data.completedAt !== undefined) updateData.completedAt = data.completedAt ? new Date(data.completedAt) : null;
+    if (data.actionPriority !== undefined) updateData.actionPriority = data.actionPriority;
+
+    const insight = await prisma.aIInsight.update({
+      where: { id },
+      data: updateData,
+    });
+
+    const insightDTO = aiInsightToDTO(insight);
+
+    // Invalidate team cache
+    await CacheService.invalidateTeamCache(insight.teamId);
+
+    // Broadcast update via WebSocket
+    if (this.io) {
+      this.io.to(`team:${insight.teamId}`).emit('insight:updated', insightDTO);
+      console.log(`[AIInsightController] 📝 Broadcasted insight:updated to team: ${insight.teamId}`);
+    }
+
+    return insightDTO;
+  }
+
+  /**
    * Delete an AI insight
    * @param {string} id - Insight ID
    * @returns {Promise<void>}
@@ -134,10 +214,28 @@ export class AIInsightController {
 
     const conversationHistory = buildConversationContext(messages, team, 50);
 
+    let taskContextMessage: { role: 'system'; content: string } | null = null;
+    try {
+      const teamData = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { taskContext: true },
+      });
+      if (teamData?.taskContext) {
+        taskContextMessage = {
+          role: 'system' as const,
+          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+        };
+        console.log(`[AIInsightController] 📋 Injecting task context into summary (${teamData.taskContext.length} chars)`);
+      }
+    } catch (error) {
+      console.warn('[AIInsightController] Failed to load task context for summary:', error);
+    }
+
     console.log(`[AIInsightController] Generating summary for team ${teamId}`);
 
     const response = await this.llm.generate({
       messages: [
+        ...(taskContextMessage ? [taskContextMessage] : []),
         { role: 'system', content: SYSTEM_PROMPTS.summarizer },
         ...conversationHistory,
         { role: 'user', content: 'Please provide a comprehensive summary of our conversation, including key points, decisions, and action items.' },
@@ -193,6 +291,23 @@ export class AIInsightController {
 
     const conversationHistory = buildConversationContext(messages, team, 50);
 
+    let taskContextMessage: { role: 'system'; content: string } | null = null;
+    try {
+      const teamData = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { taskContext: true },
+      });
+      if (teamData?.taskContext) {
+        taskContextMessage = {
+          role: 'system' as const,
+          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+        };
+        console.log(`[AIInsightController] 📋 Injecting task context into report (${teamData.taskContext.length} chars)`);
+      }
+    } catch (error) {
+      console.warn('[AIInsightController] Failed to load task context for report:', error);
+    }
+
     const defaultPrompt = 'Generate a comprehensive report of the team discussion, including context, key topics, decisions made, action items, and next steps.';
     const reportPrompt = prompt || defaultPrompt;
 
@@ -200,6 +315,7 @@ export class AIInsightController {
 
     const response = await this.llm.generate({
       messages: [
+        ...(taskContextMessage ? [taskContextMessage] : []),
         { role: 'system', content: SYSTEM_PROMPTS.assistant },
         ...conversationHistory,
         { role: 'user', content: reportPrompt },

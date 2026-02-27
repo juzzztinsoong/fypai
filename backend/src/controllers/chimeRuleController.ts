@@ -7,8 +7,8 @@
 
 import { Request, Response } from 'express';
 import { prisma } from '../db.js';
-import type { ChimeRule } from '../ai/autonomous/chimeEngine.js';
-import { DEFAULT_RULES, getDefaultEnabledRules } from '../ai/rules/systemRules.js';
+import type { RuleDefinition } from '../ai/rules/ruleDefinitions.js';
+import { DEFAULT_RULES, getDefaultEnabledRules } from '../ai/rules/ruleDefinitions.js';
 
 export class ChimeRuleController {
   /**
@@ -100,7 +100,7 @@ export class ChimeRuleController {
    */
   static async createRule(req: Request, res: Response) {
     try {
-      const ruleData: ChimeRule = req.body;
+      const ruleData: RuleDefinition = req.body;
 
       const rule = await prisma.chimeRule.create({
         data: {
@@ -145,7 +145,7 @@ export class ChimeRuleController {
   static async updateRule(req: Request, res: Response) {
     try {
       const { ruleId } = req.params;
-      const updates: Partial<ChimeRule> = req.body;
+      const updates: Partial<RuleDefinition> = req.body;
 
       const rule = await prisma.chimeRule.update({
         where: { id: ruleId },
@@ -306,7 +306,7 @@ export class ChimeRuleController {
   /**
    * Get active rules for chime evaluation (internal use)
    */
-  static async getActiveRules(teamId: string): Promise<ChimeRule[]> {
+  static async getActiveRules(teamId: string): Promise<RuleDefinition[]> {
     console.log(`[ChimeRuleController] 🔍 Fetching active rules for team: ${teamId}`);
     
     const rules = await prisma.chimeRule.findMany({
@@ -335,11 +335,11 @@ export class ChimeRuleController {
     return rules.map(rule => ({
       id: rule.id,
       name: rule.name,
-      description: rule.description,
-      type: rule.type as any,
-      execution: (rule.execution || 'sync') as any,
+      description: rule.description || '',
+      type: rule.type as RuleDefinition['type'],
+      execution: (rule.execution || 'sync') as RuleDefinition['execution'],
       enabled: rule.enabled,
-      priority: rule.priority as any,
+      priority: rule.priority,
       cooldownMinutes: rule.cooldownMinutes,
       conditions: JSON.parse(rule.conditions),
       action: JSON.parse(rule.action),

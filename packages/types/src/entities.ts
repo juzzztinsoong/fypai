@@ -96,6 +96,15 @@ export interface AIInsight {
   tags: string | null  // JSON array string
   createdAt: Date
   relatedMessageIds: string | null  // JSON array string
+  // Insight lifecycle (Sprint D - Part 2)
+  status: string  // InsightStatus: 'new' | 'reviewed' | 'accepted' | 'dismissed' | 'archived'
+  reviewedAt: Date | null
+  reviewedBy: string | null
+  // Mutable action items (Sprint D - Part 3)
+  assigneeId: string | null
+  dueDate: Date | null
+  completedAt: Date | null
+  actionPriority: string | null
 }
 
 /**

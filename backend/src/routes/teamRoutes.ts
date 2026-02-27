@@ -132,4 +132,36 @@ router.delete('/:id/members/:userId', async (req, res, next) => {
   }
 })
 
+/**
+ * GET /api/teams/:id/context
+ * Get task context for a team (Sprint D - Part 5)
+ */
+router.get('/:id/context', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const context = await TeamController.getTaskContext(id)
+    res.json(context)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * PUT /api/teams/:id/context
+ * Update task context for a team (Sprint D - Part 5)
+ */
+router.put('/:id/context', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const { content, userId } = req.body
+    if (!content || !userId) {
+      return res.status(400).json({ error: 'content and userId are required' })
+    }
+    const context = await TeamController.updateTaskContext(id, content, userId)
+    res.json(context)
+  } catch (error) {
+    next(error)
+  }
+})
+
 export default router

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { FeedbackReason, FeedbackRuleAction } from '@fypai/types'
 import { submitFeedback } from '@/services/feedbackService'
+import { ChimeFeedbackPopover } from './ChimeFeedbackPopover'
 
 interface FeedbackButtonsProps {
   messageId: string
@@ -22,6 +23,7 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
   const [showNegativeDetails, setShowNegativeDetails] = useState(false)
   const [reason, setReason] = useState<FeedbackReason | ''>('')
   const [comment, setComment] = useState('')
+  const [ruleAction, setRuleAction] = useState<FeedbackRuleAction>('none')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -61,7 +63,7 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
       setSubmitting(true)
       setError(null)
 
-      const ruleAction: FeedbackRuleAction | undefined = chimeRuleId ? 'none' : undefined
+      const effectiveRuleAction: FeedbackRuleAction | undefined = chimeRuleId ? ruleAction : undefined
 
       await submitFeedback({
         messageId,
@@ -70,7 +72,7 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
         reason: reason || undefined,
         comment: comment.trim() || undefined,
         ruleId: chimeRuleId,
-        ruleAction,
+        ruleAction: effectiveRuleAction,
       })
       setShowNegativeDetails(false)
     } catch (err) {
@@ -139,6 +141,14 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
               placeholder="Tell us what was missing"
             />
           </label>
+
+          {/* Chime-specific rule action picker (Sprint D - Part 4) */}
+          {chimeRuleId && (
+            <ChimeFeedbackPopover
+              selectedAction={ruleAction}
+              onChange={setRuleAction}
+            />
+          )}
 
           <div className="flex items-center gap-2">
             <button
