@@ -28,6 +28,10 @@ GITHUB_TOKEN=your_github_models_token
 # IMPORTANT for LAN clients (CORS allowlist)
 # Use the host machine frontend origin, not localhost
 FRONTEND_URL=http://192.168.1.23:3000
+
+# Optional: allow additional frontend origins (comma-separated)
+# Example when teammates run frontend on their own machines:
+# FRONTEND_URLS=http://192.168.1.23:3000,http://192.168.1.50:3000
 ```
 
 ## 1) Initialize / Sync Database Schema (Prisma)
@@ -167,3 +171,7 @@ On each client device browser:
   - Ensure `frontend/.env.local` uses host IP for both `VITE_API_URL` and `VITE_WS_URL`.
   - Ensure `backend/.env` sets `FRONTEND_URL=http://<HOST_IP>:3000`.
   - Restart backend and frontend after env changes.
+- If data loads but realtime actions fail (no team join / no live updates):
+  - Check backend logs for `[CORS] Blocked Socket.IO origin`.
+  - Add the client frontend origin to `FRONTEND_URLS` in `backend/.env`.
+  - Restart backend after updating env.

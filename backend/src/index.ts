@@ -79,17 +79,45 @@ const server = createServer(app)
 let embeddingWorker: Worker | null = null
 
 // Allow multiple frontend origins for development
+const configuredOrigins = (process.env.FRONTEND_URLS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
 const allowedOrigins: string[] = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001',
-  process.env.FRONTEND_URL || ''
+  process.env.FRONTEND_URL || '',
+  ...configuredOrigins,
 ].filter((origin): origin is string => Boolean(origin))
+
+const privateLanOriginRegex = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)[^:]+(?::\d+)?$/
+
+function isAllowedOrigin(origin: string): boolean {
+  if (allowedOrigins.includes(origin)) return true
+
+  if (process.env.NODE_ENV !== 'production') {
+    if (privateLanOriginRegex.test(origin)) return true
+    if (/^https?:\/\/localhost(?::\d+)?$/.test(origin)) return true
+    if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin)) return true
+  }
+
+  return false
+}
 
 // Initialize Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || isAllowedOrigin(origin)) {
+        callback(null, true)
+        return
+      }
+
+      console.warn('[CORS] Blocked Socket.IO origin:', origin)
+      callback(new Error(`Origin not allowed: ${origin}`))
+    },
     methods: ['GET', 'POST'],
   },
 })
@@ -98,7 +126,15 @@ const io = new SocketIOServer(server, {
 // Sentry request/tracing handlers are automatically handled by expressIntegration in v8
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || isAllowedOrigin(origin)) {
+      callback(null, true)
+      return
+    }
+
+    console.warn('[CORS] Blocked HTTP origin:', origin)
+    callback(new Error(`Origin not allowed: ${origin}`))
+  },
 }))
 app.use(express.json())
 

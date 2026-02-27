@@ -116,7 +116,7 @@ class SocketService {
 
     this.connectionPromise = new Promise((resolve, reject) => {
       this.socket = io(serverUrl, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: false, // Phase 2.2: Manual reconnection with exponential backoff
         autoConnect: true,
       })
