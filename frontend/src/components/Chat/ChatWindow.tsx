@@ -15,9 +15,11 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { useEntityStore } from '@/stores/entityStore'
 import { createMessage } from '@/services/messageService'
 import { createResearchJob } from '@/services/researchJobService'
+import { classifyIntent } from '@/services/intentService'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
 import { socketService } from '@/services/socketService'
+import type { MessageMetadata } from '@/types'
 
 type ComposerMode = 'ask' | 'research'
 type ComposerOverrideMode = 'auto' | ComposerMode
@@ -47,6 +49,12 @@ export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
   const [composerOverrideMode, setComposerOverrideMode] = useState<ComposerOverrideMode>('auto')
   const [isResearchGenerating, setIsResearchGenerating] = useState(false)
+  const [lastRouteDecision, setLastRouteDecision] = useState<{
+    mode: ComposerMode
+    confidence: number
+    rationale: string
+    source: 'manual-override' | 'server-classifier' | 'frontend-fallback'
+  } | null>(null)
   
   // Get current team from UIStore
   const currentTeamId = useUIStore((state) => state.currentTeamId)
@@ -146,8 +154,41 @@ export const ChatWindow = () => {
 
     const submittedMessage = newMessage.trim()
     const inferredMode = inferComposerMode(submittedMessage)
-    const effectiveMode: ComposerMode =
-      composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
+
+    let effectiveMode: ComposerMode = composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
+    let routeDecision: {
+      mode: ComposerMode
+      confidence: number
+      rationale: string
+      source: 'manual-override' | 'server-classifier' | 'frontend-fallback'
+    }
+
+    if (composerOverrideMode !== 'auto') {
+      routeDecision = {
+        mode: composerOverrideMode,
+        confidence: 1,
+        rationale: 'Manual override selected by user.',
+        source: 'manual-override',
+      }
+    } else {
+      try {
+        const serverClassification = await classifyIntent(submittedMessage, currentTeam.id)
+        effectiveMode = serverClassification.mode
+        routeDecision = {
+          mode: serverClassification.mode,
+          confidence: serverClassification.confidence,
+          rationale: serverClassification.rationale,
+          source: 'server-classifier',
+        }
+      } catch {
+        routeDecision = {
+          mode: inferredMode,
+          confidence: 0.6,
+          rationale: 'Server classification unavailable; used frontend fallback heuristic.',
+          source: 'frontend-fallback',
+        }
+      }
+    }
 
     // Phase 2.3: Clear all timers and stop typing
     if (debounceTimeoutRef.current) {
@@ -160,14 +201,24 @@ export const ChatWindow = () => {
     }
     emitTypingStop()
 
+    const messageMetadata: MessageMetadata = {
+      routeMode: routeDecision.mode,
+      routeConfidence: routeDecision.confidence,
+      routeRationale: routeDecision.rationale,
+      routeSource: routeDecision.source,
+      routeOverrideUsed: composerOverrideMode !== 'auto',
+    }
+
     try {
       await createMessage({
         teamId: currentTeam.id,
         authorId: currentUser.id,
         content: submittedMessage,
         contentType: 'text',
+        metadata: messageMetadata,
       })
       setNewMessage('')
+      setLastRouteDecision(routeDecision)
 
       if (effectiveMode === 'research') {
         setIsResearchGenerating(true)
@@ -247,6 +298,18 @@ export const ChatWindow = () => {
             <span className="text-xs text-purple-600">→ long-form insight in Research</span>
           )}
         </div>
+
+        {lastRouteDecision && (
+          <div className="mb-2 inline-flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] text-indigo-700">
+            <span className="font-medium">
+              Routed: {lastRouteDecision.mode === 'research' ? 'Research' : 'Ask'}
+            </span>
+            <span className="text-indigo-500">•</span>
+            <span>{Math.round(lastRouteDecision.confidence * 100)}% confidence</span>
+            <span className="text-indigo-500">•</span>
+            <span className="capitalize">{lastRouteDecision.source.replace('-', ' ')}</span>
+          </div>
+        )}
 
         {/* Message Composer */}
         <div className="flex space-x-2">

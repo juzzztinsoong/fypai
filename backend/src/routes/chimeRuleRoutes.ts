@@ -9,6 +9,12 @@ import { ChimeRuleController } from '../controllers/chimeRuleController.js';
 
 const router = Router();
 
+// Phase 4: Rule presets
+router.get('/presets', ChimeRuleController.getRulePresets);
+router.post('/teams/:teamId/presets/preview', ChimeRuleController.previewPreset);
+router.post('/teams/:teamId/presets/apply', ChimeRuleController.applyPreset);
+router.post('/teams/:teamId/presets/reset', ChimeRuleController.resetPreset);
+
 // Get all rules for a team
 router.get('/teams/:teamId/rules', ChimeRuleController.getRules);
 

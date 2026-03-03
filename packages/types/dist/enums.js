@@ -31,6 +31,8 @@ export var TeamRole;
 export var ContentType;
 (function (ContentType) {
     ContentType["TEXT"] = "text";
+    // Deprecated: retained for backward compatibility with historical records.
+    // New AI long-form output should be stored as AIInsight + chat marker message.
     ContentType["AI_LONGFORM"] = "ai_longform";
     ContentType["NOTEBOOK"] = "notebook";
     ContentType["FILE"] = "file";

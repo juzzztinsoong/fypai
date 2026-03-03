@@ -49,5 +49,7 @@ export function isAIInsight(obj) {
         (obj.priority === null || typeof obj.priority === 'string') &&
         (obj.tags === null || typeof obj.tags === 'string') &&
         obj.createdAt instanceof Date &&
-        (obj.relatedMessageIds === null || typeof obj.relatedMessageIds === 'string'));
+        (obj.relatedMessageIds === null || typeof obj.relatedMessageIds === 'string') &&
+        (obj.metadata === null || typeof obj.metadata === 'string') &&
+        (obj.agentMetadata === null || typeof obj.agentMetadata === 'string'));
 }

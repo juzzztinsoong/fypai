@@ -89,6 +89,8 @@ export interface AIInsight {
     tags: string | null;
     createdAt: Date;
     relatedMessageIds: string | null;
+    metadata: string | null;
+    agentMetadata: string | null;
     status: string;
     reviewedAt: Date | null;
     reviewedBy: string | null;

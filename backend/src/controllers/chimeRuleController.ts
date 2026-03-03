@@ -8,9 +8,250 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db.js';
 import type { RuleDefinition } from '../ai/rules/ruleDefinitions.js';
-import { DEFAULT_RULES, getDefaultEnabledRules } from '../ai/rules/ruleDefinitions.js';
+import { DEFAULT_RULES } from '../ai/rules/ruleDefinitions.js';
+
+type RulePresetId = 'conservative' | 'balanced' | 'proactive';
+
+interface RulePresetConfig {
+  id: RulePresetId;
+  name: string;
+  description: string;
+  cooldownMultiplier: number;
+  minPriorityEnabled: number;
+  maxTriggersPerHour: number;
+}
+
+const RULE_PRESETS: Record<RulePresetId, RulePresetConfig> = {
+  conservative: {
+    id: 'conservative',
+    name: 'Conservative',
+    description: 'Fewer autonomous triggers, longer cooldowns, high-priority rules only.',
+    cooldownMultiplier: 1.6,
+    minPriorityEnabled: 80,
+    maxTriggersPerHour: 2,
+  },
+  balanced: {
+    id: 'balanced',
+    name: 'Balanced',
+    description: 'Default balance of helpfulness and interruption control.',
+    cooldownMultiplier: 1,
+    minPriorityEnabled: 65,
+    maxTriggersPerHour: 4,
+  },
+  proactive: {
+    id: 'proactive',
+    name: 'Proactive',
+    description: 'More frequent proactive support with shorter cooldowns.',
+    cooldownMultiplier: 0.75,
+    minPriorityEnabled: 40,
+    maxTriggersPerHour: 8,
+  },
+};
 
 export class ChimeRuleController {
+  private static getPresetFromRequest(req: Request): RulePresetConfig | null {
+    const presetId = req.body?.presetId as RulePresetId | undefined;
+    if (!presetId || !RULE_PRESETS[presetId]) {
+      return null;
+    }
+    return RULE_PRESETS[presetId];
+  }
+
+  private static estimateRuleMatches(
+    rule: { conditions: string; priority: number; cooldownMinutes: number; enabled: boolean; name: string; id: string },
+    recentMessages: string[],
+  ): number {
+    let parsedConditions: any = {};
+    try {
+      parsedConditions = JSON.parse(rule.conditions || '{}');
+    } catch {
+      parsedConditions = {};
+    }
+
+    const patterns: string[] = Array.isArray(parsedConditions.patterns) ? parsedConditions.patterns : [];
+    const keywords: string[] = Array.isArray(parsedConditions.keywords) ? parsedConditions.keywords : [];
+    const checkExpectsReply = Boolean(parsedConditions.checkExpectsReply);
+
+    let matches = 0;
+    for (const content of recentMessages) {
+      const lower = content.toLowerCase();
+
+      const keywordHit = keywords.some((keyword) => lower.includes(String(keyword).toLowerCase()));
+      const patternHit = patterns.some((pattern) => {
+        try {
+          return new RegExp(pattern, 'i').test(content);
+        } catch {
+          return false;
+        }
+      });
+      const expectsReplyHit = checkExpectsReply && content.includes('?');
+
+      if (keywordHit || patternHit || expectsReplyHit) {
+        matches += 1;
+      }
+    }
+
+    if (matches === 0 && (parsedConditions.requiredIntents || parsedConditions.semanticQuery)) {
+      matches = Math.max(1, Math.round(recentMessages.length * 0.08));
+    }
+
+    return matches;
+  }
+
+  static async getRulePresets(req: Request, res: Response) {
+    res.json({
+      presets: Object.values(RULE_PRESETS),
+    });
+  }
+
+  static async previewPreset(req: Request, res: Response) {
+    try {
+      const { teamId } = req.params;
+      const preset = this.getPresetFromRequest(req);
+
+      if (!preset) {
+        return res.status(400).json({ error: 'Valid presetId is required' });
+      }
+
+      const [rules, recentMessages] = await Promise.all([
+        prisma.chimeRule.findMany({
+          where: {
+            OR: [{ teamId }, { teamId: null }],
+          },
+          orderBy: { priority: 'desc' },
+        }),
+        prisma.message.findMany({
+          where: { teamId, contentType: 'text' },
+          orderBy: { createdAt: 'desc' },
+          take: 120,
+          select: { content: true },
+        }),
+      ]);
+
+      const messageContents = recentMessages.map((m) => m.content);
+
+      const ruleEstimates = rules.map((rule) => {
+        const baselineMatches = this.estimateRuleMatches(rule, messageContents);
+        const projectedMatchesRaw = Math.round(baselineMatches * (1 / preset.cooldownMultiplier));
+        const projectedMatches = Math.min(projectedMatchesRaw, preset.maxTriggersPerHour);
+        const wouldDisable = rule.priority < preset.minPriorityEnabled;
+
+        return {
+          ruleId: rule.id,
+          ruleName: rule.name,
+          currentEnabled: rule.enabled,
+          currentPriority: rule.priority,
+          currentCooldownMinutes: rule.cooldownMinutes,
+          projectedEnabled: wouldDisable ? false : rule.enabled,
+          projectedCooldownMinutes: Math.max(1, Math.round(rule.cooldownMinutes * preset.cooldownMultiplier)),
+          baselineEstimatedTriggersPerHour: baselineMatches,
+          projectedEstimatedTriggersPerHour: wouldDisable ? 0 : projectedMatches,
+        };
+      });
+
+      const projectedTotalTriggersPerHour = ruleEstimates.reduce(
+        (sum, r) => sum + r.projectedEstimatedTriggersPerHour,
+        0,
+      );
+
+      res.json({
+        teamId,
+        preset,
+        windowMessagesAnalyzed: messageContents.length,
+        projectedTotalTriggersPerHour,
+        cappedAtPresetMaxPerRule: preset.maxTriggersPerHour,
+        ruleEstimates,
+      });
+    } catch (error) {
+      console.error('[ChimeRuleController] Error previewing preset:', error);
+      res.status(500).json({ error: 'Failed to preview preset' });
+    }
+  }
+
+  static async applyPreset(req: Request, res: Response) {
+    try {
+      const { teamId } = req.params;
+      const preset = this.getPresetFromRequest(req);
+
+      if (!preset) {
+        return res.status(400).json({ error: 'Valid presetId is required' });
+      }
+
+      const teamRules = await prisma.chimeRule.findMany({
+        where: { teamId },
+      });
+
+      if (teamRules.length === 0) {
+        return res.status(404).json({ error: 'No team-scoped rules found to apply preset' });
+      }
+
+      let updatedCount = 0;
+      for (const rule of teamRules) {
+        const nextCooldown = Math.max(1, Math.round(rule.cooldownMinutes * preset.cooldownMultiplier));
+        const nextEnabled = rule.priority < preset.minPriorityEnabled ? false : rule.enabled;
+
+        await prisma.chimeRule.update({
+          where: { id: rule.id },
+          data: {
+            cooldownMinutes: nextCooldown,
+            enabled: nextEnabled,
+          },
+        });
+        updatedCount += 1;
+      }
+
+      res.json({
+        message: `Applied ${preset.name} preset to ${updatedCount} team rules`,
+        teamId,
+        preset,
+        updatedCount,
+      });
+    } catch (error) {
+      console.error('[ChimeRuleController] Error applying preset:', error);
+      res.status(500).json({ error: 'Failed to apply preset' });
+    }
+  }
+
+  static async resetPreset(req: Request, res: Response) {
+    try {
+      const { teamId } = req.params;
+
+      const teamRules = await prisma.chimeRule.findMany({
+        where: { teamId },
+      });
+
+      if (teamRules.length === 0) {
+        return res.status(404).json({ error: 'No team-scoped rules found to reset' });
+      }
+
+      let resetCount = 0;
+      for (const rule of teamRules) {
+        const fallbackKey = rule.sourceRuleId || rule.id;
+        const defaultRule = DEFAULT_RULES.find((candidate) => candidate.id === fallbackKey || candidate.name === rule.name);
+        if (!defaultRule) continue;
+
+        await prisma.chimeRule.update({
+          where: { id: rule.id },
+          data: {
+            cooldownMinutes: defaultRule.cooldownMinutes,
+            enabled: defaultRule.enabled,
+            priority: defaultRule.priority,
+          },
+        });
+        resetCount += 1;
+      }
+
+      res.json({
+        message: `Reset ${resetCount} team rules to default preset behavior`,
+        teamId,
+        resetCount,
+      });
+    } catch (error) {
+      console.error('[ChimeRuleController] Error resetting preset:', error);
+      res.status(500).json({ error: 'Failed to reset preset' });
+    }
+  }
+
   /**
    * Get all chime rules for a team (or global rules)
    */

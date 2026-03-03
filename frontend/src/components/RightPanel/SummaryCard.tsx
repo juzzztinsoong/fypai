@@ -12,9 +12,10 @@ import { InsightFrame } from './InsightFrame';
 interface SummaryCardProps {
   insight: AIInsightDTO;
   onJumpToSource?: (messageId: string) => void;
+  onJumpToChatMarker?: (insightId: string) => void;
 }
 
-export const SummaryCard = ({ insight, onJumpToSource }: SummaryCardProps) => {
+export const SummaryCard = ({ insight, onJumpToSource, onJumpToChatMarker }: SummaryCardProps) => {
   const content = (
     <div className="prose prose-sm prose-blue max-w-none text-gray-800">
       <ReactMarkdown
@@ -59,6 +60,7 @@ export const SummaryCard = ({ insight, onJumpToSource }: SummaryCardProps) => {
       timeClassName="text-xs text-blue-700"
       content={content}
       onJumpToSource={onJumpToSource}
+      onJumpToChatMarker={onJumpToChatMarker}
       jumpButtonClassName="mt-3 text-sm text-blue-700 hover:text-blue-900 font-medium flex items-center space-x-1"
       metadataClassName="mt-3 pt-3 border-t border-blue-100 text-xs text-blue-600"
     />

@@ -20,9 +20,10 @@ import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
 import { getResearchJobs } from '@/services/researchJobService';
 
-type ContentFilter = 'summaries' | 'research' | 'actions' | 'suggestions';
+type ContentFilter = 'all' | 'summaries' | 'research' | 'actions' | 'suggestions';
 
 const TABS: { key: ContentFilter; label: string; emoji?: string }[] = [
+  { key: 'all', label: 'All', emoji: '🧭' },
   { key: 'summaries', label: 'Summaries', emoji: '📝' },
   { key: 'research', label: 'Research', emoji: '🔎' },
   { key: 'actions', label: 'Actions', emoji: '✅' },
@@ -36,6 +37,7 @@ export const RightPanel = () => {
   const currentTeam = useEntityStore((state) => 
     currentTeamId ? state.getTeam(currentTeamId) : null
   );
+  const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync);
   const teamName = currentTeam?.name || 'Team';
   const researchRuns = useSessionStore((state) => state.getResearchRuns(currentTeamId || ''));
   
@@ -53,13 +55,17 @@ export const RightPanel = () => {
   // AI enabled state from team settings
   const isTeamAIEnabled = currentTeam?.isChimeEnabled ?? true;
   
-  const [contentFilter, setContentFilter] = useState<ContentFilter>('summaries');
+  const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
   const [showArchivedSummaries, setShowArchivedSummaries] = useState(false);
   const [showArchivedResearch, setShowArchivedResearch] = useState(false);
   const [showArchivedActions, setShowArchivedActions] = useState(false);
   const [showArchivedSuggestions, setShowArchivedSuggestions] = useState(false);
   const [showCompletedActions, setShowCompletedActions] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const applyingExternalSyncRef = useRef(false);
+  const lastSyncEmitAtRef = useRef(0);
+  const suppressAnchorEmitUntilRef = useRef(0);
+  const lastAppliedInsightRef = useRef<{ id: string; at: number } | null>(null);
 
   // Fetch insights when team changes
   useEffect(() => {
@@ -71,10 +77,10 @@ export const RightPanel = () => {
     }
   }, [currentTeamId]);
 
-  // Sort insights by date (newest first)
+  // Sort insights by date (oldest first, newest at bottom like chat)
   const insights = useMemo(() => {
     return [...teamInsights].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [teamInsights, currentTeamId]);
 
@@ -138,14 +144,37 @@ export const RightPanel = () => {
     [activeInsights]
   );
 
-  // Auto-scroll to bottom when content changes
+  // Bottom anchor on team switch
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [currentTeamId]);
 
+  // Keep panel chronologically bottom-aligned (like chat)
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [
+    contentFilter,
+    summaryInsights.length,
+    researchInsights.length,
+    actionInsights.length,
+    suggestionInsights.length,
+    archivedSummaryInsights.length,
+    archivedResearchInsights.length,
+    archivedActionInsights.length,
+    archivedSuggestionInsights.length,
+    showArchivedSummaries,
+    showArchivedResearch,
+    showArchivedActions,
+    showArchivedSuggestions,
+    showCompletedActions,
+  ]);
+
   const totalContent = activeInsights.length;
+  const allCount = activeInsights.length;
   const summaryCount = summaryInsights.length;
   const researchCount = researchInsights.length;
   const actionCount = actionInsights.length;
@@ -170,6 +199,168 @@ export const RightPanel = () => {
     useEntityStore.getState().updateTeam(currentTeamId, { isChimeEnabled: newState });
     socketService.toggleTeamAI(currentTeamId, newState);
   };
+
+  const focusInsightById = (insightId: string) => {
+    if (!insightId) return;
+
+    const insight = insightsById[insightId];
+    if (!insight) return;
+
+    const nextTab: ContentFilter =
+      insight.type === 'summary'
+        ? 'summaries'
+        : insight.type === 'document'
+        ? 'research'
+        : insight.type === 'action'
+        ? 'actions'
+        : 'suggestions';
+
+    setContentFilter(nextTab);
+
+    setTimeout(() => {
+      const insightElement = document.getElementById(`insight-${insightId}`);
+      if (!insightElement) return;
+
+      insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      insightElement.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-2');
+      setTimeout(() => {
+        insightElement.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2');
+      }, 1800);
+    }, 120);
+  };
+
+  const focusRenderedInsightOnly = (insightId: string) => {
+    if (!insightId) return;
+
+    setTimeout(() => {
+      const insightElement = document.getElementById(`insight-${insightId}`);
+      if (!insightElement) return;
+
+      const container = scrollRef.current;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = insightElement.getBoundingClientRect();
+      const distanceFromCenter = Math.abs((elementRect.top + elementRect.height / 2) - (containerRect.top + container.clientHeight / 2));
+
+      if (distanceFromCenter > 24) {
+        insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      insightElement.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-2');
+      setTimeout(() => {
+        insightElement.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2');
+      }, 1800);
+    }, 80);
+  };
+
+  const handleJumpToSource = (sourceId: string) => {
+    focusInsightById(sourceId);
+  };
+
+  const handleJumpToChatMarker = (insightId: string) => {
+    if (!insightId) return;
+    window.dispatchEvent(
+      new CustomEvent('fypai:focus-chat-marker', {
+        detail: { insightId },
+      })
+    );
+  };
+
+  useEffect(() => {
+    const handleFocusInsight = (event: Event) => {
+      const customEvent = event as CustomEvent<{ insightId?: string }>;
+      const insightId = customEvent.detail?.insightId;
+      if (!insightId) return;
+      focusInsightById(insightId);
+    };
+
+    window.addEventListener('fypai:focus-insight', handleFocusInsight as EventListener);
+    return () => {
+      window.removeEventListener('fypai:focus-insight', handleFocusInsight as EventListener);
+    };
+  }, [insightsById]);
+
+  useEffect(() => {
+    if (!enableTimelineSync) return;
+
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const onScroll = () => {
+      if (applyingExternalSyncRef.current) return;
+      if (Date.now() < suppressAnchorEmitUntilRef.current) return;
+
+      const now = Date.now();
+      if (now - lastSyncEmitAtRef.current < 80) return;
+      lastSyncEmitAtRef.current = now;
+
+      const cards = Array.from(container.querySelectorAll<HTMLElement>('[id^="insight-"]'));
+      if (!cards.length) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const centerY = containerRect.top + container.clientHeight / 2;
+
+      let bestInsightId: string | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (const card of cards) {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenterY = cardRect.top + cardRect.height / 2;
+        const distance = Math.abs(cardCenterY - centerY);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestInsightId = card.id.replace('insight-', '');
+        }
+      }
+
+      if (!bestInsightId) return;
+
+      window.dispatchEvent(
+        new CustomEvent('fypai:anchor-sync', {
+          detail: {
+            source: 'right-panel',
+            insightId: bestInsightId,
+          },
+        })
+      );
+    };
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+    };
+  }, [enableTimelineSync, contentFilter, currentTeamId, activeInsights.length]);
+
+  useEffect(() => {
+    if (!enableTimelineSync) return;
+
+    const handleAnchorSync = (event: Event) => {
+      const customEvent = event as CustomEvent<{ source?: 'chat' | 'right-panel'; insightId?: string }>;
+      if (customEvent.detail?.source !== 'chat') return;
+
+      const insightId = customEvent.detail.insightId;
+      if (!insightId) return;
+
+      if (lastAppliedInsightRef.current?.id === insightId && Date.now() - lastAppliedInsightRef.current.at < 1400) {
+        return;
+      }
+
+      applyingExternalSyncRef.current = true;
+      suppressAnchorEmitUntilRef.current = Date.now() + 1600;
+      lastAppliedInsightRef.current = { id: insightId, at: Date.now() };
+      // Passive scroll sync should not change active category tab.
+      // Only focus items that are already rendered in the current tab.
+      focusRenderedInsightOnly(insightId);
+      setTimeout(() => {
+        applyingExternalSyncRef.current = false;
+      }, 420);
+    };
+
+    window.addEventListener('fypai:anchor-sync', handleAnchorSync as EventListener);
+    return () => {
+      window.removeEventListener('fypai:anchor-sync', handleAnchorSync as EventListener);
+    };
+  }, [enableTimelineSync, insightsById]);
   
   // Show empty state when no team selected (AFTER all hooks)
   if (!currentTeamId) {
@@ -199,7 +390,9 @@ export const RightPanel = () => {
           <div className="flex space-x-1">
             {TABS.map((tab) => {
               const count =
-                tab.key === 'summaries'
+                tab.key === 'all'
+                  ? allCount
+                  : tab.key === 'summaries'
                   ? summaryCount
                   : tab.key === 'research'
                   ? researchCount
@@ -228,10 +421,20 @@ export const RightPanel = () => {
 
       {/* Scrollable Content Area */}
       <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-3">
+        {contentFilter === 'all' && (
+          <section className="space-y-3">
+            {activeInsights.length > 0 ? (
+              <InsightsList insights={activeInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+            ) : (
+              <p className="text-xs text-gray-500">No AI content yet</p>
+            )}
+          </section>
+        )}
+
         {contentFilter === 'summaries' && (
           <section className="space-y-3">
             {summaryInsights.length > 0 ? (
-              <LongFormContentViewer insights={summaryInsights} />
+              <LongFormContentViewer insights={summaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No summary yet</p>
             )}
@@ -251,7 +454,7 @@ export const RightPanel = () => {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Summaries</h3>
                 {archivedSummaryInsights.length > 0 ? (
-                  <LongFormContentViewer insights={archivedSummaryInsights} />
+                  <LongFormContentViewer insights={archivedSummaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
                   <p className="text-xs text-gray-500">No archived summaries</p>
                 )}
@@ -282,7 +485,7 @@ export const RightPanel = () => {
             )}
 
             {researchInsights.length > 0 ? (
-              <LongFormContentViewer insights={researchInsights} />
+              <LongFormContentViewer insights={researchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No research briefs yet</p>
             )}
@@ -302,7 +505,7 @@ export const RightPanel = () => {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Research</h3>
                 {archivedResearchInsights.length > 0 ? (
-                  <LongFormContentViewer insights={archivedResearchInsights} />
+                  <LongFormContentViewer insights={archivedResearchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
                   <p className="text-xs text-gray-500">No archived research</p>
                 )}
@@ -314,7 +517,7 @@ export const RightPanel = () => {
         {contentFilter === 'actions' && (
           <section className="space-y-3">
             {openActions.length > 0 ? (
-              <InsightsList insights={openActions} />
+              <InsightsList insights={openActions} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No open action items</p>
             )}
@@ -331,7 +534,7 @@ export const RightPanel = () => {
                 </button>
                 {showCompletedActions && (
                   <div className="mt-3">
-                    <InsightsList insights={completedActions} />
+                    <InsightsList insights={completedActions} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                   </div>
                 )}
               </div>
@@ -352,7 +555,7 @@ export const RightPanel = () => {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Actions</h3>
                 {archivedActionInsights.length > 0 ? (
-                  <InsightsList insights={archivedActionInsights} />
+                  <InsightsList insights={archivedActionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
                   <p className="text-xs text-gray-500">No archived actions</p>
                 )}
@@ -364,7 +567,7 @@ export const RightPanel = () => {
         {contentFilter === 'suggestions' && (
           <section className="space-y-3">
             {suggestionInsights.length > 0 ? (
-              <InsightsList insights={suggestionInsights} />
+              <InsightsList insights={suggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No research suggestions yet</p>
             )}
@@ -384,7 +587,7 @@ export const RightPanel = () => {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Suggestions</h3>
                 {archivedSuggestionInsights.length > 0 ? (
-                  <InsightsList insights={archivedSuggestionInsights} />
+                  <InsightsList insights={archivedSuggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
                   <p className="text-xs text-gray-500">No archived suggestions</p>
                 )}

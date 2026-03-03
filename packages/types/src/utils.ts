@@ -19,6 +19,7 @@ import type {
   MessageMetadata,
   AgentMetadata,
   AIInsightDTO,
+  AIInsightMetadata,
 } from './dtos.js'
 import {
   UserRole,
@@ -141,6 +142,8 @@ export function aiInsightToDTO(insight: AIInsight): AIInsightDTO {
     tags: parseJSON<string[]>(insight.tags),
     createdAt: dateToISOString(insight.createdAt),
     relatedMessageIds: parseJSON<string[]>(insight.relatedMessageIds),
+    metadata: parseJSON<AIInsightMetadata>(insight.metadata),
+    agentMetadata: parseJSON<AgentMetadata>(insight.agentMetadata),
     // Insight lifecycle (Sprint D - Part 2)
     status: (insight.status || 'new') as any,
     reviewedAt: insight.reviewedAt ? dateToISOString(insight.reviewedAt) : undefined,

@@ -37,6 +37,7 @@ interface UIState {
     layout: string  // Future: 'compact' | 'comfortable' | 'spacious'
     sidebarCollapsed: boolean
     showAIDetails: boolean  // Phase 6.5: Show agent metadata (model, tokens, cost) on AI messages
+    enableTimelineSync: boolean  // Optional synchronized scrolling between chat and insights timelines
   }
   
   // View States (per guide section 2.1)
@@ -98,6 +99,7 @@ export const useUIStore = create<UIStore>()(
         layout: 'comfortable',
         sidebarCollapsed: false,
         showAIDetails: false,  // Default off for users, researchers can enable
+        enableTimelineSync: false,
       },
       
       viewStates: {

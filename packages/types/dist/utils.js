@@ -101,6 +101,8 @@ export function aiInsightToDTO(insight) {
         tags: parseJSON(insight.tags),
         createdAt: dateToISOString(insight.createdAt),
         relatedMessageIds: parseJSON(insight.relatedMessageIds),
+        metadata: parseJSON(insight.metadata),
+        agentMetadata: parseJSON(insight.agentMetadata),
         // Insight lifecycle (Sprint D - Part 2)
         status: (insight.status || 'new'),
         reviewedAt: insight.reviewedAt ? dateToISOString(insight.reviewedAt) : undefined,

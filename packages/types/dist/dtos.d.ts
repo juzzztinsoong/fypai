@@ -80,6 +80,17 @@ export interface MessageMetadata {
     chimeRuleName?: string;
     chimeRuleId?: string;
     confidence?: number;
+    routeMode?: 'ask' | 'research';
+    routeConfidence?: number;
+    routeRationale?: string;
+    routeSource?: 'manual-override' | 'server-classifier' | 'frontend-fallback';
+    routeOverrideUsed?: boolean;
+    markerType?: 'insight-link' | 'action-insight-link' | 'system-link';
+    linkedInsightId?: string;
+    linkedActionId?: string;
+    linkedInsightType?: 'summary' | 'document' | 'action' | 'suggestion' | 'analysis' | 'code';
+    sourceActionTitle?: string;
+    markerLabel?: string;
 }
 /**
  * RAG Context Item
@@ -136,6 +147,10 @@ export interface MessageDTO {
 export interface AIInsightMetadata {
     language?: string;
     filename?: string;
+    sourceInsightId?: string;
+    sourceExcerpt?: string;
+    sourceMessageId?: string;
+    sourceMessageExcerpt?: string;
     model?: string;
     tokensUsed?: number;
     prompt?: string;

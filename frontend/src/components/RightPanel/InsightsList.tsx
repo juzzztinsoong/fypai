@@ -3,9 +3,11 @@ import { InsightCard } from './InsightCard';
 
 interface InsightsListProps {
   insights: AIInsightDTO[];
+  onJumpToSource?: (messageId: string) => void;
+  onJumpToChatMarker?: (insightId: string) => void;
 }
 
-export const InsightsList = ({ insights }: InsightsListProps) => {
+export const InsightsList = ({ insights, onJumpToSource, onJumpToChatMarker }: InsightsListProps) => {
   if (insights.length === 0) {
     return (
       <div className="text-center py-10">
@@ -25,7 +27,7 @@ export const InsightsList = ({ insights }: InsightsListProps) => {
   return (
     <div className="space-y-4">
       {insights.map((insight) => (
-        <InsightCard key={insight.id} insight={insight} />
+        <InsightCard key={insight.id} insight={insight} onJumpToSource={onJumpToSource} onJumpToChatMarker={onJumpToChatMarker} />
       ))}
     </div>
   );

@@ -31,6 +31,34 @@ interface ChimeRule {
   action: { type: string; insightType?: string; template: string }
 }
 
+interface RulePreset {
+  id: 'conservative' | 'balanced' | 'proactive'
+  name: string
+  description: string
+  cooldownMultiplier: number
+  minPriorityEnabled: number
+  maxTriggersPerHour: number
+}
+
+interface PresetPreview {
+  teamId: string
+  preset: RulePreset
+  windowMessagesAnalyzed: number
+  projectedTotalTriggersPerHour: number
+  cappedAtPresetMaxPerRule: number
+  ruleEstimates: Array<{
+    ruleId: string
+    ruleName: string
+    currentEnabled: boolean
+    projectedEnabled: boolean
+    currentPriority: number
+    currentCooldownMinutes: number
+    projectedCooldownMinutes: number
+    baselineEstimatedTriggersPerHour: number
+    projectedEstimatedTriggersPerHour: number
+  }>
+}
+
 interface RuleTogglePanelProps {
   teamId: string
 }
@@ -99,9 +127,32 @@ const TYPE_BADGE: Record<string, { bg: string; text: string; label: string }> = 
 
 export const RuleTogglePanel = ({ teamId }: RuleTogglePanelProps) => {
   const [rules, setRules] = useState<ChimeRule[]>([])
+  const [presets, setPresets] = useState<RulePreset[]>([])
+  const [selectedPresetId, setSelectedPresetId] = useState<RulePreset['id']>('balanced')
+  const [presetPreview, setPresetPreview] = useState<PresetPreview | null>(null)
+  const [presetStatus, setPresetStatus] = useState<string | null>(null)
+  const [isPreviewingPreset, setIsPreviewingPreset] = useState(false)
+  const [isApplyingPreset, setIsApplyingPreset] = useState(false)
+  const [isResettingPreset, setIsResettingPreset] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
+
+  const loadRules = useCallback(async () => {
+    const response = await api.get(`/chime/teams/${teamId}/rules`)
+    const data = Array.isArray(response.data) ? response.data : response.data?.data || []
+    setRules(data)
+  }, [teamId])
+
+  const loadPresets = useCallback(async () => {
+    const response = await api.get('/chime/presets')
+    const data = Array.isArray(response.data?.presets) ? response.data.presets : []
+    setPresets(data)
+
+    if (data.length > 0 && !data.find((preset: RulePreset) => preset.id === selectedPresetId)) {
+      setSelectedPresetId(data[0].id)
+    }
+  }, [selectedPresetId])
 
   // Load rules on mount / team change
   useEffect(() => {
@@ -109,9 +160,7 @@ export const RuleTogglePanel = ({ teamId }: RuleTogglePanelProps) => {
       setLoading(true)
       setError(null)
       try {
-        const response = await api.get(`/chime/teams/${teamId}/rules`)
-        const data = Array.isArray(response.data) ? response.data : response.data?.data || []
-        setRules(data)
+        await Promise.all([loadRules(), loadPresets()])
       } catch (err) {
         setError('Failed to load chime rules')
         console.error('[RuleTogglePanel] Load error:', getErrorMessage(err))
@@ -120,7 +169,57 @@ export const RuleTogglePanel = ({ teamId }: RuleTogglePanelProps) => {
       }
     }
     load()
-  }, [teamId])
+  }, [teamId, loadRules, loadPresets])
+
+  const handlePreviewPreset = useCallback(async () => {
+    setIsPreviewingPreset(true)
+    setPresetStatus(null)
+    try {
+      const response = await api.post(`/chime/teams/${teamId}/presets/preview`, {
+        presetId: selectedPresetId,
+      })
+      setPresetPreview(response.data)
+      setPresetStatus(`Previewed ${response.data?.preset?.name || selectedPresetId} preset`)
+    } catch (err) {
+      console.error('[RuleTogglePanel] Preset preview error:', getErrorMessage(err))
+      setPresetStatus('Failed to preview preset')
+    } finally {
+      setIsPreviewingPreset(false)
+    }
+  }, [teamId, selectedPresetId])
+
+  const handleApplyPreset = useCallback(async () => {
+    setIsApplyingPreset(true)
+    setPresetStatus(null)
+    try {
+      const response = await api.post(`/chime/teams/${teamId}/presets/apply`, {
+        presetId: selectedPresetId,
+      })
+      setPresetStatus(response.data?.message || 'Preset applied')
+      await loadRules()
+    } catch (err) {
+      console.error('[RuleTogglePanel] Preset apply error:', getErrorMessage(err))
+      setPresetStatus('Failed to apply preset')
+    } finally {
+      setIsApplyingPreset(false)
+    }
+  }, [teamId, selectedPresetId, loadRules])
+
+  const handleResetPreset = useCallback(async () => {
+    setIsResettingPreset(true)
+    setPresetStatus(null)
+    try {
+      const response = await api.post(`/chime/teams/${teamId}/presets/reset`)
+      setPresetStatus(response.data?.message || 'Preset reset completed')
+      setPresetPreview(null)
+      await loadRules()
+    } catch (err) {
+      console.error('[RuleTogglePanel] Preset reset error:', getErrorMessage(err))
+      setPresetStatus('Failed to reset preset')
+    } finally {
+      setIsResettingPreset(false)
+    }
+  }, [teamId, loadRules])
 
   // Toggle — backend inverts enabled when no body is sent
   const handleToggle = useCallback(async (ruleId: string) => {
@@ -205,6 +304,70 @@ export const RuleTogglePanel = ({ teamId }: RuleTogglePanelProps) => {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Rule Presets</span>
+          <span className="text-[10px] text-indigo-500">Phase 4</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedPresetId}
+            onChange={(e) => setSelectedPresetId(e.target.value as RulePreset['id'])}
+            className="flex-1 rounded border border-indigo-200 bg-white px-2 py-1 text-xs text-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          >
+            {presets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={handlePreviewPreset}
+            disabled={isPreviewingPreset || isApplyingPreset || isResettingPreset}
+            className="rounded border border-indigo-300 bg-white px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+          >
+            {isPreviewingPreset ? 'Previewing...' : 'Preview'}
+          </button>
+
+          <button
+            onClick={handleApplyPreset}
+            disabled={isApplyingPreset || isPreviewingPreset || isResettingPreset}
+            className="rounded border border-indigo-500 bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {isApplyingPreset ? 'Applying...' : 'Apply'}
+          </button>
+
+          <button
+            onClick={handleResetPreset}
+            disabled={isResettingPreset || isPreviewingPreset || isApplyingPreset}
+            className="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+          >
+            {isResettingPreset ? 'Resetting...' : 'Reset'}
+          </button>
+        </div>
+
+        {presetPreview && (
+          <div className="rounded border border-indigo-200 bg-white px-2 py-2 text-[11px] text-gray-600 space-y-1">
+            <div className="flex items-center justify-between">
+              <span>Projected triggers/hour</span>
+              <span className="font-semibold text-indigo-700">{presetPreview.projectedTotalTriggersPerHour}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Messages analyzed</span>
+              <span>{presetPreview.windowMessagesAnalyzed}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Rules impacted</span>
+              <span>{presetPreview.ruleEstimates.length}</span>
+            </div>
+          </div>
+        )}
+
+        {presetStatus && <p className="text-[11px] text-indigo-700">{presetStatus}</p>}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">

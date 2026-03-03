@@ -47,6 +47,7 @@ import agentPreferenceRoutes from './routes/agentPreferenceRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import exportRoutes from './routes/exportRoutes.js'
 import researchJobRoutes from './routes/researchJobRoutes.js'
+import intentRoutes from './routes/intentRoutes.js'
 import { AIAgentController } from './controllers/aiAgentController.js'
 import { AIInsightController } from './controllers/aiInsightController.js'
 import { TeamController } from './controllers/teamController.js'
@@ -205,6 +206,7 @@ app.use('/api', agentPreferenceRoutes)
 app.use('/api', feedbackRoutes)
 app.use('/api/export', exportRoutes)
 app.use('/api/research', researchJobRoutes)
+app.use('/api/intent', intentRoutes)
 
 // Error handler (must be last)
 if (process.env.SENTRY_DSN) {

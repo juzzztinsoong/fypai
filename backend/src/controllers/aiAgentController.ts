@@ -3,7 +3,7 @@
  * 
  * Following copilot-instructions.md architecture:
  * - Posts messages via same message:new flow for unified history
- * - Uses contentType: 'ai_longform' for structured outputs
+ * - Uses short chat replies + insight markers for structured outputs
  * - Links outputs via metadata.parentMessageId
  * - Evaluates chime rules for autonomous AI responses
  */
@@ -354,7 +354,7 @@ export class AIAgentController {
 
   /**
    * Generate long-form content (summaries, documents, etc.)
-   * Following copilot-instructions.md: contentType: 'ai_longform' for structured outputs
+   * Contract: long-form output is stored as insight; chat gets short conversational response
    */
   static async generateLongFormContent(
     teamId: string,
@@ -416,26 +416,54 @@ export class AIAgentController {
       temperature: 0.7,
     });
 
-    // Create message with long-form content
-    const agentMessage = await MessageController.createMessage({
+    const mappedInsightType: CreateAIInsightRequest['type'] =
+      longFormType === 'summary' ? 'summary' : longFormType === 'code' ? 'code' : 'document'
+
+    const insight = await AIInsightController.createInsight({
       teamId,
-      authorId: 'agent',
+      type: mappedInsightType,
+      title:
+        longFormType === 'summary'
+          ? 'Conversation Summary'
+          : longFormType === 'code'
+          ? 'Code Output'
+          : 'Research Brief',
       content: response.content,
-      contentType: 'ai_longform',
+      priority: longFormType === 'document' ? 'high' : 'medium',
+      tags: ['auto-generated', longFormType, response.model],
       metadata: {
         prompt,
         model: response.model,
-        longFormType,  // Use longFormType instead of contentType
         tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
-        parentMessageId,  // Link to originating message
       },
-    });
+    })
 
-    // Broadcast AI-generated long-form content via WebSocket
+    const agentMessage = await MessageController.createMessage({
+      teamId,
+      authorId: 'agent',
+      content: `Created ${longFormType === 'document' ? 'a research brief' : `a ${longFormType}`} in Insights. Open the linked marker to view details.`,
+      contentType: 'text',
+      metadata: {
+        parentMessageId,
+        markerType: 'insight-link',
+        linkedInsightId: insight.id,
+        linkedInsightType: insight.type,
+        markerLabel:
+          insight.type === 'document'
+            ? 'Research brief'
+            : insight.type === 'summary'
+            ? 'Summary'
+            : insight.type === 'code'
+            ? 'Code output'
+            : 'Insight',
+      },
+    })
+
+    // Broadcast short conversational response (insight itself is broadcast separately)
     if (this.io) {
       const roomSize = this.io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0;
       this.io.to(`team:${teamId}`).emit('message:new', agentMessage);
-      console.log(`[AI Agent] 🤖 Broadcasted AI ${longFormType} to team: ${teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
+      console.log(`[AI Agent] 🤖 Broadcasted short ${longFormType} completion message to team: ${teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
     } else {
       console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
     }

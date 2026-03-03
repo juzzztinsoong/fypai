@@ -5,9 +5,9 @@ Build a collaboration-first, agentic workflow where chat drives execution artifa
 
 ## Current Baseline (Done)
 - Frontend composer supports `Auto / Ask / Research` override with heuristic routing.
-- Reports surface removed from UX; long-form content is unified in Summaries.
+- Reports surface removed from UX; long-form content uses dedicated Summary/Research tabs.
 - Archived controls are scoped per category section.
-- **Phase 1 MVP started**: frontend research run-state (`queued/running/done/failed`) is visible in Summaries.
+- **Phase 1 complete**: backend-backed research run-state (`queued/running/done/failed`) is visible in Research.
 
 ---
 
@@ -25,9 +25,9 @@ Make research generation observable so users trust the pipeline.
 - [x] Add frontend run-state storage model (per-team, latest-first).
 - [x] Update Chat research send path to write state transitions.
 - [x] Render compact run-state row at top of Summaries.
-- [ ] Add backend `ResearchJob` model and API endpoints.
-- [ ] Broadcast job updates via socket (`research:job:updated`).
-- [ ] Switch frontend row source from local state to backend jobs.
+- [x] Add backend `ResearchJob` model and API endpoints.
+- [x] Broadcast job updates via socket (`research:job:updated`).
+- [x] Switch frontend row source from local state to backend jobs.
 
 ### Acceptance Criteria
 - User sees live transition: `queued -> running -> done|failed`.
@@ -47,11 +47,11 @@ Close the loop from analysis to execution.
 - Preserve source linkage for traceability.
 
 ### Tasks
-- [ ] Add selectable list-item affordance in long-form viewer.
-- [ ] Add `Promote to Action` CTA near selected item.
-- [ ] Create action via existing insight create API.
-- [ ] Store `sourceInsightId` + `sourceExcerpt` metadata.
-- [ ] Show source reference in created action card.
+- [x] Add selectable list-item affordance in long-form viewer.
+- [x] Add `Promote to Action` CTA near selected item.
+- [x] Create action via existing insight create API.
+- [x] Store `sourceInsightId` + `sourceExcerpt` metadata.
+- [x] Show source reference in created action card.
 
 ### Acceptance Criteria
 - Single-click promotion creates an actionable card.
@@ -71,11 +71,11 @@ Make auto-routing reliable and auditable.
 - Route decision metadata persisted.
 
 ### Tasks
-- [ ] Add backend endpoint: `POST /api/intent/classify`.
-- [ ] Return `{ mode, confidence, rationale }`.
-- [ ] Add message metadata fields for route decision.
-- [ ] Display post-send route chip in chat.
-- [ ] Add telemetry for override rate.
+- [x] Add backend endpoint: `POST /api/intent/classify`.
+- [x] Return `{ mode, confidence, rationale }`.
+- [x] Add message metadata fields for route decision.
+- [x] Display post-send route chip in chat.
+- [ ] Add telemetry for override rate. *(deferred for now)*
 
 ### Acceptance Criteria
 - Manual override always wins.

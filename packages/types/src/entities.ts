@@ -96,6 +96,8 @@ export interface AIInsight {
   tags: string | null  // JSON array string
   createdAt: Date
   relatedMessageIds: string | null  // JSON array string
+  metadata: string | null  // JSON string
+  agentMetadata: string | null  // JSON string for agent details (model, cost, tier)
   // Insight lifecycle (Sprint D - Part 2)
   status: string  // InsightStatus: 'new' | 'reviewed' | 'accepted' | 'dismissed' | 'archived'
   reviewedAt: Date | null
@@ -155,6 +157,8 @@ export function isAIInsight(obj: any): obj is AIInsight {
     (obj.priority === null || typeof obj.priority === 'string') &&
     (obj.tags === null || typeof obj.tags === 'string') &&
     obj.createdAt instanceof Date &&
-    (obj.relatedMessageIds === null || typeof obj.relatedMessageIds === 'string')
+    (obj.relatedMessageIds === null || typeof obj.relatedMessageIds === 'string') &&
+    (obj.metadata === null || typeof obj.metadata === 'string') &&
+    (obj.agentMetadata === null || typeof obj.agentMetadata === 'string')
   )
 }

@@ -33,6 +33,10 @@ export function errorHandler(
   console.error('[ERROR] Full error details:', err)
   console.error('[ERROR] Stack:', err.stack)
 
+  if ('statusCode' in err && typeof (err as any).statusCode === 'number') {
+    return res.status((err as any).statusCode).json({ error: err.message })
+  }
+
   // Prisma errors - type guard for PrismaClientKnownRequestError
   if ('code' in err && typeof err.code === 'string' && err.code.startsWith('P')) {
     console.error('[ERROR] Prisma error code:', err.code)

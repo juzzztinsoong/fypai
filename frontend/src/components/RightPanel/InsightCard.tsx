@@ -6,16 +6,60 @@ import { InsightActions } from './InsightActions';
 import { ActionItemControls } from './ActionItemControls';
 import { getInsightTypeColor } from './insightUtils';
 import ReactMarkdown from 'react-markdown';
+import { useState } from 'react';
+import { createInsight } from '@/services/insightService';
 
 interface InsightCardProps {
   insight: AIInsightDTO;
+  onJumpToSource?: (messageId: string) => void;
+  onJumpToChatMarker?: (insightId: string) => void;
 }
 
-export const InsightCard = ({ insight }: InsightCardProps) => {
+export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: InsightCardProps) => {
   const isDismissed = insight.status === 'dismissed' || insight.status === 'archived';
+  const [isPromoting, setIsPromoting] = useState(false);
+  const lineageMetadata = insight.metadata as
+    | (typeof insight.metadata & {
+        sourceInsightId?: string;
+        sourceExcerpt?: string;
+      })
+    | undefined;
+
+  const canPromote = insight.type !== 'action' && insight.type !== 'code';
+
+  const handlePromoteToAction = async () => {
+    if (!canPromote || isPromoting) return;
+
+    const excerpt = insight.content.replace(/\s+/g, ' ').trim().slice(0, 500);
+    if (!excerpt) return;
+
+    setIsPromoting(true);
+    try {
+      const actionTitle = excerpt.length > 80 ? `${excerpt.slice(0, 80)}...` : excerpt;
+      await createInsight({
+        teamId: insight.teamId,
+        type: 'action',
+        title: `Action: ${actionTitle}`,
+        content: `- ${excerpt}`,
+        priority: 'medium',
+        tags: ['promoted-from-insight', 'user-requested'],
+        relatedMessageIds: insight.relatedMessageIds,
+        metadata: {
+          ...(insight.metadata || {}),
+          sourceInsightId: insight.id,
+          sourceExcerpt: excerpt,
+        } as any,
+      });
+    } catch (error) {
+      console.error('[InsightCard] Failed to promote insight:', error);
+    } finally {
+      setIsPromoting(false);
+    }
+  };
 
   return (
     <div
+      id={`insight-${insight.id}`}
       className={`border rounded-lg p-4 bg-white shadow-sm ${getInsightTypeColor(insight.type)} ${
         isDismissed ? 'opacity-60' : ''
       }`}
@@ -44,6 +88,24 @@ export const InsightCard = ({ insight }: InsightCardProps) => {
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
             ⚙️ Rule: {insight.metadata.chimeRuleName}
           </span>
+        </div>
+      )}
+
+      {insight.type === 'action' && lineageMetadata?.sourceInsightId && (
+        <div className="mb-3 rounded-md border border-purple-200 bg-purple-50 px-3 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-purple-700">Promoted from Research</div>
+          {lineageMetadata.sourceExcerpt && (
+            <p className="mt-1 text-xs text-purple-800 line-clamp-2">{lineageMetadata.sourceExcerpt}</p>
+          )}
+          {onJumpToSource && (
+            <button
+              type="button"
+              onClick={() => onJumpToSource(lineageMetadata.sourceInsightId!)}
+              className="mt-1 text-xs font-medium text-purple-700 hover:text-purple-900"
+            >
+              View source research →
+            </button>
+          )}
         </div>
       )}
 
@@ -115,8 +177,30 @@ export const InsightCard = ({ insight }: InsightCardProps) => {
         <ActionItemControls insight={insight} />
       )}
 
+      {canPromote && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={handlePromoteToAction}
+            disabled={isPromoting}
+            className="rounded border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50"
+          >
+            {isPromoting ? 'Promoting...' : 'Promote to Action'}
+          </button>
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
+      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+        {onJumpToChatMarker ? (
+          <button
+            type="button"
+            onClick={() => onJumpToChatMarker(insight.id)}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+          >
+            View marker in chat →
+          </button>
+        ) : <span />}
         <InsightActions insightId={insight.id} status={insight.status} />
       </div>
     </div>

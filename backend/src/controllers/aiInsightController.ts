@@ -25,9 +25,126 @@ import { TeamController } from './teamController.js'
 import { Server as SocketIOServer } from 'socket.io'
 import { CacheService } from '../services/cacheService.js'
 
+type HttpError = Error & { statusCode?: number }
+
 export class AIInsightController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
+
+  private static normalizeExcerpt(excerpt: string): string {
+    return excerpt.replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  private static sanitizeInsightMetadata(rawMetadata: CreateAIInsightRequest['metadata']) {
+    if (!rawMetadata || typeof rawMetadata !== 'object') {
+      return null;
+    }
+
+    const metadata: Record<string, unknown> = { ...rawMetadata };
+
+    if (typeof metadata.sourceInsightId === 'string') {
+      metadata.sourceInsightId = metadata.sourceInsightId.trim();
+    }
+
+    if (typeof metadata.sourceExcerpt === 'string') {
+      const trimmed = metadata.sourceExcerpt.replace(/\s+/g, ' ').trim();
+      metadata.sourceExcerpt = trimmed.slice(0, 500);
+    }
+
+    if (typeof metadata.sourceMessageId === 'string') {
+      metadata.sourceMessageId = metadata.sourceMessageId.trim();
+    }
+
+    if (typeof metadata.sourceMessageExcerpt === 'string') {
+      const trimmed = metadata.sourceMessageExcerpt.replace(/\s+/g, ' ').trim();
+      metadata.sourceMessageExcerpt = trimmed.slice(0, 500);
+    }
+
+    return metadata;
+  }
+
+  private static async createActionMarkerMessage(
+    teamId: string,
+    insight: AIInsightDTO,
+  ): Promise<void> {
+    const markerLabelByType: Record<string, string> = {
+      action: 'Action item',
+      summary: 'Summary',
+      document: 'Research brief',
+      suggestion: 'Suggestion',
+      analysis: 'Analysis',
+      code: 'Code output',
+    }
+
+    const markerLabel = markerLabelByType[insight.type] || 'Insight'
+    const markerMessage = await MessageController.createMessage({
+      teamId,
+      authorId: 'agent',
+      content: `📌 ${markerLabel} available: ${insight.title}`,
+      contentType: 'text',
+      metadata: {
+        markerType: insight.type === 'action' ? 'action-insight-link' : 'insight-link',
+        linkedInsightId: insight.id,
+        linkedActionId: insight.type === 'action' ? insight.id : undefined,
+        linkedInsightType: insight.type,
+        sourceActionTitle: insight.title,
+        markerLabel,
+      },
+    });
+
+    if (this.io) {
+      this.io.to(`team:${teamId}`).emit('message:new', markerMessage);
+      console.log(`[AIInsightController] 🔗 Broadcasted marker message for insight: ${insight.id}`);
+    }
+  }
+
+  private static async assertNoDuplicatePromotedAction(
+    teamId: string,
+    type: string,
+    metadata: Record<string, unknown> | null,
+  ): Promise<void> {
+    if (type !== 'action') return;
+
+    const sourceInsightId = typeof metadata?.sourceInsightId === 'string' ? metadata.sourceInsightId : null;
+    const sourceExcerpt = typeof metadata?.sourceExcerpt === 'string' ? metadata.sourceExcerpt : null;
+
+    if (!sourceInsightId || !sourceExcerpt) return;
+
+    const candidates = await prisma.aIInsight.findMany({
+      where: {
+        teamId,
+        type: 'action',
+        metadata: {
+          contains: `"sourceInsightId":"${sourceInsightId}"`,
+        },
+      },
+      select: {
+        id: true,
+        metadata: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    const normalizedTargetExcerpt = this.normalizeExcerpt(sourceExcerpt);
+
+    for (const candidate of candidates) {
+      if (!candidate.metadata) continue;
+      try {
+        const parsed = JSON.parse(candidate.metadata) as { sourceInsightId?: string; sourceExcerpt?: string };
+        if (parsed.sourceInsightId !== sourceInsightId) continue;
+
+        const normalizedCandidateExcerpt = this.normalizeExcerpt(parsed.sourceExcerpt || '');
+        if (normalizedCandidateExcerpt && normalizedCandidateExcerpt === normalizedTargetExcerpt) {
+          const duplicateError = new Error('Action already exists for this promoted research item.') as HttpError;
+          duplicateError.statusCode = 409;
+          throw duplicateError;
+        }
+      } catch (error) {
+        if ((error as HttpError).statusCode === 409) throw error;
+      }
+    }
+  }
 
   private static async archiveSupersededLongForm(teamId: string, type: 'summary' | 'document'): Promise<void> {
     const superseded = await prisma.aIInsight.findMany({
@@ -95,6 +212,10 @@ export class AIInsightController {
    * @returns {Promise<AIInsightDTO>} Created insight DTO
    */
   static async createInsight(data: CreateAIInsightRequest): Promise<AIInsightDTO> {
+    const sanitizedMetadata = this.sanitizeInsightMetadata(data.metadata);
+
+    await this.assertNoDuplicatePromotedAction(data.teamId, data.type, sanitizedMetadata);
+
     const insight = await prisma.aIInsight.create({
       data: {
         teamId: data.teamId,
@@ -103,7 +224,9 @@ export class AIInsightController {
         content: data.content,
         priority: data.priority || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
-        relatedMessageIds: data.relatedMessageIds ? JSON.stringify(data.relatedMessageIds) : null
+        relatedMessageIds: data.relatedMessageIds ? JSON.stringify(data.relatedMessageIds) : null,
+        metadata: sanitizedMetadata ? JSON.stringify(sanitizedMetadata) : null,
+        agentMetadata: data.agentMetadata ? JSON.stringify(data.agentMetadata) : null,
       }
     })
 
@@ -117,6 +240,8 @@ export class AIInsightController {
       this.io.to(`team:${data.teamId}`).emit('ai:insight:new', insightDTO);
       console.log(`[AIInsightController] 📊 Broadcasted ai:insight:new to team: ${data.teamId}`);
     }
+
+    await this.createActionMarkerMessage(data.teamId, insightDTO);
 
     return insightDTO
   }
@@ -287,32 +412,21 @@ export class AIInsightController {
 
     await this.archiveSupersededLongForm(teamId, 'summary');
 
-    // Create insight with generated content
-    const insight = await prisma.aIInsight.create({
-      data: {
-        teamId,
-        type: 'summary',
-        title: 'Conversation Summary',
-        content: response.content,
-        priority: 'medium',
-        tags: JSON.stringify(['auto-generated', 'summary', response.model]),
-        relatedMessageIds: messages.length > 0 ? JSON.stringify([messages[messages.length - 1].id]) : null
-      }
+    const insightDTO = await this.createInsight({
+      teamId,
+      type: 'summary',
+      title: 'Conversation Summary',
+      content: response.content,
+      priority: 'medium',
+      tags: ['auto-generated', 'summary', response.model],
+      relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
+      metadata: {
+        model: response.model,
+        tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+      },
     });
 
-    console.log(`[AIInsightController] 💾 Summary insight saved to database: ${insight.id}`);
-
-    const insightDTO = aiInsightToDTO(insight);
-
-    // Broadcast new insight via WebSocket
-    if (this.io) {
-      const roomSize = this.io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0;
-      this.io.to(`team:${teamId}`).emit('ai:insight:new', insightDTO);
-      console.log(`[AIInsightController] 🤖 Broadcasted summary insight to team: ${teamId} | insight: ${insightDTO.id} | clients in room: ${roomSize}`);
-    } else {
-      console.warn('[AIInsightController] ⚠️  Socket.IO not available, insight not broadcasted!');
-    }
-
+    console.log(`[AIInsightController] 💾 Summary insight saved to database: ${insightDTO.id}`);
     return insightDTO;
   }
 
@@ -366,32 +480,21 @@ export class AIInsightController {
 
     console.log(`[AIInsightController] 🔎 LLM generated research content (${response.content.length} chars)`);
 
-    // Create insight with generated content
-    const insight = await prisma.aIInsight.create({
-      data: {
-        teamId,
-        type: 'document',
-        title: 'Research Brief',
-        content: response.content,
-        priority: 'high',
-        tags: JSON.stringify(['auto-generated', 'research', response.model]),
-        relatedMessageIds: messages.length > 0 ? JSON.stringify([messages[messages.length - 1].id]) : null
-      }
+    const insightDTO = await this.createInsight({
+      teamId,
+      type: 'document',
+      title: 'Research Brief',
+      content: response.content,
+      priority: 'high',
+      tags: ['auto-generated', 'research', response.model],
+      relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
+      metadata: {
+        model: response.model,
+        tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+      },
     });
 
-    console.log(`[AIInsightController] 💾 Research insight saved to database: ${insight.id}`);
-
-    const insightDTO = aiInsightToDTO(insight);
-
-    // Broadcast new insight via WebSocket
-    if (this.io) {
-      const roomSize = this.io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0;
-      this.io.to(`team:${teamId}`).emit('ai:insight:new', insightDTO);
-      console.log(`[AIInsightController] 🤖 Broadcasted research insight to team: ${teamId} | insight: ${insightDTO.id} | clients in room: ${roomSize}`);
-    } else {
-      console.warn('[AIInsightController] ⚠️  Socket.IO not available, insight not broadcasted!');
-    }
-
+    console.log(`[AIInsightController] 💾 Research insight saved to database: ${insightDTO.id}`);
     return insightDTO;
   }
 }

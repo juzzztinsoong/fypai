@@ -50,6 +50,7 @@ export const Sidebar = () => {
   
   // Get showAIDetails preference for research toggle (Phase 6.5.1)
   const showAIDetails = useUIStore((state) => state.preferences.showAIDetails)
+  const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync)
   const updatePreference = useUIStore((state) => state.updatePreference)
   
   // Get current user and presence from SessionStore
@@ -293,6 +294,32 @@ export const Sidebar = () => {
               </button>
             </div>
             <p className="-mt-2 text-xs text-gray-400">Show model, tokens, cost on AI messages</p>
+
+            {/* Timeline Sync Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-2c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                </svg>
+                <span className="text-xs font-medium text-gray-600">Timeline Sync</span>
+              </div>
+              <button
+                onClick={() => updatePreference('enableTimelineSync', !enableTimelineSync)}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  enableTimelineSync ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+                role="switch"
+                aria-checked={enableTimelineSync}
+                aria-label="Enable timeline sync"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    enableTimelineSync ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="-mt-2 text-xs text-gray-400">Sync chat and insights scroll positions (experimental)</p>
 
             <div className="pt-2 border-t border-gray-100">
               <p className="text-xs font-medium text-gray-600 mb-2">Session Export</p>

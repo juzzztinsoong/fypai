@@ -31,6 +31,8 @@ export enum TeamRole {
  */
 export enum ContentType {
   TEXT = 'text',
+  // Deprecated: retained for backward compatibility with historical records.
+  // New AI long-form output should be stored as AIInsight + chat marker message.
   AI_LONGFORM = 'ai_longform',
   NOTEBOOK = 'notebook',
   FILE = 'file',
@@ -68,6 +70,7 @@ export enum Priority {
  */
 export type UserRoleString = 'member' | 'admin' | 'agent'
 export type TeamRoleString = 'owner' | 'admin' | 'member'
+// Includes deprecated 'ai_longform' for compatibility with historical data.
 export type ContentTypeString = 'text' | 'ai_longform' | 'notebook' | 'file'
 export type InsightTypeString = 'summary' | 'action' | 'suggestion' | 'analysis' | 'code' | 'document'
 export type PriorityString = 'low' | 'medium' | 'high'

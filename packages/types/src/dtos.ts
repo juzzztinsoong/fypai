@@ -93,12 +93,25 @@ export interface MessageMetadata {
   model?: string
   tokensUsed?: number
   prompt?: string
-  longFormType?: 'summary' | 'code' | 'document'  // Type of long-form AI content
+  longFormType?: 'summary' | 'code' | 'document'  // Legacy compatibility: old long-form chat payload marker
   relatedInsightIds?: string[]  // Linked AI insights
   // Chime rules metadata (for autonomous AI messages)
   chimeRuleName?: string  // Name of the rule that triggered this message
   chimeRuleId?: string  // ID of the rule that triggered this message
   confidence?: number  // Confidence score (0-1) for the chime trigger
+  // Sprint 3: Intent routing decision metadata
+  routeMode?: 'ask' | 'research'
+  routeConfidence?: number
+  routeRationale?: string
+  routeSource?: 'manual-override' | 'server-classifier' | 'frontend-fallback'
+  routeOverrideUsed?: boolean
+  // Action ↔ chat marker linkage
+  markerType?: 'insight-link' | 'action-insight-link' | 'system-link'
+  linkedInsightId?: string
+  linkedActionId?: string
+  linkedInsightType?: 'summary' | 'document' | 'action' | 'suggestion' | 'analysis' | 'code'
+  sourceActionTitle?: string
+  markerLabel?: string
 }
 
 /**
@@ -159,6 +172,10 @@ export interface MessageDTO {
 export interface AIInsightMetadata {
   language?: string  // For code snippets
   filename?: string  // For code/document insights
+  sourceInsightId?: string  // For promoted action lineage
+  sourceExcerpt?: string  // Source bullet/text promoted into action
+  sourceMessageId?: string  // Source chat message promoted into action
+  sourceMessageExcerpt?: string  // Source message excerpt promoted into action
   // Legacy fields (kept for compatibility)
   model?: string
   tokensUsed?: number

@@ -10,9 +10,10 @@ import type { AIInsightDTO } from '../../types';
 interface CodeOutputCardProps {
   insight: AIInsightDTO;
   onJumpToSource?: (messageId: string) => void;
+  onJumpToChatMarker?: (insightId: string) => void;
 }
 
-export const CodeOutputCard = ({ insight, onJumpToSource }: CodeOutputCardProps) => {
+export const CodeOutputCard = ({ insight, onJumpToSource, onJumpToChatMarker }: CodeOutputCardProps) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -96,6 +97,16 @@ export const CodeOutputCard = ({ insight, onJumpToSource }: CodeOutputCardProps)
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span>Jump to source message</span>
+        </button>
+      )}
+
+      {onJumpToChatMarker && (
+        <button
+          type="button"
+          onClick={() => onJumpToChatMarker(insight.id)}
+          className="mt-2 text-sm text-indigo-300 hover:text-indigo-100 font-medium"
+        >
+          View marker in chat →
         </button>
       )}
 

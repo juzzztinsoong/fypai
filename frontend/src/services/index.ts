@@ -54,6 +54,13 @@ export {
 
 export { default as researchJobService } from './researchJobService'
 
+// Intent classification service
+export {
+  classifyIntent,
+} from './intentService'
+
+export { default as intentService } from './intentService'
+
 // User service
 export {
   getUsers,
