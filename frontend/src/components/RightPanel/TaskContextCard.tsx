@@ -79,7 +79,7 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
 
   if (isLoading) {
     return (
-      <div className="px-6 py-2 bg-indigo-50 border-b border-indigo-100">
+      <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100">
         <div className="h-3 bg-indigo-200 rounded w-1/3 animate-pulse" />
       </div>
     );
@@ -88,7 +88,7 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
   // ── Compact bar (collapsed) ──
   if (!isExpanded && !isEditing) {
     return (
-      <div className="px-6 py-2 bg-indigo-50/80 border-b border-indigo-100 flex items-center justify-between">
+      <div className="px-5 py-2 bg-indigo-50/80 border-b border-indigo-100 flex items-center justify-between">
         <button
           onClick={() => setIsExpanded(true)}
           className="flex items-center space-x-2 min-w-0 flex-1 text-left group"
@@ -121,10 +121,10 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
   return (
     <div className="bg-indigo-50/80 border-b border-indigo-100">
       {/* Expanded header */}
-      <div className="px-6 py-2 flex items-center justify-between">
+      <div className="px-5 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-sm">📋</span>
-          <h3 className="text-xs font-semibold text-indigo-800 uppercase tracking-wide">
+          <h3 className="text-[11px] font-semibold text-indigo-800 uppercase tracking-wide">
             Project Context
           </h3>
           <span className="text-xs text-indigo-400">(grounding AI)</span>
@@ -152,7 +152,7 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
       </div>
 
       {/* Content / Editor */}
-      <div className="px-6 pb-3">
+      <div className="px-5 pb-3">
         {isEditing ? (
           <div className="space-y-2">
             <textarea

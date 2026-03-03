@@ -155,7 +155,7 @@ export const ChatWindow = () => {
       </div>
 
       {/* Fixed Footer - Message Composer */}
-      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
+      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white">
         {/* Message Composer */}
         <div className="flex space-x-2">
           <textarea
@@ -168,19 +168,19 @@ export const ChatWindow = () => {
               }
             }}
             placeholder="Type a message..."
-            className="flex-1 min-h-[44px] max-h-32 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+            className="flex-1 min-h-[40px] max-h-32 px-3 py-2 text-sm leading-5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
             rows={1}
           />
           <button
             onClick={handleSend}
             disabled={!newMessage.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-10 w-10 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               viewBox="0 0 24 24" 
               fill="currentColor" 
-              className="w-5 h-5"
+              className="w-4.5 h-4.5"
             >
               <path d="M3 20V4l19 8-19 8zm2-3l11.85-5L5 7v3.5l6 1.5-6 1.5V17z" />
             </svg>

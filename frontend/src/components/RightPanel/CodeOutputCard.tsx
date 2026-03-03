@@ -36,8 +36,8 @@ export const CodeOutputCard = ({ insight, onJumpToSource }: CodeOutputCardProps)
   const cleanedCode = cleanCode(insight.content);
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg shadow-lg border border-gray-700 p-4">
-      <div className="flex items-start justify-between mb-3">
+    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg shadow-sm border border-gray-700 p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center space-x-2">
           <svg
             className="w-5 h-5 text-green-400"
@@ -52,7 +52,7 @@ export const CodeOutputCard = ({ insight, onJumpToSource }: CodeOutputCardProps)
               d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
             />
           </svg>
-          <span className="font-semibold text-white">💻 Generated Code</span>
+          <span className="text-sm font-semibold text-white leading-5">💻 Generated Code</span>
           {language && (
             <span className="px-2 py-0.5 bg-gray-700 text-green-400 text-xs font-mono rounded">
               {language}
@@ -60,12 +60,12 @@ export const CodeOutputCard = ({ insight, onJumpToSource }: CodeOutputCardProps)
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 whitespace-nowrap">
             {new Date(insight.createdAt).toLocaleTimeString()}
           </span>
           <button
             onClick={handleCopy}
-            className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white transition-colors"
+            className="h-8 w-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-md text-gray-300 hover:text-white transition-colors"
             title="Copy code"
           >
             {copied ? (
@@ -81,8 +81,8 @@ export const CodeOutputCard = ({ insight, onJumpToSource }: CodeOutputCardProps)
         </div>
       </div>
 
-      <div className="bg-gray-950 rounded p-4 overflow-x-auto">
-        <pre className="text-sm text-gray-200 font-mono whitespace-pre-wrap">
+      <div className="bg-gray-950 rounded-md p-4 overflow-x-auto">
+        <pre className="text-sm leading-6 text-gray-200 font-mono whitespace-pre-wrap">
           <code>{cleanedCode}</code>
         </pre>
       </div>

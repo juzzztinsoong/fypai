@@ -7,7 +7,6 @@
  * - reduce-frequency: increase the rule's cooldown by 1.5x
  * - disable: disable the rule entirely for this team
  */
-import { useState } from 'react'
 import type { FeedbackRuleAction } from '@fypai/types'
 
 interface ChimeFeedbackPopoverProps {

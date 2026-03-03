@@ -53,7 +53,6 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
   const onNegativeClick = () => {
     if (!userId || submitting || selected) return
     setShowNegativeDetails(true)
-    setSelected('negative')
   }
 
   const submitNegative = async () => {
@@ -74,6 +73,7 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
         ruleId: chimeRuleId,
         ruleAction: effectiveRuleAction,
       })
+      setSelected('negative')
       setShowNegativeDetails(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit feedback')
@@ -83,8 +83,8 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
   }
 
   return (
-    <div className="mt-2 w-full rounded-lg border border-purple-200 bg-white/80 px-3 py-2 text-purple-900">
-      <div className="flex items-center gap-2 text-xs">
+    <div className="mt-2 w-full text-xs text-gray-500">
+      <div className="flex items-center gap-2 text-xs text-gray-700">
         <span className="font-medium">Was this helpful?</span>
         <button
           type="button"
@@ -114,9 +114,9 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
       </div>
 
       {showNegativeDetails && (
-        <div className="mt-2 space-y-2 text-xs">
+        <div className="mt-2 space-y-2 text-xs text-gray-700">
           <label className="block">
-            <span className="mb-1 block text-gray-700">Why was this not helpful?</span>
+            <span className="mb-1 block">Why was this not helpful?</span>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value as FeedbackReason | '')}
@@ -132,7 +132,7 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-gray-700">Optional comment</span>
+            <span className="mb-1 block">Optional comment</span>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
@@ -142,7 +142,6 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
             />
           </label>
 
-          {/* Chime-specific rule action picker (Sprint D - Part 4) */}
           {chimeRuleId && (
             <ChimeFeedbackPopover
               selectedAction={ruleAction}
@@ -163,7 +162,6 @@ export const FeedbackButtons = ({ messageId, userId, chimeRuleId }: FeedbackButt
               type="button"
               onClick={() => {
                 setShowNegativeDetails(false)
-                setSelected(null)
                 setReason('')
                 setComment('')
               }}

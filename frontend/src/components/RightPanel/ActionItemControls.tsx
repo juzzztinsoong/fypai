@@ -66,13 +66,13 @@ export const ActionItemControls = ({ insight }: ActionItemControlsProps) => {
     : '';
 
   return (
-    <div className={`mt-3 pt-2 border-t border-gray-100 space-y-2 ${saving ? 'opacity-60' : ''}`}>
+    <div className={`mt-3 pt-3 border-t border-gray-100 space-y-2 ${saving ? 'opacity-60' : ''}`}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         {/* Completion toggle */}
         <button
           onClick={handleToggleComplete}
           disabled={saving}
-          className={`flex items-center space-x-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${
+          className={`h-8 inline-flex items-center space-x-1.5 px-2.5 rounded-md text-xs font-medium transition-colors ${
             isCompleted
               ? 'bg-green-100 text-green-700 hover:bg-green-200'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -87,7 +87,7 @@ export const ActionItemControls = ({ insight }: ActionItemControlsProps) => {
           value={insight.actionPriority || ''}
           onChange={(e) => handlePriorityChange(e.target.value as ActionPriority)}
           disabled={saving}
-          className="text-xs px-2 py-1 rounded border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="h-8 text-xs px-2.5 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
         >
           <option value="">Priority...</option>
           {PRIORITY_OPTIONS.map(opt => (
@@ -103,7 +103,7 @@ export const ActionItemControls = ({ insight }: ActionItemControlsProps) => {
             value={dueDateValue}
             onChange={(e) => handleDueDateChange(e.target.value)}
             disabled={saving}
-            className={`text-xs px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+            className={`h-8 text-xs px-2.5 rounded-md border bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 ${
               isOverdue ? 'border-red-300 text-red-600' : 'border-gray-200'
             }`}
           />

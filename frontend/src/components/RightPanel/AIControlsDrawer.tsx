@@ -14,6 +14,7 @@ import type { AgentPreferencesDTO, AgentPersonality, AgentProactivity, AgentResp
 import { getAgentPreferences, updateAgentPreferences, resetAgentPreferences } from '@/services/agentPreferencesService'
 import { useEntityStore } from '@/stores/entityStore'
 import * as insightService from '@/services/insightService'
+import { RuleTogglePanel } from './RuleTogglePanel'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ function CompactPicker<T extends string>({
 
 export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControlsDrawerProps) => {
   const [expanded, setExpanded] = useState(false)
+  const [showRules, setShowRules] = useState(false)
 
   // ── Agent Preferences state ────────────────────────────
   const [prefs, setPrefs] = useState<AgentPreferencesDTO | null>(null)
@@ -172,9 +174,9 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
   return (
     <div className="flex-shrink-0 border-t border-gray-200 bg-white">
       {/* ── Always-visible row: AI toggle + expand + action buttons ── */}
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-4 py-3">
         {/* Top row: Toggle + gear */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2.5">
             <button
               onClick={onToggleAI}
@@ -228,7 +230,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
           <button
             onClick={handleGenerateSummary}
             disabled={isGenerating}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 h-10 flex items-center justify-center gap-1.5 px-2 rounded-md text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span>{loadingSummary ? '⏳' : '📝'}</span>
             <span>{loadingSummary ? '...' : 'Summary'}</span>
@@ -236,13 +238,10 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
           <button
             onClick={handleGenerateReport}
             disabled={isGenerating}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 h-10 flex items-center justify-center gap-1.5 px-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span>{loadingReport ? '⏳' : '📊'}</span>
             <span>{loadingReport ? '...' : 'Report'}</span>
-          </button>
-          <button disabled className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium bg-gray-200 text-gray-400 cursor-not-allowed">
-            <span>🎤</span><span>Audio</span>
           </button>
         </div>
       </div>
@@ -313,6 +312,29 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
                 value={prefs.modelTierOverride}
                 onChange={(v) => handlePrefChange('modelTierOverride', v)}
               />
+
+              <div className="pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => setShowRules(prev => !prev)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Chime Rules</span>
+                  <svg
+                    className={`w-3 h-3 text-gray-500 transition-transform ${showRules ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showRules && (
+                  <div className="mt-2">
+                    <RuleTogglePanel teamId={teamId} />
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <p className="text-xs text-gray-400 text-center py-2">Unable to load settings</p>

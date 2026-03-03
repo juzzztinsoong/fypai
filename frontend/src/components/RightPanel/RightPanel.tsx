@@ -3,12 +3,9 @@
  *
  * Three-section layout:
  *   1. Fixed header (team name, insight count)
- *   2. Filter tabs: All | Summaries | Actions | Suggestions | ⚙ Rules
- *   3. Scrollable content area (insights OR rule toggles grouped by type)
+ *   2. Filter tabs: All | Summaries | Actions | Suggestions
+ *   3. Scrollable content area (insights)
  *   4. Collapsible AI Controls footer (toggle + action buttons + settings drawer)
- *
- * The "Rules" tab shows chime rules grouped by the insight type they produce,
- * visually linking rules to the insight categories in the other tabs.
  */
 import { useEntityStore } from '@/stores/entityStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -18,11 +15,10 @@ import { RightPanelHeader } from './RightPanelHeader';
 import { InsightsList } from './InsightsList';
 import { LongFormContentViewer } from './LongFormContentViewer';
 import { AIControlsDrawer } from './AIControlsDrawer';
-import { RuleTogglePanel } from './RuleTogglePanel';
 import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
 
-type ContentFilter = 'all' | 'summaries' | 'actions' | 'suggestions' | 'rules';
+type ContentFilter = 'all' | 'summaries' | 'actions' | 'suggestions';
 
 // ── Filter tab config ──────────────────────────────────────
 
@@ -31,7 +27,6 @@ const TABS: { key: ContentFilter; label: string; emoji?: string }[] = [
   { key: 'summaries', label: 'Summaries', emoji: '📊' },
   { key: 'actions', label: 'Actions', emoji: '✅' },
   { key: 'suggestions', label: 'Suggestions', emoji: '💡' },
-  { key: 'rules', label: 'Rules', emoji: '⚙️' },
 ];
 
 export const RightPanel = () => {
@@ -154,7 +149,7 @@ export const RightPanel = () => {
 
       {/* Content Type Tabs */}
       <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between p-2">
+        <div className="flex items-center justify-between px-5 py-2">
           <div className="flex space-x-1">
             {TABS.map((tab) => {
               const count = countForTab(tab.key);
@@ -163,7 +158,7 @@ export const RightPanel = () => {
                 <button
                   key={tab.key}
                   onClick={() => setContentFilter(tab.key)}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:bg-gray-100'
@@ -176,26 +171,21 @@ export const RightPanel = () => {
               );
             })}
           </div>
-          {contentFilter !== 'rules' && (
-            <button
-              onClick={() => setShowDismissed(prev => !prev)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                showDismissed ? 'bg-gray-200 text-gray-700' : 'text-gray-400 hover:text-gray-600'
-              }`}
-              title={showDismissed ? 'Hide dismissed' : 'Show dismissed'}
-            >
-              {showDismissed ? '👁 All' : '👁‍🗨 Active'}
-            </button>
-          )}
+          <button
+            onClick={() => setShowDismissed(prev => !prev)}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              showDismissed ? 'bg-gray-200 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title={showDismissed ? 'Hide dismissed' : 'Show dismissed'}
+          >
+            {showDismissed ? '👁 All' : '👁‍🗨 Active'}
+          </button>
         </div>
       </div>
 
       {/* Scrollable Content Area */}
-      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-6 space-y-4">
-        {contentFilter === 'rules' ? (
-          /* ── Rules Tab: Grouped rule toggles ── */
-          <RuleTogglePanel teamId={currentTeamId} />
-        ) : displayedContent.length > 0 ? (
+      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-3">
+        {displayedContent.length > 0 ? (
           displayedContent.map((insight) => {
             if (insight.type === 'summary' || insight.type === 'document') {
               return (
@@ -214,9 +204,9 @@ export const RightPanel = () => {
             }
           })
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <p>No {contentFilter === 'all' ? 'AI content' : contentFilter} yet</p>
-            <p className="text-sm text-gray-400 mt-1">
+          <div className="text-center py-10 text-gray-500">
+            <p className="text-sm font-medium">No {contentFilter === 'all' ? 'AI content' : contentFilter} yet</p>
+            <p className="text-xs text-gray-400 mt-1">
               Use the buttons below to generate content
             </p>
           </div>

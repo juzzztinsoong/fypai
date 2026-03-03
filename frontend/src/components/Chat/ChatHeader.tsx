@@ -23,11 +23,11 @@ export const ChatHeader = () => {
 
   if (!currentTeam) {
     return (
-      <header className="px-6 py-4 border-b border-gray-200 bg-white">
+      <header className="px-5 py-4 min-h-[72px] border-b border-gray-200 bg-white flex items-center">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">No Team Selected</h1>
-            <p className="text-sm text-gray-500">Select a team from the sidebar</p>
+            <h1 className="text-lg font-semibold text-gray-800 leading-6">No Team Selected</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Select a team from the sidebar</p>
           </div>
         </div>
       </header>
@@ -46,23 +46,23 @@ export const ChatHeader = () => {
   const totalMembers = currentTeam.members.length;
 
   return (
-    <header className="px-6 py-4 border-b border-gray-200 bg-white">
+    <header className="px-5 py-4 min-h-[72px] border-b border-gray-200 bg-white flex items-center">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-800">{currentTeam.name}</h1>
-          <div className="flex items-center space-x-4 mt-1">
-            <div className="flex items-center space-x-1.5 text-sm text-gray-600">
+          <h1 className="text-lg font-semibold text-gray-800 leading-6">{currentTeam.name}</h1>
+          <div className="flex items-center space-x-4 mt-0.5">
+            <div className="flex items-center space-x-1.5 text-xs text-gray-600">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
-                className="w-4 h-4"
+                className="w-3.5 h-3.5"
               >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
               <span>{totalMembers} {totalMembers === 1 ? 'member' : 'members'}</span>
             </div>
-            <div className="flex items-center space-x-1.5 text-sm text-gray-600">
+            <div className="flex items-center space-x-1.5 text-xs text-gray-600">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
@@ -75,7 +75,7 @@ export const ChatHeader = () => {
         </div>
         
         {/* Optional: Show online member avatars */}
-        <div className="flex items-center -space-x-2">
+        <div className="flex items-center -space-x-2 ml-3">
           {onlineMembers.slice(0, 5).map((member) => {
             // Special styling for AI agent
             if (member.userId === 'agent') {

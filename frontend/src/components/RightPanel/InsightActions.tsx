@@ -53,7 +53,7 @@ export const InsightActions = ({ insightId, status = 'new', userId = 'user1' }: 
   if (actions.length === 0) return null;
 
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center gap-1.5">
       {actions.map(({ status: newStatus, label, icon, className }) => (
         <button
           key={newStatus}
@@ -62,7 +62,7 @@ export const InsightActions = ({ insightId, status = 'new', userId = 'user1' }: 
             handleAction(newStatus);
           }}
           disabled={loading}
-          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${className} ${
+          className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${className} ${
             loading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
           title={label}
