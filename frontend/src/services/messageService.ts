@@ -22,6 +22,14 @@ import { useEntityStore } from '@/stores/entityStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useUIStore } from '@/stores/uiStore'
 
+function generateCorrelationId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+
+  return `corr-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+}
+
 /**
  * Get all messages for a team
  * GET /messages?teamId=:teamId
@@ -77,7 +85,7 @@ export async function createMessage(data: CreateMessageRequest): Promise<Message
   
   // Generate temp ID and correlationId for optimistic update
   const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  const correlationId = crypto.randomUUID()
+  const correlationId = generateCorrelationId()
   
   const currentUser = sessionStore.getCurrentUser()
   
