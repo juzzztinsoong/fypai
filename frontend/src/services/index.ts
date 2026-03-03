@@ -46,6 +46,14 @@ export {
 
 export { default as insightService } from './insightService'
 
+// Research Job service
+export {
+  createResearchJob,
+  getResearchJobs,
+} from './researchJobService'
+
+export { default as researchJobService } from './researchJobService'
+
 // User service
 export {
   getUsers,

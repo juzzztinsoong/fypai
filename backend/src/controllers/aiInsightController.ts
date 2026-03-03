@@ -29,6 +29,44 @@ export class AIInsightController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
 
+  private static async archiveSupersededLongForm(teamId: string, type: 'summary' | 'document'): Promise<void> {
+    const superseded = await prisma.aIInsight.findMany({
+      where: {
+        teamId,
+        type,
+        status: {
+          notIn: ['dismissed', 'archived'],
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (superseded.length === 0) return;
+
+    const supersededIds = superseded.map((item) => item.id);
+
+    await prisma.aIInsight.updateMany({
+      where: { id: { in: supersededIds } },
+      data: {
+        status: 'archived',
+        reviewedAt: new Date(),
+      },
+    });
+
+    const archivedInsights = await prisma.aIInsight.findMany({
+      where: { id: { in: supersededIds } },
+    });
+
+    if (this.io) {
+      for (const archivedInsight of archivedInsights) {
+        this.io.to(`team:${teamId}`).emit('insight:updated', aiInsightToDTO(archivedInsight));
+      }
+      console.log(`[AIInsightController] 📦 Archived ${archivedInsights.length} superseded ${type} insight(s) for team: ${teamId}`);
+    }
+
+    await CacheService.invalidateTeamCache(teamId);
+  }
+
   /**
    * Set Socket.IO instance for broadcasting
    */
@@ -238,7 +276,7 @@ export class AIInsightController {
         ...(taskContextMessage ? [taskContextMessage] : []),
         { role: 'system', content: SYSTEM_PROMPTS.summarizer },
         ...conversationHistory,
-        { role: 'user', content: 'Please provide a comprehensive summary of our conversation, including key points, decisions, and action items.' },
+        { role: 'user', content: 'Please provide a concise conversation summary focused on discussion highlights, decisions made, rationale, and open questions. Do not include action-item checklists.' },
       ],
       model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for summaries
       maxTokens: 4096,
@@ -246,6 +284,8 @@ export class AIInsightController {
     });
 
     console.log(`[AIInsightController] 📝 LLM generated summary content (${response.content.length} chars)`);
+
+    await this.archiveSupersededLongForm(teamId, 'summary');
 
     // Create insight with generated content
     const insight = await prisma.aIInsight.create({
@@ -277,11 +317,11 @@ export class AIInsightController {
   }
 
   /**
-   * Generate AI-powered report insight
-   * Creates a comprehensive report based on team discussions
+   * Generate AI-powered research insight
+   * Creates a comprehensive research brief based on team discussions
    * @param {string} teamId - Team ID
-   * @param {string} prompt - Optional custom prompt for report generation
-   * @returns {Promise<AIInsightDTO>} Created report insight
+   * @param {string} prompt - Optional custom prompt for research generation
+   * @returns {Promise<AIInsightDTO>} Created research insight
    */
   static async generateReport(teamId: string, prompt?: string): Promise<AIInsightDTO> {
     const messages = await MessageController.getMessages(teamId);
@@ -302,21 +342,21 @@ export class AIInsightController {
           role: 'system' as const,
           content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
         };
-        console.log(`[AIInsightController] 📋 Injecting task context into report (${teamData.taskContext.length} chars)`);
+        console.log(`[AIInsightController] 📋 Injecting task context into research (${teamData.taskContext.length} chars)`);
       }
     } catch (error) {
-      console.warn('[AIInsightController] Failed to load task context for report:', error);
+      console.warn('[AIInsightController] Failed to load task context for research:', error);
     }
 
-    const defaultPrompt = 'Generate a comprehensive report of the team discussion, including context, key topics, decisions made, action items, and next steps.';
+    const defaultPrompt = 'Generate a comprehensive research brief from the team discussion with context, key topics, decisions, rationale, risks, and open questions. Do not include task lists, assignees, or deadlines.';
     const reportPrompt = prompt || defaultPrompt;
 
-    console.log(`[AIInsightController] Generating report for team ${teamId}`);
+    console.log(`[AIInsightController] Generating research brief for team ${teamId}`);
 
     const response = await this.llm.generate({
       messages: [
         ...(taskContextMessage ? [taskContextMessage] : []),
-        { role: 'system', content: SYSTEM_PROMPTS.assistant },
+        { role: 'system', content: SYSTEM_PROMPTS.reporter },
         ...conversationHistory,
         { role: 'user', content: reportPrompt },
       ],
@@ -324,22 +364,22 @@ export class AIInsightController {
       temperature: 0.7,
     });
 
-    console.log(`[AIInsightController] 📊 LLM generated report content (${response.content.length} chars)`);
+    console.log(`[AIInsightController] 🔎 LLM generated research content (${response.content.length} chars)`);
 
     // Create insight with generated content
     const insight = await prisma.aIInsight.create({
       data: {
         teamId,
         type: 'document',
-        title: 'Team Discussion Report',
+        title: 'Research Brief',
         content: response.content,
         priority: 'high',
-        tags: JSON.stringify(['auto-generated', 'report', response.model]),
+        tags: JSON.stringify(['auto-generated', 'research', response.model]),
         relatedMessageIds: messages.length > 0 ? JSON.stringify([messages[messages.length - 1].id]) : null
       }
     });
 
-    console.log(`[AIInsightController] 💾 Report insight saved to database: ${insight.id}`);
+    console.log(`[AIInsightController] 💾 Research insight saved to database: ${insight.id}`);
 
     const insightDTO = aiInsightToDTO(insight);
 
@@ -347,7 +387,7 @@ export class AIInsightController {
     if (this.io) {
       const roomSize = this.io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0;
       this.io.to(`team:${teamId}`).emit('ai:insight:new', insightDTO);
-      console.log(`[AIInsightController] 🤖 Broadcasted report insight to team: ${teamId} | insight: ${insightDTO.id} | clients in room: ${roomSize}`);
+      console.log(`[AIInsightController] 🤖 Broadcasted research insight to team: ${teamId} | insight: ${insightDTO.id} | clients in room: ${roomSize}`);
     } else {
       console.warn('[AIInsightController] ⚠️  Socket.IO not available, insight not broadcasted!');
     }

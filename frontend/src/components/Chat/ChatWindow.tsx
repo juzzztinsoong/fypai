@@ -14,12 +14,39 @@ import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import { useEntityStore } from '@/stores/entityStore'
 import { createMessage } from '@/services/messageService'
+import { createResearchJob } from '@/services/researchJobService'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
 import { socketService } from '@/services/socketService'
 
+type ComposerMode = 'ask' | 'research'
+type ComposerOverrideMode = 'auto' | ComposerMode
+
+const RESEARCH_PATTERNS = [
+  /\bresearch\b/i,
+  /\bcompare\b/i,
+  /\btrade[-\s]?off(s)?\b/i,
+  /\bpros?\s+and\s+cons?\b/i,
+  /\bdeep\s+dive\b/i,
+  /\bbrief\b/i,
+  /\banaly[sz]e\b/i,
+  /\boptions?\b/i,
+  /\brecommend\b/i,
+  /\bwhat\s+should\s+we\s+do\b/i,
+]
+
+function inferComposerMode(input: string): ComposerMode {
+  const normalized = input.trim()
+  if (!normalized) return 'ask'
+
+  const hasResearchSignal = RESEARCH_PATTERNS.some((pattern) => pattern.test(normalized))
+  return hasResearchSignal ? 'research' : 'ask'
+}
+
 export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
+  const [composerOverrideMode, setComposerOverrideMode] = useState<ComposerOverrideMode>('auto')
+  const [isResearchGenerating, setIsResearchGenerating] = useState(false)
   
   // Get current team from UIStore
   const currentTeamId = useUIStore((state) => state.currentTeamId)
@@ -115,7 +142,12 @@ export const ChatWindow = () => {
 
   // handleSend(): sends message via messageService
   const handleSend = async () => {
-    if (!newMessage.trim() || !currentTeam || !currentUser) return
+    if (!newMessage.trim() || !currentTeam || !currentUser || isResearchGenerating) return
+
+    const submittedMessage = newMessage.trim()
+    const inferredMode = inferComposerMode(submittedMessage)
+    const effectiveMode: ComposerMode =
+      composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
 
     // Phase 2.3: Clear all timers and stop typing
     if (debounceTimeoutRef.current) {
@@ -132,15 +164,34 @@ export const ChatWindow = () => {
       await createMessage({
         teamId: currentTeam.id,
         authorId: currentUser.id,
-        content: newMessage.trim(),
+        content: submittedMessage,
         contentType: 'text',
       })
       setNewMessage('')
+
+      if (effectiveMode === 'research') {
+        setIsResearchGenerating(true)
+        try {
+          await createResearchJob({
+            teamId: currentTeam.id,
+            query: submittedMessage,
+          })
+        } catch (researchError) {
+          console.error('[ChatWindow] Failed to generate research insight:', researchError)
+        } finally {
+          setIsResearchGenerating(false)
+        }
+      }
     } catch (error) {
       console.error('[ChatWindow] Failed to send message:', error)
       // Could show error toast here
     }
   }
+
+  const inferredMode = inferComposerMode(newMessage)
+  const effectiveMode: ComposerMode =
+    composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
+  const isAutoMode = composerOverrideMode === 'auto'
 
   return (
     <main className="flex-1 min-w-0 flex flex-col h-screen border-x border-gray-200">
@@ -156,6 +207,47 @@ export const ChatWindow = () => {
 
       {/* Fixed Footer - Message Composer */}
       <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white">
+        <div className="mb-2 flex items-center gap-1.5">
+          <button
+            onClick={() => setComposerOverrideMode('auto')}
+            className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
+              composerOverrideMode === 'auto'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Auto
+          </button>
+          <button
+            onClick={() => setComposerOverrideMode('ask')}
+            className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
+              composerOverrideMode === 'ask'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Ask Assistant
+          </button>
+          <button
+            onClick={() => setComposerOverrideMode('research')}
+            className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
+              composerOverrideMode === 'research'
+                ? 'bg-purple-100 text-purple-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Research
+          </button>
+          <span className="text-xs text-gray-500">
+            {isAutoMode
+              ? `Auto-routed: ${effectiveMode === 'research' ? 'Research' : 'Ask'}`
+              : `${effectiveMode === 'research' ? 'Research' : 'Ask'} mode`}
+          </span>
+          {effectiveMode === 'research' && (
+            <span className="text-xs text-purple-600">→ long-form insight in Research</span>
+          )}
+        </div>
+
         {/* Message Composer */}
         <div className="flex space-x-2">
           <textarea
@@ -167,23 +259,31 @@ export const ChatWindow = () => {
                 handleSend();
               }
             }}
-            placeholder="Type a message..."
+            placeholder={effectiveMode === 'research' ? 'Ask a research question...' : 'Type a message...'}
             className="flex-1 min-h-[40px] max-h-32 px-3 py-2 text-sm leading-5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
             rows={1}
           />
           <button
             onClick={handleSend}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || isResearchGenerating}
             className="h-10 w-10 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isResearchGenerating ? 'Generating research insight...' : 'Send message'}
           >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="currentColor" 
-              className="w-4.5 h-4.5"
-            >
-              <path d="M3 20V4l19 8-19 8zm2-3l11.85-5L5 7v3.5l6 1.5-6 1.5V17z" />
-            </svg>
+            {isResearchGenerating ? (
+              <svg className="w-4.5 h-4.5 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24" 
+                fill="currentColor" 
+                className="w-4.5 h-4.5"
+              >
+                <path d="M3 20V4l19 8-19 8zm2-3l11.85-5L5 7v3.5l6 1.5-6 1.5V17z" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

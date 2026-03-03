@@ -16,6 +16,19 @@ import type { UserDTO } from '@fypai/types'
 // ============================================================================
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
+const EMPTY_RESEARCH_JOBS: readonly ResearchRun[] = Object.freeze([])
+
+export type ResearchRunStatus = 'queued' | 'running' | 'done' | 'failed'
+
+export interface ResearchRun {
+  id: string
+  teamId: string
+  query: string
+  status: ResearchRunStatus
+  createdAt: string
+  updatedAt: string
+  error?: string
+}
 
 // ============================================================================
 // STATE TYPES
@@ -53,6 +66,9 @@ interface SessionState {
   apiStatus: {
     inFlightRequests: Record<string, any>  // requestId -> metadata
   }
+
+  // Phase 1: Research run-state tracking (per team)
+  researchRuns: Record<string, ResearchRun[]>
 }
 
 interface SessionActions {
@@ -91,6 +107,14 @@ interface SessionActions {
   addInFlightRequest: (requestId: string, metadata: any) => void
   removeInFlightRequest: (requestId: string) => void
   getInFlightRequests: () => Record<string, any>
+
+  // Research run-state methods (Phase 1)
+  addResearchRun: (run: ResearchRun) => void
+  updateResearchRun: (teamId: string, runId: string, updates: Partial<ResearchRun>) => void
+  upsertResearchRun: (run: ResearchRun) => void
+  setResearchRuns: (teamId: string, runs: ResearchRun[]) => void
+  getResearchRuns: (teamId: string) => readonly ResearchRun[]
+  clearResearchRuns: (teamId: string) => void
 }
 
 type SessionStore = SessionState & SessionActions
@@ -123,6 +147,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   apiStatus: {
     inFlightRequests: {},
   },
+
+  researchRuns: {},
   
   // ============================================================================
   // USER SESSION METHODS
@@ -151,6 +177,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     apiStatus: {
       inFlightRequests: {},
     },
+    researchRuns: {},
   }),
   
   // ============================================================================
@@ -347,4 +374,82 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   }),
   
   getInFlightRequests: () => get().apiStatus.inFlightRequests,
+
+  // ============================================================================
+  // RESEARCH RUN-STATE METHODS (Phase 1)
+  // ============================================================================
+
+  addResearchRun: (run) => set((state) => {
+    const researchRuns = state.researchRuns || {}
+    const currentRuns = researchRuns[run.teamId] || []
+    const nextRuns = [run, ...currentRuns].slice(0, 10)
+
+    return {
+      researchRuns: {
+        ...researchRuns,
+        [run.teamId]: nextRuns,
+      },
+    }
+  }),
+
+  updateResearchRun: (teamId, runId, updates) => set((state) => {
+    const researchRuns = state.researchRuns || {}
+    const currentRuns = researchRuns[teamId]
+    if (!currentRuns) return state
+
+    return {
+      researchRuns: {
+        ...researchRuns,
+        [teamId]: currentRuns.map((run) =>
+          run.id === runId
+            ? { ...run, ...updates, updatedAt: new Date().toISOString() }
+            : run
+        ),
+      },
+    }
+  }),
+
+  upsertResearchRun: (run) => set((state) => {
+    const researchRuns = state.researchRuns || {}
+    const currentRuns = researchRuns[run.teamId] || []
+    const existingIndex = currentRuns.findIndex((item) => item.id === run.id)
+
+    const mergedRuns = existingIndex >= 0
+      ? currentRuns.map((item) => (item.id === run.id ? run : item))
+      : [run, ...currentRuns]
+
+    const nextRuns = [...mergedRuns]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 20)
+
+    return {
+      researchRuns: {
+        ...researchRuns,
+        [run.teamId]: nextRuns,
+      },
+    }
+  }),
+
+  setResearchRuns: (teamId, runs) => set((state) => {
+    const researchRuns = state.researchRuns || {}
+    return {
+      researchRuns: {
+        ...researchRuns,
+        [teamId]: [...runs]
+          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+          .slice(0, 20),
+      },
+    }
+  }),
+
+  getResearchRuns: (teamId) => {
+    const runs = get().researchRuns?.[teamId]
+    return runs || EMPTY_RESEARCH_JOBS
+  },
+
+  clearResearchRuns: (teamId) => set((state) => {
+    const researchRuns = state.researchRuns || {}
+    const { [teamId]: _removed, ...rest } = researchRuns
+    return { researchRuns: rest }
+  }),
 }))

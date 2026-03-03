@@ -35,7 +35,7 @@ export const LongFormContentViewer = ({ insights, onJumpToSource }: LongFormCont
           />
         </svg>
         <p className="mt-2 text-sm font-medium">No AI-generated content yet</p>
-        <p className="text-xs text-gray-400 mt-1">Use Summary or Report below to generate content</p>
+        <p className="text-xs text-gray-400 mt-1">Use Summary or Research below to generate content</p>
       </div>
     );
   }

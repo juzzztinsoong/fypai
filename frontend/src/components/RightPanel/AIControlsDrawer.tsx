@@ -83,7 +83,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
   // ── Action Buttons state ───────────────────────────────
   const currentTeam = useEntityStore((state) => teamId ? state.getTeam(teamId) : null)
   const [loadingSummary, setLoadingSummary] = useState(false)
-  const [loadingReport, setLoadingReport] = useState(false)
+  const [loadingResearch, setLoadingResearch] = useState(false)
 
   // Load prefs when drawer expands or team changes
   useEffect(() => {
@@ -145,7 +145,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
   }
 
   // ── Action Button handlers ─────────────────────────────
-  const isGenerating = loadingSummary || loadingReport
+  const isGenerating = loadingSummary || loadingResearch
 
   const handleGenerateSummary = async () => {
     if (!currentTeam || isGenerating) return
@@ -159,15 +159,15 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
     }
   }
 
-  const handleGenerateReport = async () => {
+  const handleGenerateResearch = async () => {
     if (!currentTeam || isGenerating) return
-    setLoadingReport(true)
+    setLoadingResearch(true)
     try {
       await insightService.generateReport(currentTeam.id)
     } catch (err) {
-      console.error('Failed to generate report:', err)
+      console.error('Failed to generate research:', err)
     } finally {
-      setLoadingReport(false)
+      setLoadingResearch(false)
     }
   }
 
@@ -236,12 +236,12 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
             <span>{loadingSummary ? '...' : 'Summary'}</span>
           </button>
           <button
-            onClick={handleGenerateReport}
+            onClick={handleGenerateResearch}
             disabled={isGenerating}
             className="flex-1 h-10 flex items-center justify-center gap-1.5 px-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <span>{loadingReport ? '⏳' : '📊'}</span>
-            <span>{loadingReport ? '...' : 'Report'}</span>
+            <span>{loadingResearch ? '⏳' : '🔎'}</span>
+            <span>{loadingResearch ? '...' : 'Research'}</span>
           </button>
         </div>
       </div>

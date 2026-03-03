@@ -46,9 +46,11 @@ import chimeRuleRoutes from './routes/chimeRuleRoutes.js'
 import agentPreferenceRoutes from './routes/agentPreferenceRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import exportRoutes from './routes/exportRoutes.js'
+import researchJobRoutes from './routes/researchJobRoutes.js'
 import { AIAgentController } from './controllers/aiAgentController.js'
 import { AIInsightController } from './controllers/aiInsightController.js'
 import { TeamController } from './controllers/teamController.js'
+import { ResearchJobController } from './controllers/researchJobController.js'
 import { ragService } from './services/ragService.js'
 import { UnifiedRuleEngine } from './ai/autonomous/unifiedRuleEngine.js'
 
@@ -187,6 +189,7 @@ AIAgentController.setSocketIO(io)
 AIInsightController.setSocketIO(io)
 UnifiedRuleEngine.setSocketIO(io)
 TeamController.setSocketIO(io)
+ResearchJobController.setSocketIO(io)
 
 // Mark AI agent as online immediately
 io.emit('presence:update', { userId: 'agent', online: true })
@@ -201,6 +204,7 @@ app.use('/api/chime', chimeRuleRoutes)
 app.use('/api', agentPreferenceRoutes)
 app.use('/api', feedbackRoutes)
 app.use('/api/export', exportRoutes)
+app.use('/api/research', researchJobRoutes)
 
 // Error handler (must be last)
 if (process.env.SENTRY_DSN) {

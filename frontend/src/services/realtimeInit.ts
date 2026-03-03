@@ -11,6 +11,7 @@ import { socketService } from './socketService'
 import { useEntityStore } from '@/stores/entityStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import type { MessageDTO, AIInsightDTO } from '@fypai/types'
+import type { ResearchRun } from '@/stores/sessionStore'
 
 // Closure variables to track initialization state
 let initPromise: Promise<void> | null = null
@@ -150,6 +151,11 @@ export async function initializeRealtime(userId: string): Promise<void> {
         if (data.userId !== 'agent') return
         console.log('[RealtimeInit] 🧭 Socket: ai:processing ->', data.stage, 'in', data.teamId)
         useSessionStore.getState().setAIProcessingStage(data.teamId, data.stage)
+      })
+
+      socket.on('research:job:updated', (job: ResearchRun) => {
+        console.log('[RealtimeInit] 🔬 Socket: research:job:updated ->', job.id, job.status)
+        useSessionStore.getState().upsertResearchRun(job)
       })
 
       // Sprint D: Task context updates

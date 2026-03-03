@@ -57,6 +57,7 @@ model Team {
   chimeLogs          ChimeLog[]
   chimeRules         ChimeRule[]
   agentPreferences   TeamAgentPreference?
+  researchJobs       ResearchJob[]
 }
 
 model TeamAgentPreference {
@@ -199,4 +200,22 @@ model ChimeLog {
   
   @@index([teamId, triggeredAt])
   @@index([ruleId, triggeredAt])
+}
+
+model ResearchJob {
+  id         String   @id @default(uuid())
+  teamId     String
+  query      String
+  status     String   // 'queued' | 'running' | 'done' | 'failed'
+  error      String?
+  insightId  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt])
+  @@index([status])
 }
