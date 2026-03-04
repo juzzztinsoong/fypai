@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { AIInsightDTO } from '../../types'
 import { useState } from 'react'
 import { createInsight } from '@/services/insightService'
+import { getLinkVisuals } from '@/utils/linkVisuals'
 
 interface InsightFrameProps {
   insight: AIInsightDTO
@@ -31,6 +32,7 @@ export const InsightFrame = ({
   metadataClassName = 'mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600',
 }: InsightFrameProps) => {
   const [isPromoting, setIsPromoting] = useState(false)
+  const visuals = getLinkVisuals(insight.id)
   const lineageMetadata = insight.metadata as
     | (typeof insight.metadata & {
         sourceInsightId?: string
@@ -71,11 +73,23 @@ export const InsightFrame = ({
   }
 
   return (
-    <div id={`insight-${insight.id}`} className={containerClassName}>
+    <div
+      id={`insight-${insight.id}`}
+      data-insight-id={insight.id}
+      onMouseEnter={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: true } }))}
+      onMouseLeave={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: false } }))}
+      className={containerClassName}
+    >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center space-x-2">
           {icon}
-          <span className={`${titleClassName} leading-5`}>{title}</span>
+          <div>
+            <span className={`${titleClassName} leading-5`}>{title}</span>
+            <div className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${visuals.pill}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
+              Linked to chat
+            </div>
+          </div>
         </div>
         <span className={`${timeClassName} whitespace-nowrap`}>{new Date(insight.createdAt).toLocaleTimeString()}</span>
       </div>

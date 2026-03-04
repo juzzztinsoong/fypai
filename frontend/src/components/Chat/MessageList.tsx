@@ -21,6 +21,7 @@ import { AgentMetadataTag } from './AgentMetadataTag'
 import { RAGContextPanel } from './RAGContextPanel'
 import { FeedbackButtons } from './FeedbackButtons'
 import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
+import { getLinkVisuals } from '@/utils/linkVisuals'
 import ReactMarkdown from 'react-markdown'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 
@@ -197,6 +198,29 @@ export const MessageList = () => {
   }, [markerMessageIndexByInsight])
 
   useEffect(() => {
+    const handleLinkHover = (event: Event) => {
+      const customEvent = event as CustomEvent<{ insightId?: string; active?: boolean }>
+      const insightId = customEvent.detail?.insightId
+      if (!insightId) return
+
+      const escapedInsightId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(insightId) : insightId
+      const markers = document.querySelectorAll<HTMLElement>(`[data-linked-insight-id="${escapedInsightId}"]`)
+      markers.forEach((marker) => {
+        if (customEvent.detail?.active) {
+          marker.classList.add('ring-2', 'ring-indigo-300', 'ring-offset-2')
+        } else {
+          marker.classList.remove('ring-2', 'ring-indigo-300', 'ring-offset-2')
+        }
+      })
+    }
+
+    window.addEventListener('fypai:link-hover', handleLinkHover as EventListener)
+    return () => {
+      window.removeEventListener('fypai:link-hover', handleLinkHover as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!enableTimelineSync) return
 
     const handleAnchorSync = (event: Event) => {
@@ -297,14 +321,24 @@ export const MessageList = () => {
           )
         } else if (message.authorId === 'agent') {
           if (isInsightLinkMarker) {
+            const insightId = message.metadata?.linkedInsightId
+            const visuals = getLinkVisuals(insightId)
             return (
               <div
                 id={`marker-${message.id}`}
-                data-linked-insight-id={message.metadata?.linkedInsightId}
+                data-linked-insight-id={insightId}
                 className="flex justify-center"
               >
                 <button
                   type="button"
+                  onMouseEnter={() => {
+                    if (!insightId) return
+                    window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId, active: true } }))
+                  }}
+                  onMouseLeave={() => {
+                    if (!insightId) return
+                    window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId, active: false } }))
+                  }}
                   onClick={() => {
                     const insightId = message.metadata?.linkedInsightId
                     if (!insightId) return
@@ -312,11 +346,15 @@ export const MessageList = () => {
                       detail: { insightId },
                     }))
                   }}
-                  className="max-w-[85%] rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-left text-xs text-indigo-700 hover:bg-indigo-100"
+                  className={`max-w-[85%] rounded-md border px-3 py-2 text-left text-xs ${visuals.marker}`}
                 >
-                  <span className="font-semibold">🔗 {message.metadata?.markerLabel || 'Insight'} Marker</span>
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${visuals.pill}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
+                    Linked Insight
+                  </span>
+                  <span className="ml-2 font-semibold">🔗 {message.metadata?.markerLabel || 'Insight'} Marker</span>
                   <span className="ml-2">{message.metadata?.sourceActionTitle || message.content}</span>
-                  <span className="ml-2 text-indigo-500">(open insight)</span>
+                  <span className="ml-2 opacity-80">(open insight)</span>
                 </button>
               </div>
             )

@@ -281,6 +281,28 @@ export const RightPanel = () => {
   }, [insightsById]);
 
   useEffect(() => {
+    const handleLinkHover = (event: Event) => {
+      const customEvent = event as CustomEvent<{ insightId?: string; active?: boolean }>;
+      const insightId = customEvent.detail?.insightId;
+      if (!insightId) return;
+
+      const insightElement = document.getElementById(`insight-${insightId}`);
+      if (!insightElement) return;
+
+      if (customEvent.detail?.active) {
+        insightElement.classList.add('ring-2', 'ring-indigo-300', 'ring-offset-2');
+      } else {
+        insightElement.classList.remove('ring-2', 'ring-indigo-300', 'ring-offset-2');
+      }
+    };
+
+    window.addEventListener('fypai:link-hover', handleLinkHover as EventListener);
+    return () => {
+      window.removeEventListener('fypai:link-hover', handleLinkHover as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!enableTimelineSync) return;
 
     const container = scrollRef.current;

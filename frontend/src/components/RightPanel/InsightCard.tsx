@@ -8,6 +8,7 @@ import { getInsightTypeColor } from './insightUtils';
 import ReactMarkdown from 'react-markdown';
 import { useState } from 'react';
 import { createInsight } from '@/services/insightService';
+import { getLinkVisuals } from '@/utils/linkVisuals';
 
 interface InsightCardProps {
   insight: AIInsightDTO;
@@ -18,6 +19,7 @@ interface InsightCardProps {
 export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: InsightCardProps) => {
   const isDismissed = insight.status === 'dismissed' || insight.status === 'archived';
   const [isPromoting, setIsPromoting] = useState(false);
+  const visuals = getLinkVisuals(insight.id);
   const lineageMetadata = insight.metadata as
     | (typeof insight.metadata & {
         sourceInsightId?: string;
@@ -60,6 +62,9 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
   return (
     <div
       id={`insight-${insight.id}`}
+      data-insight-id={insight.id}
+      onMouseEnter={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: true } }))}
+      onMouseLeave={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: false } }))}
       className={`border rounded-lg p-4 bg-white shadow-sm ${getInsightTypeColor(insight.type)} ${
         isDismissed ? 'opacity-60' : ''
       }`}
@@ -75,6 +80,10 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
             <p className="text-xs text-gray-500">
               {new Date(insight.createdAt).toLocaleString()}
             </p>
+            <div className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${visuals.pill}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
+              Linked to chat
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">
