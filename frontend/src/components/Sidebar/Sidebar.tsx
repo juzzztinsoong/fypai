@@ -16,9 +16,10 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils'
 import { socketService } from '@/services/socketService'
 import { getTeamsForUser } from '@/services/teamService'
-import { exportSession } from '@/services/exportService'
+import { exportSession, type SessionExportFormat } from '@/services/exportService'
 import { resetTeamSession } from '@/services/messageService'
 import { resetTeamInsights } from '@/services/insightService'
+import { analyticsService, trackSessionEvent } from '@/services/analyticsService'
 import {
   getChipClass,
   getSwitchThumbClass,
@@ -86,15 +87,45 @@ export const Sidebar = () => {
   const [isResetting, setIsResetting] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
 
-  const handleSessionExport = async (format: 'json' | 'csv') => {
+  const handleSessionExport = async (format: SessionExportFormat) => {
     if (!currentTeamId || isExporting) return
 
     try {
       setIsExporting(true)
       setExportError(null)
+
+      trackSessionEvent({
+        eventType: 'session',
+        eventName: 'session_export_requested',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+        metadata: { format },
+      })
+
+      await analyticsService.flush()
+
       await exportSession(currentTeamId, format)
+
+      trackSessionEvent({
+        eventType: 'session',
+        eventName: 'session_export_completed',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+        metadata: { format },
+      })
     } catch (error) {
       setExportError(error instanceof Error ? error.message : 'Failed to export session')
+
+      trackSessionEvent({
+        eventType: 'session',
+        eventName: 'session_export_failed',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+        metadata: {
+          format,
+          error: error instanceof Error ? error.message : 'Unknown export error',
+        },
+      })
     } finally {
       setIsExporting(false)
     }
@@ -109,6 +140,14 @@ export const Sidebar = () => {
     try {
       setIsResetting(true)
       setResetError(null)
+
+      trackSessionEvent({
+        eventType: 'session',
+        eventName: 'session_reset_requested',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+      })
+
       await resetTeamSession(currentTeamId)
       await resetTeamInsights(currentTeamId)
 
@@ -118,8 +157,25 @@ export const Sidebar = () => {
         sessionStore.removeTypingUser(currentTeamId, userId)
       }
       sessionStore.setAIProcessingStage(currentTeamId, 'idle')
+
+      trackSessionEvent({
+        eventType: 'session',
+        eventName: 'session_reset_completed',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+      })
     } catch (error) {
       setResetError(error instanceof Error ? error.message : 'Failed to reset session')
+
+      trackSessionEvent({
+        eventType: 'session',
+        eventName: 'session_reset_failed',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown reset error',
+        },
+      })
     } finally {
       setIsResetting(false)
     }
@@ -193,7 +249,21 @@ export const Sidebar = () => {
             {visibleTeams.map((team) => (
               <li key={team.id}>
                 <button
-                  onClick={() => setCurrentTeamId(team.id)}
+                  onClick={() => {
+                    if (currentTeamId !== team.id) {
+                      trackSessionEvent({
+                        eventType: 'navigation',
+                        eventName: 'team_switched',
+                        teamId: team.id,
+                        actorUserId: currentUser?.id,
+                        metadata: {
+                          previousTeamId: currentTeamId,
+                          nextTeamId: team.id,
+                        },
+                      })
+                    }
+                    setCurrentTeamId(team.id)
+                  }}
                   className={`w-full px-3 py-2 rounded-lg text-left flex items-center space-x-3 text-sm font-medium
                     ${currentTeamId === team.id 
                       ? 'bg-indigo-50 text-indigo-600' 
@@ -289,7 +359,19 @@ export const Sidebar = () => {
                 <span className="text-xs font-medium text-gray-600">AI Details</span>
               </div>
               <button
-                onClick={() => updatePreference('showAIDetails', !showAIDetails)}
+                onClick={() => {
+                  const nextValue = !showAIDetails
+                  updatePreference('showAIDetails', nextValue)
+                  trackSessionEvent({
+                    eventType: 'navigation',
+                    eventName: 'show_ai_details_toggled',
+                    teamId: currentTeamId || undefined,
+                    actorUserId: currentUser?.id,
+                    metadata: {
+                      enabled: nextValue,
+                    },
+                  })
+                }}
                 className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(showAIDetails)}`}
                 role="switch"
                 aria-checked={showAIDetails}
@@ -311,7 +393,19 @@ export const Sidebar = () => {
                 <span className="text-xs font-medium text-gray-600">Timeline Sync</span>
               </div>
               <button
-                onClick={() => updatePreference('enableTimelineSync', !enableTimelineSync)}
+                onClick={() => {
+                  const nextValue = !enableTimelineSync
+                  updatePreference('enableTimelineSync', nextValue)
+                  trackSessionEvent({
+                    eventType: 'navigation',
+                    eventName: 'timeline_sync_toggled',
+                    teamId: currentTeamId || undefined,
+                    actorUserId: currentUser?.id,
+                    metadata: {
+                      enabled: nextValue,
+                    },
+                  })
+                }}
                 className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(enableTimelineSync)}`}
                 role="switch"
                 aria-checked={enableTimelineSync}
@@ -326,20 +420,34 @@ export const Sidebar = () => {
 
             <div className="pt-2 border-t border-gray-100">
               <p className="text-xs font-medium text-gray-600 mb-2">Session Export</p>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleSessionExport('json')}
                   disabled={!currentTeamId || isExporting}
                   className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.secondary}`}
                 >
-                  JSON
+                  Full JSON
                 </button>
                 <button
                   onClick={() => handleSessionExport('csv')}
                   disabled={!currentTeamId || isExporting}
                   className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.secondary}`}
                 >
-                  CSV
+                  Message CSV
+                </button>
+                <button
+                  onClick={() => handleSessionExport('timeline-json')}
+                  disabled={!currentTeamId || isExporting}
+                  className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.secondary}`}
+                >
+                  Timeline JSON
+                </button>
+                <button
+                  onClick={() => handleSessionExport('metrics-csv')}
+                  disabled={!currentTeamId || isExporting}
+                  className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.secondary}`}
+                >
+                  Metrics CSV
                 </button>
               </div>
               {exportError && <p className="mt-2 text-xs text-rose-500">{exportError}</p>}
@@ -386,6 +494,18 @@ export const Sidebar = () => {
                           avatar: null,
                           role: testUser.role,
                           createdAt: new Date().toISOString(),
+                        })
+
+                        trackSessionEvent({
+                          eventType: 'navigation',
+                          eventName: 'test_user_switched',
+                          teamId: currentTeamId || undefined,
+                          actorUserId: currentUser?.id,
+                          metadata: {
+                            fromUserId: currentUser?.id,
+                            toUserId: testUser.id,
+                            toUserName: testUser.name,
+                          },
                         })
 
                         console.log('[Sidebar] 🔄 Refetching teams for new user:', testUser.id)

@@ -9,12 +9,13 @@
  *
  * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
  */
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import { useEntityStore } from '@/stores/entityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import type { MessageDTO } from '@/types'
 import { getMessages } from '@/services/messageService'
+import { trackSessionEvent } from '@/services/analyticsService'
 import { TypingIndicator } from './TypingIndicator'
 import { AgentMetadataTag } from './AgentMetadataTag'
 import { RAGContextPanel } from './RAGContextPanel'
@@ -26,6 +27,7 @@ import ReactMarkdown from 'react-markdown'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
+const AXIS_HOVER_VERTICAL_PAD = 4
 
 export const MessageList = () => {
   // Get current team from UIStore
@@ -70,12 +72,26 @@ export const MessageList = () => {
   const showAIDetails = useUIStore((state) => state.preferences.showAIDetails)
   const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync)
   
+  const chatViewportRef = useRef<HTMLDivElement>(null)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const applyingExternalSyncRef = useRef(false)
   const lastAnchorSyncInsightRef = useRef<string | null>(null)
   const suppressAnchorEmitUntilRef = useRef(0)
   const lastAppliedInsightRef = useRef<{ id: string; at: number } | null>(null)
-  const routeChipClassName = `gap-1 ${getChipClass('brand', 'xs')}`
+  const isAtBottomRef = useRef(true)
+  const atBottomBeforeFooterRef = useRef(true)
+  const initializedTeamRef = useRef<string | null>(null)
+  const lastMessageCountRef = useRef(0)
+  const footerPinToBottomRef = useRef(false)
+  const previousFooterActivityRef = useRef(false)
+  const lastChatSyncEmitAtRef = useRef(0)
+  const lastBottomSyncEmitAtRef = useRef(0)
+  const axisHoverInsightIdRef = useRef<string | null>(null)
+  const axisHoverPointerRef = useRef<{ x: number; y: number } | null>(null)
+  const axisHoverRafRef = useRef<number | null>(null)
+  const axisHoverEvaluatorRef = useRef<((x: number, y: number) => void) | null>(null)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const [unseenMessageCount, setUnseenMessageCount] = useState(0)
 
   // Map typing user IDs to names (filter out current user)
   const typingUserNames = useMemo(() => {
@@ -90,21 +106,6 @@ export const MessageList = () => {
       .filter((name): name is string => name !== null)
   }, [typingUserIds, currentUser])
 
-  // Check if agent is typing
-  const isAgentTyping = useMemo(() => {
-    return typingUserIds?.includes('agent') || false
-  }, [typingUserIds])
-
-  const isLatestMessageInsightMarker = useMemo(() => {
-    if (messages.length === 0) return false
-    const lastMessage = messages[messages.length - 1]
-    return (
-      (lastMessage.metadata?.markerType === 'action-insight-link' ||
-        lastMessage.metadata?.markerType === 'insight-link') &&
-      Boolean(lastMessage.metadata?.linkedInsightId)
-    )
-  }, [messages])
-
   const pendingMarkerLabel = useMemo(() => {
     if (aiProcessingStage === 'searching-memory') return 'Research marker'
     if (aiProcessingStage === 'analyzing') return 'Insight marker'
@@ -113,8 +114,10 @@ export const MessageList = () => {
   }, [aiProcessingStage, isInsightGenerationLoading])
 
   const showPendingInsightMarker =
-    (aiProcessingStage !== 'idle' || isInsightGenerationLoading) &&
-    !isLatestMessageInsightMarker
+    aiProcessingStage !== 'idle' || isInsightGenerationLoading
+
+  const hasFooterActivity =
+    showPendingInsightMarker || typingUserNames.length > 0
 
   // Fetch messages when team changes
   useEffect(() => {
@@ -156,15 +159,91 @@ export const MessageList = () => {
   }, [messages])
 
   useEffect(() => {
-    if (messages.length === 0) return
-    virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, align: 'end', behavior: 'auto' })
+    if (!currentTeamId || messages.length === 0) return
+
+    if (initializedTeamRef.current !== currentTeamId) {
+      initializedTeamRef.current = currentTeamId
+      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, align: 'end', behavior: 'auto' })
+    }
   }, [currentTeamId, messages.length])
+
+  useEffect(() => {
+    if (!currentTeamId) {
+      initializedTeamRef.current = null
+      isAtBottomRef.current = true
+      setIsAtBottom(true)
+      setUnseenMessageCount(0)
+      lastMessageCountRef.current = 0
+      return
+    }
+
+    setUnseenMessageCount(0)
+    lastMessageCountRef.current = messages.length
+  }, [currentTeamId])
+
+  useEffect(() => {
+    const previousCount = lastMessageCountRef.current
+
+    if (messages.length <= previousCount) {
+      lastMessageCountRef.current = messages.length
+      return
+    }
+
+    const appendedCount = messages.length - previousCount
+    if (!isAtBottomRef.current && appendedCount > 0) {
+      setUnseenMessageCount((count) => count + appendedCount)
+    }
+
+    lastMessageCountRef.current = messages.length
+  }, [messages.length])
+
+  useEffect(() => {
+    if (hasFooterActivity && !previousFooterActivityRef.current) {
+      // Latch bottom-pin using pre-footer position to avoid race when footer height changes.
+      footerPinToBottomRef.current = atBottomBeforeFooterRef.current || isAtBottomRef.current
+    }
+
+    if (!hasFooterActivity) {
+      atBottomBeforeFooterRef.current = isAtBottomRef.current
+      footerPinToBottomRef.current = false
+    }
+
+    previousFooterActivityRef.current = hasFooterActivity
+  }, [hasFooterActivity])
+
+  useEffect(() => {
+    if (!hasFooterActivity || messages.length === 0) return
+    if (!isAtBottomRef.current && !footerPinToBottomRef.current) return
+
+    const syncToBottom = () => {
+      // Keep the live tail in view while generation/typing footer content changes height.
+      virtuosoRef.current?.autoscrollToBottom()
+      virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, align: 'end', behavior: 'auto' })
+    }
+
+    syncToBottom()
+    const frameId = window.requestAnimationFrame(syncToBottom)
+    const timeoutId = window.setTimeout(syncToBottom, 90)
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      window.clearTimeout(timeoutId)
+    }
+  }, [hasFooterActivity, messages.length, aiProcessingStage])
 
   useEffect(() => {
     const handleFocusChatMarker = (event: Event) => {
       const customEvent = event as CustomEvent<{ insightId?: string }>
       const insightId = customEvent.detail?.insightId
       if (!insightId) return
+
+      trackSessionEvent({
+        eventType: 'navigation',
+        eventName: 'focus_chat_marker_from_insight',
+        teamId: currentTeamId || undefined,
+        actorUserId: currentUser?.id,
+        insightId,
+      })
 
       const markerIndex = markerMessageIndexByInsight[insightId]
       if (typeof markerIndex === 'number') {
@@ -188,7 +267,7 @@ export const MessageList = () => {
     return () => {
       window.removeEventListener('fypai:focus-chat-marker', handleFocusChatMarker as EventListener)
     }
-  }, [markerMessageIndexByInsight])
+  }, [markerMessageIndexByInsight, currentTeamId, currentUser?.id])
 
   useEffect(() => {
     const handleLinkHover = (event: Event) => {
@@ -212,6 +291,104 @@ export const MessageList = () => {
       window.removeEventListener('fypai:link-hover', handleLinkHover as EventListener)
     }
   }, [])
+
+  useEffect(() => {
+    const container = chatViewportRef.current
+    if (!container) return
+
+    const setHoveredInsight = (nextInsightId: string | null) => {
+      const previousInsightId = axisHoverInsightIdRef.current
+      if (previousInsightId === nextInsightId) return
+
+      axisHoverInsightIdRef.current = nextInsightId
+
+      if (previousInsightId) {
+        window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: previousInsightId, active: false } }))
+      }
+
+      if (nextInsightId) {
+        window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: nextInsightId, active: true } }))
+      }
+    }
+
+    const evaluateAxisHover = (x: number, y: number) => {
+      const bounds = container.getBoundingClientRect()
+      const withinChatWidth = x >= bounds.left && x <= bounds.right
+      const withinChatHeight = y >= bounds.top && y <= bounds.bottom
+
+      if (!withinChatWidth || !withinChatHeight) {
+        setHoveredInsight(null)
+        return
+      }
+
+      const markers = container.querySelectorAll<HTMLElement>('[data-linked-insight-id]')
+      let matchedInsightId: string | null = null
+      let bestDistance = Number.POSITIVE_INFINITY
+
+      markers.forEach((marker) => {
+        const insightId = marker.dataset.linkedInsightId
+        if (!insightId) return
+
+        const rect = marker.getBoundingClientRect()
+        if (y < rect.top - AXIS_HOVER_VERTICAL_PAD || y > rect.bottom + AXIS_HOVER_VERTICAL_PAD) return
+
+        const markerCenterY = rect.top + rect.height / 2
+        const distance = Math.abs(markerCenterY - y)
+        if (distance < bestDistance) {
+          bestDistance = distance
+          matchedInsightId = insightId
+        }
+      })
+
+      setHoveredInsight(matchedInsightId)
+    }
+
+    axisHoverEvaluatorRef.current = evaluateAxisHover
+
+    const onMouseMove = (event: MouseEvent) => {
+      axisHoverPointerRef.current = { x: event.clientX, y: event.clientY }
+
+      if (axisHoverRafRef.current !== null) return
+      axisHoverRafRef.current = window.requestAnimationFrame(() => {
+        axisHoverRafRef.current = null
+        const point = axisHoverPointerRef.current
+        if (!point) return
+        evaluateAxisHover(point.x, point.y)
+      })
+    }
+
+    const onMouseLeave = () => {
+      axisHoverPointerRef.current = null
+      setHoveredInsight(null)
+    }
+
+    container.addEventListener('mousemove', onMouseMove, { passive: true })
+    container.addEventListener('mouseleave', onMouseLeave)
+
+    return () => {
+      container.removeEventListener('mousemove', onMouseMove)
+      container.removeEventListener('mouseleave', onMouseLeave)
+      axisHoverEvaluatorRef.current = null
+
+      if (axisHoverRafRef.current !== null) {
+        window.cancelAnimationFrame(axisHoverRafRef.current)
+        axisHoverRafRef.current = null
+      }
+
+      const previousInsightId = axisHoverInsightIdRef.current
+      axisHoverInsightIdRef.current = null
+      if (previousInsightId) {
+        window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: previousInsightId, active: false } }))
+      }
+    }
+  }, [currentTeamId])
+
+  useEffect(() => {
+    const point = axisHoverPointerRef.current
+    if (!point || !axisHoverEvaluatorRef.current) return
+
+    axisHoverEvaluatorRef.current(point.x, point.y)
+  }, [messages.length, hasFooterActivity])
 
   useEffect(() => {
     if (!enableTimelineSync) return
@@ -293,16 +470,6 @@ export const MessageList = () => {
                   <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 shadow-sm w-fit min-w-[4rem] max-w-[70%}`}>
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
-                  {message.metadata?.routeMode && (
-                    <div className="max-h-0 overflow-hidden opacity-0 transition-[max-height,opacity,margin] duration-200 group-hover:mt-1 group-hover:max-h-10 group-hover:opacity-100 group-focus-within:mt-1 group-focus-within:max-h-10 group-focus-within:opacity-100">
-                      <div className={routeChipClassName}>
-                        <span className="font-medium">Routed {message.metadata.routeMode === 'research' ? 'Research' : 'Ask'}</span>
-                        {typeof message.metadata.routeConfidence === 'number' && (
-                          <span>• {Math.round(message.metadata.routeConfidence * 100)}%</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <div className="relative">
                   <div className={`w-8 h-8 rounded-full ${userAvatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
@@ -342,6 +509,7 @@ export const MessageList = () => {
                 <button
                   type="button"
                   data-linked-insight-id={insightId}
+                  data-linked-insight-type={inferredInsightType}
                   onMouseEnter={() => {
                     if (!insightId) return
                     window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId, active: true } }))
@@ -353,8 +521,22 @@ export const MessageList = () => {
                   onClick={() => {
                     const insightId = message.metadata?.linkedInsightId
                     if (!insightId) return
+
+                    trackSessionEvent({
+                      eventType: 'navigation',
+                      eventName: 'focus_insight_from_marker',
+                      teamId: currentTeamId || undefined,
+                      actorUserId: currentUser?.id,
+                      insightId,
+                      messageId: message.id,
+                    })
+
                     window.dispatchEvent(new CustomEvent('fypai:focus-insight', {
-                      detail: { insightId },
+                      detail: {
+                        insightId,
+                        preferredTab: 'all',
+                        source: 'chat-marker',
+                      },
                     }))
                   }}
                   className={`max-w-[85%] rounded-md border px-4 py-2.5 text-left text-xs leading-5 ${visuals.marker}`}
@@ -471,16 +653,6 @@ export const MessageList = () => {
                   <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] shadow-sm ${userTheme.bubbleBg} ${userTheme.bubbleText}`}> 
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
-                  {message.metadata?.routeMode && (
-                    <div className="max-h-0 overflow-hidden opacity-0 transition-[max-height,opacity,margin] duration-200 group-hover:mt-1 group-hover:max-h-10 group-hover:opacity-100 group-focus-within:mt-1 group-focus-within:max-h-10 group-focus-within:opacity-100">
-                      <div className={routeChipClassName}>
-                        <span className="font-medium">Routed {message.metadata.routeMode === 'research' ? 'Research' : 'Ask'}</span>
-                        {typeof message.metadata.routeConfidence === 'number' && (
-                          <span>• {Math.round(message.metadata.routeConfidence * 100)}%</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -488,17 +660,66 @@ export const MessageList = () => {
         }
   }
 
+  const handleJumpToLatest = () => {
+    if (messages.length === 0) return
+
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'jump_to_latest',
+      teamId: currentTeamId || undefined,
+      actorUserId: currentUser?.id,
+    })
+
+    setUnseenMessageCount(0)
+    virtuosoRef.current?.scrollToIndex({
+      index: messages.length - 1,
+      align: 'end',
+      behavior: 'smooth',
+    })
+  }
+
   return (
-    <div className="h-full overflow-hidden">
+    <div ref={chatViewportRef} className="relative h-full overflow-hidden">
       <Virtuoso
         ref={virtuosoRef}
         data={messages}
         overscan={300}
-        followOutput="auto"
+        atBottomThreshold={24}
+        atBottomStateChange={(atBottom) => {
+          isAtBottomRef.current = atBottom
+          if (!hasFooterActivity) {
+            atBottomBeforeFooterRef.current = atBottom
+          }
+          setIsAtBottom(atBottom)
+          if (atBottom) {
+            setUnseenMessageCount(0)
+
+            if (enableTimelineSync) {
+              const now = Date.now()
+              if (now - lastBottomSyncEmitAtRef.current > 220) {
+                lastBottomSyncEmitAtRef.current = now
+                window.dispatchEvent(
+                  new CustomEvent('fypai:anchor-sync', {
+                    detail: {
+                      source: 'chat',
+                      syncMode: 'bottom',
+                    },
+                  })
+                )
+              }
+            }
+          }
+        }}
+        followOutput={(isAtBottom) => (isAtBottom ? 'auto' : false)}
         className="h-full"
         rangeChanged={({ startIndex, endIndex }) => {
           if (!enableTimelineSync || applyingExternalSyncRef.current) return
+          if (isAtBottomRef.current) return
           if (Date.now() < suppressAnchorEmitUntilRef.current) return
+
+          const now = Date.now()
+          if (now - lastChatSyncEmitAtRef.current < 120) return
+          lastChatSyncEmitAtRef.current = now
 
           const middleIndex = Math.floor((startIndex + endIndex) / 2)
           let bestInsightId: string | null = null
@@ -534,7 +755,7 @@ export const MessageList = () => {
         )}
         components={{
           Footer: () =>
-            typingUserNames.length > 0 || isAgentTyping || showPendingInsightMarker ? (
+            hasFooterActivity ? (
               <div className="px-4 py-2">
                 {showPendingInsightMarker && (
                   <div className="mb-2 flex justify-center">
@@ -549,13 +770,29 @@ export const MessageList = () => {
                 )}
                 <TypingIndicator
                   userNames={typingUserNames}
-                  isAgentTyping={isAgentTyping}
                   aiStage={aiProcessingStage}
                 />
               </div>
             ) : null,
         }}
       />
+
+      {!isAtBottom && messages.length > 0 && (
+        <div className="pointer-events-none absolute bottom-4 right-4 z-20">
+          <button
+            type="button"
+            onClick={handleJumpToLatest}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md transition hover:border-slate-400 hover:bg-white"
+          >
+            <span>Jump to latest</span>
+            {unseenMessageCount > 0 && (
+              <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {unseenMessageCount > 99 ? '99+' : unseenMessageCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

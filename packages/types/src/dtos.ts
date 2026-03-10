@@ -323,6 +323,77 @@ export interface UpdateTaskContextRequest {
   userId: string
 }
 
+// ============================================================================
+// Session Telemetry DTOs (Phase 5.5)
+// ============================================================================
+
+export type SessionEventType = 'chat' | 'navigation' | 'insight' | 'context' | 'session' | 'sync'
+
+export interface SessionEventMetadata {
+  [key: string]: any
+}
+
+export interface SessionEventDTO {
+  id: string
+  teamId: string
+  sessionId: string
+  eventType: SessionEventType
+  eventName: string
+  actorUserId?: string
+  messageId?: string
+  insightId?: string
+  content?: string
+  metadata?: SessionEventMetadata
+  createdAt: string
+}
+
+export interface CreateSessionEventRequest {
+  teamId: string
+  sessionId: string
+  eventType: SessionEventType
+  eventName: string
+  actorUserId?: string
+  messageId?: string
+  insightId?: string
+  content?: string
+  metadata?: SessionEventMetadata
+  createdAt?: string
+}
+
+export interface CreateSessionEventBatchRequest {
+  events: CreateSessionEventRequest[]
+}
+
+export interface SessionMetricsDTO {
+  teamId: string
+  sessionId?: string
+  windowStart: string | null
+  windowEnd: string | null
+  totalEvents: number
+  uniqueUsers: number
+  messageSentCount: number
+  insightStatusChangeCount: number
+  tabSwitchCount: number
+  contextEditCount: number
+  exportCount: number
+  resetCount: number
+  markerJumpCount: number
+  timelineSyncCount: number
+  linkHoverCount: number
+  actionAcceptedCount: number
+  actionDismissedCount: number
+  actionCompletedCount: number
+  avgSecondsBetweenEvents: number
+}
+
+export interface SessionTimelineExportDTO {
+  teamId: string
+  sessionId?: string
+  exportedAt: string
+  timeline: SessionEventDTO[]
+  metrics: SessionMetricsDTO
+}
+
 /**
  * API Response Wrappers
  * Standard response formats

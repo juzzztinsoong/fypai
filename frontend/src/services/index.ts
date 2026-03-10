@@ -75,3 +75,6 @@ export { default as userService } from './userService'
 // WebSocket service
 export { socketService } from './socketService'
 export { default as socket } from './socketService'
+
+// Session analytics service
+export { analyticsService, trackSessionEvent } from './analyticsService'

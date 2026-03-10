@@ -186,6 +186,58 @@ export async function generateReport(teamId: string, prompt?: string): Promise<A
   }
 }
 
+/**
+ * Generate deterministic action-item insight
+ * POST /insights/generate/action
+ * @param teamId - Team ID to generate actions for
+ * @param prompt - Optional custom prompt
+ */
+export async function generateAction(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+  const uiStore = useUIStore.getState()
+  uiStore.setLoading('insight-generation', true)
+
+  try {
+    const response = await api.post<AIInsightDTO>('/insights/generate/action', { teamId, prompt })
+
+    entityStore.addInsight(response.data)
+
+    console.log('[InsightService] ✅ Action insight generated:', response.data.id)
+    return response.data
+  } catch (error) {
+    console.error(`[InsightService] Failed to generate action insight for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  } finally {
+    uiStore.setLoading('insight-generation', false)
+  }
+}
+
+/**
+ * Generate deterministic suggestion insight
+ * POST /insights/generate/suggestion
+ * @param teamId - Team ID to generate suggestions for
+ * @param prompt - Optional custom prompt
+ */
+export async function generateSuggestion(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+  const entityStore = useEntityStore.getState()
+  const uiStore = useUIStore.getState()
+  uiStore.setLoading('insight-generation', true)
+
+  try {
+    const response = await api.post<AIInsightDTO>('/insights/generate/suggestion', { teamId, prompt })
+
+    entityStore.addInsight(response.data)
+
+    console.log('[InsightService] ✅ Suggestion insight generated:', response.data.id)
+    return response.data
+  } catch (error) {
+    console.error(`[InsightService] Failed to generate suggestion insight for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  } finally {
+    uiStore.setLoading('insight-generation', false)
+  }
+}
+
 export default {
   getInsights,
   createInsight,
@@ -193,6 +245,8 @@ export default {
   resetTeamInsights,
   generateSummary,
   generateReport,
+  generateAction,
+  generateSuggestion,
   updateInsightStatus,
   updateInsight,
 }

@@ -262,6 +262,18 @@ export const RuleTogglePanel = ({ teamId }: RuleTogglePanelProps) => {
     }
   }, [])
 
+  // Priority update
+  const handlePriorityChange = useCallback(async (ruleId: string, priority: number) => {
+    try {
+      await api.patch(`/chime/rules/${ruleId}`, { priority })
+      setRules(prev => prev.map(r =>
+        r.id === ruleId ? { ...r, priority } : r
+      ))
+    } catch (err) {
+      console.error('[RuleTogglePanel] Priority error:', getErrorMessage(err))
+    }
+  }, [])
+
   // ─── Render states ──────────────────────────────────────
 
   if (loading) {
@@ -443,6 +455,22 @@ export const RuleTogglePanel = ({ teamId }: RuleTogglePanelProps) => {
                   {rule.enabled && (
                     <div className="mt-1.5 flex items-center gap-2 text-[10px] text-gray-400">
                       <span>{rule.execution === 'async' ? '⏳ Async' : '⚡ Sync'}</span>
+                      <span className="text-gray-200">•</span>
+                      <div className="flex items-center gap-1">
+                        <span>🎯</span>
+                        <select
+                          value={rule.priority}
+                          onChange={(e) => handlePriorityChange(rule.id, parseInt(e.target.value))}
+                          className="bg-transparent border-b border-gray-200 text-gray-500 text-[10px] focus:outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                          <option value={30}>Low (30)</option>
+                          <option value={50}>Medium (50)</option>
+                          <option value={65}>Elevated (65)</option>
+                          <option value={80}>High (80)</option>
+                          <option value={90}>Critical (90)</option>
+                          <option value={100}>Top (100)</option>
+                        </select>
+                      </div>
                       <span className="text-gray-200">•</span>
                       <div className="flex items-center gap-1">
                         <span>⏱️</span>

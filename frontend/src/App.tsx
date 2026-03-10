@@ -17,6 +17,7 @@ import { useUIStore } from './stores/uiStore'
 import { getUserById } from './services/userService'
 import { getTeamsForUser } from './services/teamService'
 import { socketService } from './services'
+import { trackSessionEvent } from './services/analyticsService'
 
 // Expose diagnostic tools to window for debugging
 if (typeof window !== 'undefined') {
@@ -82,6 +83,17 @@ function App() {
           useUIStore.getState().setCurrentTeam(firstTeamId)
           console.log('[App] Set current team:', firstTeamId)
         }
+
+        trackSessionEvent({
+          eventType: 'session',
+          eventName: 'session_initialized',
+          teamId: firstTeamId,
+          actorUserId: userId,
+          metadata: {
+            availableTeamCount: Object.keys(teams).length,
+            bootstrapUserId: userId,
+          },
+        })
         
         console.log('[App] ✅ Application initialized')
         setIsInitialized(true)

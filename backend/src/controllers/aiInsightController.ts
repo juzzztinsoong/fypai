@@ -89,6 +89,23 @@ export class AIInsightController {
     teamId: string,
     insight: AIInsightDTO,
   ): Promise<void> {
+    const existingMarker = await prisma.message.findFirst({
+      where: {
+        teamId,
+        authorId: 'agent',
+        metadata: {
+          contains: `\"linkedInsightId\":\"${insight.id}\"`,
+        },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (existingMarker) {
+      console.log(`[AIInsightController] ♻️ Skipping duplicate marker for insight: ${insight.id}`)
+      return
+    }
+
     const markerLabelByType: Record<string, string> = {
       action: 'Action item',
       summary: 'Summary',
@@ -549,6 +566,180 @@ export class AIInsightController {
       });
 
       console.log(`[AIInsightController] 💾 Research insight saved to database: ${insightDTO.id}`);
+      return insightDTO;
+    } finally {
+      this.emitTyping(teamId, false);
+      this.emitProcessingStage(teamId, 'idle');
+    }
+  }
+
+  /**
+   * Generate AI-powered action insight
+   * Produces deterministic action-item output from recent conversation
+   * @param {string} teamId - Team ID
+   * @param {string} prompt - Optional custom prompt for action generation
+   * @returns {Promise<AIInsightDTO>} Created action insight
+   */
+  static async generateAction(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+    this.emitTyping(teamId, true);
+    this.emitProcessingStage(teamId, 'thinking');
+
+    try {
+      const messages = await MessageController.getMessages(teamId);
+      const team = await TeamController.getTeamById(teamId);
+
+      if (!team) throw new Error('Team not found');
+
+      const conversationHistory = buildConversationContext(messages, team, 50);
+
+      let taskContextMessage: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          taskContextMessage = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+          console.log(`[AIInsightController] 📋 Injecting task context into action generation (${teamData.taskContext.length} chars)`);
+        }
+      } catch (error) {
+        console.warn('[AIInsightController] Failed to load task context for action generation:', error);
+      }
+
+      const defaultPrompt = `Create a concise, trackable action list from the latest team discussion.
+
+Output format:
+## Action Items
+- [ ] Action statement
+
+Rules:
+- Max 5 action items
+- Include owner and due date only if explicitly stated
+- Merge duplicates
+- Keep each item short and execution-ready`;
+
+      const actionPrompt = prompt || defaultPrompt;
+
+      console.log(`[AIInsightController] Generating action insight for team ${teamId}`);
+      this.emitProcessingStage(teamId, 'analyzing');
+
+      const response = await this.llm.generate({
+        messages: [
+          ...(taskContextMessage ? [taskContextMessage] : []),
+          { role: 'system', content: SYSTEM_PROMPTS.assistant },
+          ...conversationHistory,
+          { role: 'user', content: actionPrompt },
+        ],
+        model: process.env.LLM_MODEL_TIER_2,
+        maxTokens: 1400,
+        temperature: 0.35,
+      });
+
+      const insightDTO = await this.createInsight({
+        teamId,
+        type: 'action',
+        title: 'Action Items',
+        content: response.content,
+        priority: 'high',
+        tags: ['auto-generated', 'action', response.model],
+        relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
+        metadata: {
+          model: response.model,
+          tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+        },
+      });
+
+      console.log(`[AIInsightController] 💾 Action insight saved to database: ${insightDTO.id}`);
+      return insightDTO;
+    } finally {
+      this.emitTyping(teamId, false);
+      this.emitProcessingStage(teamId, 'idle');
+    }
+  }
+
+  /**
+   * Generate AI-powered suggestion insight
+   * Produces concrete recommendations based on recent discussion
+   * @param {string} teamId - Team ID
+   * @param {string} prompt - Optional custom prompt for suggestion generation
+   * @returns {Promise<AIInsightDTO>} Created suggestion insight
+   */
+  static async generateSuggestion(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+    this.emitTyping(teamId, true);
+    this.emitProcessingStage(teamId, 'thinking');
+
+    try {
+      const messages = await MessageController.getMessages(teamId);
+      const team = await TeamController.getTeamById(teamId);
+
+      if (!team) throw new Error('Team not found');
+
+      const conversationHistory = buildConversationContext(messages, team, 50);
+
+      let taskContextMessage: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          taskContextMessage = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+          console.log(`[AIInsightController] 📋 Injecting task context into suggestion generation (${teamData.taskContext.length} chars)`);
+        }
+      } catch (error) {
+        console.warn('[AIInsightController] Failed to load task context for suggestion generation:', error);
+      }
+
+      const defaultPrompt = `Provide practical suggestions for the team based on the latest discussion.
+
+Output format:
+## Recommended Next Moves
+- Suggestion and why it helps
+
+Rules:
+- Max 5 suggestions
+- Be specific and low-friction
+- Highlight major tradeoffs when relevant
+- Do not produce task checklists, owners, or deadlines`;
+
+      const suggestionPrompt = prompt || defaultPrompt;
+
+      console.log(`[AIInsightController] Generating suggestion insight for team ${teamId}`);
+      this.emitProcessingStage(teamId, 'analyzing');
+
+      const response = await this.llm.generate({
+        messages: [
+          ...(taskContextMessage ? [taskContextMessage] : []),
+          { role: 'system', content: SYSTEM_PROMPTS.assistant },
+          ...conversationHistory,
+          { role: 'user', content: suggestionPrompt },
+        ],
+        model: process.env.LLM_MODEL_TIER_2,
+        maxTokens: 1400,
+        temperature: 0.45,
+      });
+
+      const insightDTO = await this.createInsight({
+        teamId,
+        type: 'suggestion',
+        title: 'Suggestions',
+        content: response.content,
+        priority: 'medium',
+        tags: ['auto-generated', 'suggestion', response.model],
+        relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
+        metadata: {
+          model: response.model,
+          tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+        },
+      });
+
+      console.log(`[AIInsightController] 💾 Suggestion insight saved to database: ${insightDTO.id}`);
       return insightDTO;
     } finally {
       this.emitTyping(teamId, false);

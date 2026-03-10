@@ -19,18 +19,69 @@ interface RouteMetadataSnapshot {
   routeOverrideUsed?: boolean
 }
 
-const RESEARCH_PATTERNS: RegExp[] = [
+const STRONG_RESEARCH_PATTERNS: RegExp[] = [
   /\bresearch\b/i,
   /\bcompare\b/i,
   /\btrade[-\s]?off(s)?\b/i,
   /\bpros?\s+and\s+cons?\b/i,
   /\bdeep\s+dive\b/i,
   /\bbrief\b/i,
+  /\bliterature\s+review\b/i,
+  /\bevidence\b/i,
+  /\bbenchmark\b/i,
+]
+
+const SOFT_RESEARCH_PATTERNS: RegExp[] = [
   /\banaly[sz]e\b/i,
   /\boptions?\b/i,
   /\brecommend\b/i,
   /\bwhat\s+should\s+we\s+do\b/i,
+  /\bbest\s+approach\b/i,
+  /\bfeasib(le|ility)\b/i,
+  /\bimpact\b/i,
+  /\brisk(s)?\b/i,
+  /\bstrategy\b/i,
+  /\bevaluate\b/i,
 ]
+
+function clamp(value: number, min = 0, max = 1): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function scoreResearchSignal(content: string): { score: number; reasons: string[] } {
+  const normalized = content.trim()
+  const reasons: string[] = []
+  let score = 0
+
+  const strongMatch = STRONG_RESEARCH_PATTERNS.find((pattern) => pattern.test(normalized))
+  if (strongMatch) {
+    score += 0.7
+    reasons.push('Matched explicit research phrasing')
+  }
+
+  const softMatches = SOFT_RESEARCH_PATTERNS.filter((pattern) => pattern.test(normalized)).length
+  if (softMatches > 0) {
+    const softBoost = Math.min(0.24, softMatches * 0.08)
+    score += softBoost
+    reasons.push(`Matched ${softMatches} planning/evaluation hint(s)`)
+  }
+
+  const tokenCount = normalized.split(/\s+/).filter(Boolean).length
+  if (tokenCount >= 18) {
+    score += 0.08
+    reasons.push('Longer query suggests deeper analysis')
+  }
+
+  if (/\?/.test(normalized) && /(why|how|should|could|would|which|what)/i.test(normalized)) {
+    score += 0.06
+    reasons.push('Analytical question structure detected')
+  }
+
+  return {
+    score: clamp(score),
+    reasons,
+  }
+}
 
 const RESEARCH_INTENT_RATIONALE: Record<IntentType, string> = {
   direct_mention: 'Direct agent mention is best handled as a normal assistant chat response.',
@@ -58,12 +109,22 @@ export class IntentController {
       }
     }
 
-    const hasResearchSignal = RESEARCH_PATTERNS.some((pattern) => pattern.test(trimmedContent))
-    if (hasResearchSignal) {
+    if (trimmedContent.toLowerCase().includes('@agent')) {
+      return {
+        mode: 'ask',
+        confidence: 1,
+        rationale: 'Direct @agent mention should route to conversational assistant mode.',
+        classifierIntent: 'direct_mention',
+      }
+    }
+
+    const researchSignal = scoreResearchSignal(trimmedContent)
+
+    if (researchSignal.score >= 0.72) {
       return {
         mode: 'research',
-        confidence: 0.9,
-        rationale: 'Matched explicit research-oriented phrasing (compare/trade-off/deep-dive pattern).',
+        confidence: researchSignal.score,
+        rationale: `${researchSignal.reasons.join('; ')}. Routed to research mode.`,
         classifierIntent: 'none',
       }
     }
@@ -79,10 +140,31 @@ export class IntentController {
 
     const syncClassification = IntentClassifier.getInstance().classifySync(syntheticMessage)
 
+    if (syncClassification.intent === 'question' && researchSignal.score >= 0.55) {
+      return {
+        mode: 'research',
+        confidence: clamp(Math.max(0.62, researchSignal.score)),
+        rationale: `${researchSignal.reasons.join('; ')}. Question appears to need long-form research output.`,
+        classifierIntent: syncClassification.intent,
+      }
+    }
+
+    if (syncClassification.intent === 'none' && researchSignal.score >= 0.6) {
+      return {
+        mode: 'research',
+        confidence: clamp(Math.max(0.6, researchSignal.score - 0.05)),
+        rationale: `${researchSignal.reasons.join('; ')}. Routed to research despite weak sync intent match.`,
+        classifierIntent: syncClassification.intent,
+      }
+    }
+
     return {
       mode: 'ask',
       confidence: Math.min(1, Math.max(0, syncClassification.confidence)),
-      rationale: RESEARCH_INTENT_RATIONALE[syncClassification.intent],
+      rationale:
+        researchSignal.score > 0
+          ? `${RESEARCH_INTENT_RATIONALE[syncClassification.intent]} Research score=${researchSignal.score.toFixed(2)}.`
+          : RESEARCH_INTENT_RATIONALE[syncClassification.intent],
       classifierIntent: syncClassification.intent,
     }
   }

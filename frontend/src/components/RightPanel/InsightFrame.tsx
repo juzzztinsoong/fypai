@@ -36,6 +36,7 @@ export const InsightFrame = ({
     <div
       id={`insight-${insight.id}`}
       data-insight-id={insight.id}
+      data-insight-type={insight.type}
       onMouseEnter={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: true } }))}
       onMouseLeave={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: false } }))}
       className={containerClassName}

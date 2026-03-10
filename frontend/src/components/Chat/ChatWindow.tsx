@@ -15,7 +15,9 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { useEntityStore } from '@/stores/entityStore'
 import { createMessage } from '@/services/messageService'
 import { createResearchJob } from '@/services/researchJobService'
+import { generateAction, generateSuggestion, generateSummary } from '@/services/insightService'
 import { classifyIntent } from '@/services/intentService'
+import { trackSessionEvent } from '@/services/analyticsService'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
 import { socketService } from '@/services/socketService'
@@ -57,12 +59,14 @@ export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
   const [composerOverrideMode, setComposerOverrideMode] = useState<ComposerOverrideMode>('auto')
   const [isResearchGenerating, setIsResearchGenerating] = useState(false)
+  const [quickGeneratingType, setQuickGeneratingType] = useState<'summary' | 'action' | 'suggestion' | null>(null)
   const [lastRouteDecision, setLastRouteDecision] = useState<{
     mode: ComposerMode
     confidence: number
     rationale: string
     source: 'manual-override' | 'server-classifier' | 'frontend-fallback'
   } | null>(null)
+  const composerRef = useRef<HTMLTextAreaElement | null>(null)
   
   // Get current team from UIStore
   const currentTeamId = useUIStore((state) => state.currentTeamId)
@@ -158,7 +162,7 @@ export const ChatWindow = () => {
 
   // handleSend(): sends message via messageService
   const handleSend = async () => {
-    if (!newMessage.trim() || !currentTeam || !currentUser || isResearchGenerating) return
+    if (!newMessage.trim() || !currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
 
     const submittedMessage = newMessage.trim()
     const inferredMode = inferComposerMode(submittedMessage)
@@ -218,17 +222,46 @@ export const ChatWindow = () => {
     }
 
     try {
-      await createMessage({
+      const createdMessage = await createMessage({
         teamId: currentTeam.id,
         authorId: currentUser.id,
         content: submittedMessage,
         contentType: 'text',
         metadata: messageMetadata,
       })
+
+      trackSessionEvent({
+        eventType: 'chat',
+        eventName: 'message_sent',
+        teamId: currentTeam.id,
+        actorUserId: currentUser.id,
+        messageId: createdMessage.id,
+        content: submittedMessage,
+        metadata: {
+          routeMode: routeDecision.mode,
+          routeConfidence: routeDecision.confidence,
+          routeSource: routeDecision.source,
+          overrideMode: composerOverrideMode,
+        },
+      })
+
       setNewMessage('')
       setLastRouteDecision(routeDecision)
 
       if (effectiveMode === 'research') {
+        trackSessionEvent({
+          eventType: 'chat',
+          eventName: 'research_job_requested',
+          teamId: currentTeam.id,
+          actorUserId: currentUser.id,
+          messageId: createdMessage.id,
+          content: submittedMessage,
+          metadata: {
+            mode: effectiveMode,
+            routeConfidence: routeDecision.confidence,
+          },
+        })
+
         setIsResearchGenerating(true)
         try {
           await createResearchJob({
@@ -244,6 +277,98 @@ export const ChatWindow = () => {
     } catch (error) {
       console.error('[ChatWindow] Failed to send message:', error)
       // Could show error toast here
+    }
+  }
+
+  const handleMentionAgent = () => {
+    const withMention = newMessage.trimStart().startsWith('@agent')
+      ? newMessage
+      : newMessage.length > 0
+      ? `@agent ${newMessage}`
+      : '@agent '
+
+    setNewMessage(withMention)
+    setComposerOverrideMode('ask')
+    composerRef.current?.focus()
+
+    if (currentTeam && currentUser) {
+      trackSessionEvent({
+        eventType: 'chat',
+        eventName: 'invoke_agent_quick_action',
+        teamId: currentTeam.id,
+        actorUserId: currentUser.id,
+      })
+    }
+  }
+
+  const handleSetResearchMode = () => {
+    setComposerOverrideMode('research')
+    composerRef.current?.focus()
+
+    if (currentTeam && currentUser) {
+      trackSessionEvent({
+        eventType: 'chat',
+        eventName: 'composer_mode_quick_set',
+        teamId: currentTeam.id,
+        actorUserId: currentUser.id,
+        metadata: {
+          mode: 'research',
+          source: 'chat-quick-action',
+        },
+      })
+    }
+  }
+
+  const handleDeterministicGenerate = async (kind: 'summary' | 'action' | 'suggestion') => {
+    if (!currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
+
+    setQuickGeneratingType(kind)
+
+    trackSessionEvent({
+      eventType: 'insight',
+      eventName: 'insight_generate_requested',
+      teamId: currentTeam.id,
+      actorUserId: currentUser.id,
+      metadata: {
+        insightType: kind,
+        source: 'chat-quick-action',
+      },
+    })
+
+    try {
+      if (kind === 'summary') {
+        await generateSummary(currentTeam.id)
+      } else if (kind === 'action') {
+        await generateAction(currentTeam.id)
+      } else {
+        await generateSuggestion(currentTeam.id)
+      }
+
+      trackSessionEvent({
+        eventType: 'insight',
+        eventName: 'insight_generate_completed',
+        teamId: currentTeam.id,
+        actorUserId: currentUser.id,
+        metadata: {
+          insightType: kind,
+          source: 'chat-quick-action',
+        },
+      })
+    } catch (error) {
+      trackSessionEvent({
+        eventType: 'insight',
+        eventName: 'insight_generate_failed',
+        teamId: currentTeam.id,
+        actorUserId: currentUser.id,
+        metadata: {
+          insightType: kind,
+          source: 'chat-quick-action',
+          error: error instanceof Error ? error.message : 'Unknown generation error',
+        },
+      })
+      console.error('[ChatWindow] Deterministic generation failed:', error)
+    } finally {
+      setQuickGeneratingType(null)
     }
   }
 
@@ -272,6 +397,49 @@ export const ChatWindow = () => {
             activeKey={composerOverrideMode}
             onChange={setComposerOverrideMode}
           />
+          <button
+            type="button"
+            onClick={handleMentionAgent}
+            className={`${uiTokens.controls.button.sm} border-indigo-300 text-indigo-700 hover:bg-indigo-50`}
+            title="Insert @agent mention"
+          >
+            @agent
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeterministicGenerate('summary')}
+            disabled={isResearchGenerating || quickGeneratingType !== null}
+            className={`${uiTokens.controls.button.sm} border-sky-300 text-sky-700 hover:bg-sky-50`}
+            title="Generate deterministic summary insight"
+          >
+            {quickGeneratingType === 'summary' ? 'Summarizing...' : 'Summary'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeterministicGenerate('action')}
+            disabled={isResearchGenerating || quickGeneratingType !== null}
+            className={`${uiTokens.controls.button.sm} border-amber-300 text-amber-700 hover:bg-amber-50`}
+            title="Generate deterministic action items"
+          >
+            {quickGeneratingType === 'action' ? 'Generating...' : 'Actions'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeterministicGenerate('suggestion')}
+            disabled={isResearchGenerating || quickGeneratingType !== null}
+            className={`${uiTokens.controls.button.sm} border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50`}
+            title="Generate deterministic suggestions"
+          >
+            {quickGeneratingType === 'suggestion' ? 'Generating...' : 'Suggestions'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSetResearchMode}
+            className={`${uiTokens.controls.button.sm} border-emerald-300 text-emerald-700 hover:bg-emerald-50`}
+            title="Switch composer to research mode"
+          >
+            Research mode
+          </button>
           <span className={uiTokens.text.meta}>
             {isAutoMode
               ? `Auto-routed: ${effectiveMode === 'research' ? 'Research' : 'Ask'}`
@@ -290,6 +458,7 @@ export const ChatWindow = () => {
         {/* Message Composer */}
         <div className="flex space-x-2">
           <textarea
+            ref={composerRef}
             value={newMessage}
             onChange={handleInputChange}
             onKeyDown={(e) => {
@@ -304,7 +473,7 @@ export const ChatWindow = () => {
           />
           <button
             onClick={handleSend}
-            disabled={!newMessage.trim() || isResearchGenerating}
+            disabled={!newMessage.trim() || isResearchGenerating || quickGeneratingType !== null}
             className={`h-10 w-10 flex items-center justify-center rounded-lg transition-colors ${uiTokens.controls.button.brandSolid}`}
             title={isResearchGenerating ? 'Generating research insight...' : 'Send message'}
           >

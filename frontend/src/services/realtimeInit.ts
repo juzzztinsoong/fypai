@@ -10,6 +10,7 @@
 import { socketService } from './socketService'
 import { useEntityStore } from '@/stores/entityStore'
 import { useSessionStore } from '@/stores/sessionStore'
+import { trackSessionEvent } from './analyticsService'
 import type { MessageDTO, AIInsightDTO } from '@fypai/types'
 import type { ResearchRun } from '@/stores/sessionStore'
 
@@ -156,6 +157,21 @@ export async function initializeRealtime(userId: string): Promise<void> {
       socket.on('research:job:updated', (job: ResearchRun) => {
         console.log('[RealtimeInit] 🔬 Socket: research:job:updated ->', job.id, job.status)
         useSessionStore.getState().upsertResearchRun(job)
+
+        if (job.status === 'done' || job.status === 'failed') {
+          const currentUserId = useSessionStore.getState().currentUser?.id
+          trackSessionEvent({
+            eventType: 'chat',
+            eventName: job.status === 'done' ? 'research_job_done' : 'research_job_failed',
+            teamId: job.teamId,
+            actorUserId: currentUserId,
+            metadata: {
+              jobId: job.id,
+              status: job.status,
+              error: job.error,
+            },
+          })
+        }
       })
 
       // Sprint D: Task context updates

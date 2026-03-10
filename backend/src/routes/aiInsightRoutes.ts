@@ -152,4 +152,38 @@ router.post('/generate/report', async (req, res, next) => {
   }
 })
 
+/**
+ * POST /api/insights/generate/action
+ * Generate deterministic action-item insight
+ */
+router.post('/generate/action', async (req, res, next) => {
+  try {
+    const { teamId, prompt } = req.body
+    if (!teamId) {
+      return res.status(400).json({ error: 'teamId is required' })
+    }
+    const insight = await AIInsightController.generateAction(teamId, prompt)
+    res.status(201).json(insight)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * POST /api/insights/generate/suggestion
+ * Generate deterministic suggestion insight
+ */
+router.post('/generate/suggestion', async (req, res, next) => {
+  try {
+    const { teamId, prompt } = req.body
+    if (!teamId) {
+      return res.status(400).json({ error: 'teamId is required' })
+    }
+    const insight = await AIInsightController.generateSuggestion(teamId, prompt)
+    res.status(201).json(insight)
+  } catch (error) {
+    next(error)
+  }
+})
+
 export default router

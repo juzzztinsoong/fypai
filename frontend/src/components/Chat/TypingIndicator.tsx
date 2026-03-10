@@ -1,16 +1,16 @@
 /**
  * TypingIndicator Component
  * 
- * Displays animated "..." when users or AI are typing/generating
+ * Displays animated "..." when users are typing.
  * Matches message bubble styling and positioning
  * 
  * Props:
  * - userNames: string[] - Names of users currently typing (left-aligned)
- * - isAgentTyping: boolean - Whether AI agent is generating (center-aligned)
+ * - isAgentTyping: retained for compatibility, ignored
+ * - aiStage: retained for compatibility, ignored
  * 
  * Visual:
  * - Users: Left-aligned with gray bubble and avatar placeholder
- * - Agent: Center-aligned with violet bubble and AI icon
  */
 
 interface TypingIndicatorProps {
@@ -20,7 +20,10 @@ interface TypingIndicatorProps {
 }
 
 export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: TypingIndicatorProps) => {
-  if (!isAgentTyping && userNames.length === 0) {
+  void isAgentTyping
+  void aiStage
+
+  if (userNames.length === 0) {
     return null
   }
 
@@ -44,34 +47,6 @@ export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: 
       <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
     </div>
   )
-
-  // Agent typing indicator (center-aligned, violet)
-  if (isAgentTyping) {
-    const stageMessage =
-      aiStage === 'searching-memory'
-        ? 'AI is searching memory'
-        : aiStage === 'analyzing'
-        ? 'AI is analyzing'
-        : 'AI is thinking'
-
-    return (
-      <div className="flex justify-center">
-        <div className="flex flex-col items-center">
-          <span className="text-xs text-violet-700 mb-1 font-bold">AI Assistant</span>
-          <div className="bg-violet-100 border border-violet-400 text-violet-950 rounded-xl px-4 py-2 shadow-sm flex items-center gap-2">
-            <span className="text-sm font-medium">{stageMessage}</span>
-            <AnimatedDots />
-          </div>
-          <div className="mt-2">
-            <svg className="w-8 h-8 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" />
-              <text x="12" y="16" textAnchor="middle" fontSize="10" fill="#fff">AI</text>
-            </svg>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   // User typing indicator (left-aligned, gray)
   return (

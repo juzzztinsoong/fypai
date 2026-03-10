@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useEntityStore } from '@/stores/entityStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { getTaskContext, updateTaskContext } from '@/services/teamService';
+import { trackSessionEvent } from '@/services/analyticsService';
 import ReactMarkdown from 'react-markdown';
 
 interface TaskContextCardProps {
@@ -80,13 +81,27 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskC
     try {
       const updated = await updateTaskContext(teamId, draft, currentUserId);
       useEntityStore.getState().setTaskContext(teamId, updated);
+
+      trackSessionEvent({
+        eventType: 'context',
+        eventName: 'task_context_saved',
+        teamId,
+        actorUserId: currentUserId,
+        content: draft,
+        metadata: {
+          previousLength: content?.length || 0,
+          nextLength: draft.length,
+          mode,
+        },
+      });
+
       setIsEditing(false);
     } catch (err) {
       console.error('[TaskContextCard] Failed to save context:', err);
     } finally {
       setIsSaving(false);
     }
-  }, [teamId, currentUserId, draft]);
+  }, [teamId, currentUserId, draft, content, mode]);
 
   if (isLoading) {
     if (isEmbedded) {

@@ -58,6 +58,7 @@ model Team {
   chimeRules         ChimeRule[]
   agentPreferences   TeamAgentPreference?
   researchJobs       ResearchJob[]
+  sessionEvents      SessionEvent[]
 }
 
 model TeamAgentPreference {
@@ -200,6 +201,27 @@ model ChimeLog {
   
   @@index([teamId, triggeredAt])
   @@index([ruleId, triggeredAt])
+}
+
+model SessionEvent {
+  id          String   @id @default(uuid())
+  teamId      String
+  sessionId   String
+  eventType   String   // 'chat' | 'navigation' | 'insight' | 'context' | 'session' | 'sync'
+  eventName   String
+  actorUserId String?
+  messageId   String?
+  insightId   String?
+  content     String?
+  metadata    String?  // JSON string with event-specific details
+  createdAt   DateTime @default(now())
+
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt])
+  @@index([teamId, sessionId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([eventType, createdAt])
 }
 
 model ResearchJob {

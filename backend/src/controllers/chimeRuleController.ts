@@ -49,6 +49,146 @@ const RULE_PRESETS: Record<RulePresetId, RulePresetConfig> = {
 };
 
 export class ChimeRuleController {
+  private static readonly VALID_RULE_TYPES = new Set(['pattern', 'semantic', 'intent', 'schedule']);
+  private static readonly VALID_EXECUTION_TYPES = new Set(['sync', 'async']);
+  private static readonly VALID_ACTION_TYPES = new Set(['chat_message', 'insight']);
+  private static readonly VALID_INSIGHT_TYPES = new Set(['action', 'suggestion', 'analysis', 'summary']);
+
+  private static validateRulePayload(payload: Partial<RuleDefinition>, mode: 'create' | 'update'): string[] {
+    const errors: string[] = [];
+
+    if (mode === 'create') {
+      if (!payload.name || typeof payload.name !== 'string' || payload.name.trim().length === 0) {
+        errors.push('name is required');
+      }
+      if (!payload.type || typeof payload.type !== 'string') {
+        errors.push('type is required');
+      }
+      if (payload.priority === undefined || payload.priority === null) {
+        errors.push('priority is required');
+      }
+      if (payload.cooldownMinutes === undefined || payload.cooldownMinutes === null) {
+        errors.push('cooldownMinutes is required');
+      }
+      if (!payload.conditions || typeof payload.conditions !== 'object') {
+        errors.push('conditions object is required');
+      }
+      if (!payload.action || typeof payload.action !== 'object') {
+        errors.push('action object is required');
+      }
+    }
+
+    if (payload.name !== undefined) {
+      if (typeof payload.name !== 'string' || payload.name.trim().length === 0) {
+        errors.push('name must be a non-empty string');
+      } else if (payload.name.trim().length > 120) {
+        errors.push('name must be 120 characters or less');
+      }
+    }
+
+    if (payload.type !== undefined) {
+      if (typeof payload.type !== 'string' || !this.VALID_RULE_TYPES.has(payload.type)) {
+        errors.push('type must be one of: pattern, semantic, intent, schedule');
+      }
+    }
+
+    if (payload.execution !== undefined) {
+      if (typeof payload.execution !== 'string' || !this.VALID_EXECUTION_TYPES.has(payload.execution)) {
+        errors.push('execution must be one of: sync, async');
+      }
+    }
+
+    if (payload.priority !== undefined) {
+      if (!Number.isInteger(payload.priority) || payload.priority < 0 || payload.priority > 100) {
+        errors.push('priority must be an integer between 0 and 100');
+      }
+    }
+
+    if (payload.cooldownMinutes !== undefined) {
+      if (!Number.isInteger(payload.cooldownMinutes) || payload.cooldownMinutes < 0 || payload.cooldownMinutes > 1440) {
+        errors.push('cooldownMinutes must be an integer between 0 and 1440');
+      }
+    }
+
+    if (payload.conditions !== undefined) {
+      if (!payload.conditions || typeof payload.conditions !== 'object' || Array.isArray(payload.conditions)) {
+        errors.push('conditions must be an object');
+      } else {
+        const conditions = payload.conditions as Record<string, unknown>;
+
+        if (conditions.patterns !== undefined) {
+          if (!Array.isArray(conditions.patterns)) {
+            errors.push('conditions.patterns must be an array');
+          } else {
+            for (const pattern of conditions.patterns) {
+              if (typeof pattern !== 'string' || pattern.trim().length === 0) {
+                errors.push('conditions.patterns must contain non-empty strings');
+                break;
+              }
+
+              try {
+                new RegExp(pattern, 'i');
+              } catch {
+                errors.push(`Invalid regex pattern: ${pattern}`);
+                break;
+              }
+            }
+          }
+        }
+
+        if (conditions.keywords !== undefined) {
+          if (!Array.isArray(conditions.keywords)) {
+            errors.push('conditions.keywords must be an array');
+          } else if (conditions.keywords.some((keyword) => typeof keyword !== 'string' || keyword.trim().length === 0)) {
+            errors.push('conditions.keywords must contain non-empty strings');
+          }
+        }
+
+        if (conditions.threshold !== undefined) {
+          const threshold = Number(conditions.threshold);
+          if (Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
+            errors.push('conditions.threshold must be between 0 and 1');
+          }
+        }
+      }
+    }
+
+    if (payload.action !== undefined) {
+      if (!payload.action || typeof payload.action !== 'object' || Array.isArray(payload.action)) {
+        errors.push('action must be an object');
+      } else {
+        const action = payload.action as unknown as Record<string, unknown>;
+
+        if (typeof action.type !== 'string' || !this.VALID_ACTION_TYPES.has(action.type)) {
+          errors.push('action.type must be one of: chat_message, insight');
+        }
+
+        if (typeof action.template !== 'string' || action.template.trim().length === 0) {
+          errors.push('action.template must be a non-empty string');
+        } else if (action.template.length > 4000) {
+          errors.push('action.template must be 4000 characters or less');
+        }
+
+        if (action.type === 'insight') {
+          if (typeof action.insightType !== 'string' || !this.VALID_INSIGHT_TYPES.has(action.insightType)) {
+            errors.push('action.insightType must be one of: action, suggestion, analysis, summary when action.type=insight');
+          }
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  private static sanitizeRulePayload(payload: Partial<RuleDefinition>): Partial<RuleDefinition> {
+    const sanitized: Partial<RuleDefinition> = { ...payload };
+
+    if (typeof sanitized.name === 'string') sanitized.name = sanitized.name.trim();
+    if (typeof sanitized.description === 'string') sanitized.description = sanitized.description.trim();
+
+    return sanitized;
+  }
+
   private static getPresetFromRequest(req: Request): RulePresetConfig | null {
     const presetId = req.body?.presetId as RulePresetId | undefined;
     if (!presetId || !RULE_PRESETS[presetId]) {
@@ -342,17 +482,29 @@ export class ChimeRuleController {
   static async createRule(req: Request, res: Response) {
     try {
       const ruleData: RuleDefinition = req.body;
+      const validationErrors = this.validateRulePayload(ruleData, 'create');
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          error: 'Invalid chime rule payload',
+          details: validationErrors,
+        });
+      }
+
+      const sanitized = this.sanitizeRulePayload(ruleData);
 
       const rule = await prisma.chimeRule.create({
         data: {
-          name: ruleData.name,
-          type: ruleData.type,
-          enabled: ruleData.enabled ?? true,
-          priority: ruleData.priority,
-          cooldownMinutes: ruleData.cooldownMinutes,
-          conditions: JSON.stringify(ruleData.conditions),
-          action: JSON.stringify(ruleData.action),
-          teamId: ruleData.teamId || null,
+          name: sanitized.name!,
+          description: (sanitized.description as string | undefined) || null,
+          type: sanitized.type!,
+          execution: sanitized.execution || 'sync',
+          enabled: sanitized.enabled ?? true,
+          priority: sanitized.priority!,
+          cooldownMinutes: sanitized.cooldownMinutes!,
+          conditions: JSON.stringify(sanitized.conditions),
+          action: JSON.stringify(sanitized.action),
+          teamId: sanitized.teamId || null,
+          sourceRuleId: sanitized.sourceRuleId || null,
         },
       });
 
@@ -387,18 +539,30 @@ export class ChimeRuleController {
     try {
       const { ruleId } = req.params;
       const updates: Partial<RuleDefinition> = req.body;
+      const validationErrors = this.validateRulePayload(updates, 'update');
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          error: 'Invalid chime rule update payload',
+          details: validationErrors,
+        });
+      }
+
+      const sanitized = this.sanitizeRulePayload(updates);
 
       const rule = await prisma.chimeRule.update({
         where: { id: ruleId },
         data: {
-          ...(updates.name && { name: updates.name }),
-          ...(updates.type && { type: updates.type }),
-          ...(updates.enabled !== undefined && { enabled: updates.enabled }),
-          ...(updates.priority && { priority: updates.priority }),
-          ...(updates.cooldownMinutes !== undefined && { cooldownMinutes: updates.cooldownMinutes }),
-          ...(updates.conditions && { conditions: JSON.stringify(updates.conditions) }),
-          ...(updates.action && { action: JSON.stringify(updates.action) }),
-          ...(updates.teamId !== undefined && { teamId: updates.teamId || null }),
+          ...(sanitized.name !== undefined && { name: sanitized.name }),
+          ...(sanitized.description !== undefined && { description: sanitized.description || null }),
+          ...(sanitized.type !== undefined && { type: sanitized.type }),
+          ...(sanitized.execution !== undefined && { execution: sanitized.execution }),
+          ...(sanitized.enabled !== undefined && { enabled: sanitized.enabled }),
+          ...(sanitized.priority !== undefined && { priority: sanitized.priority }),
+          ...(sanitized.cooldownMinutes !== undefined && { cooldownMinutes: sanitized.cooldownMinutes }),
+          ...(sanitized.conditions !== undefined && { conditions: JSON.stringify(sanitized.conditions) }),
+          ...(sanitized.action !== undefined && { action: JSON.stringify(sanitized.action) }),
+          ...(sanitized.teamId !== undefined && { teamId: sanitized.teamId || null }),
+          ...(sanitized.sourceRuleId !== undefined && { sourceRuleId: sanitized.sourceRuleId || null }),
         },
       });
 

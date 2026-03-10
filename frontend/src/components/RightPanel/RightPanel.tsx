@@ -9,13 +9,15 @@
  */
 import { useEntityStore } from '@/stores/entityStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { socketService } from '@/services';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
 import { InsightsList } from './InsightsList';
 import { AIControlsDrawer } from './AIControlsDrawer';
 import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
+import { trackSessionEvent } from '@/services/analyticsService';
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl';
 import { type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
 
@@ -37,6 +39,8 @@ const TAB_ACCENTS: Record<ContentFilter, SegmentedAccent> = {
   suggestions: 'brand',
 };
 
+const AUTO_FOLLOW_THRESHOLD_PX = 96;
+
 export const RightPanel = () => {
   
   // Get current team from UIStore
@@ -44,6 +48,7 @@ export const RightPanel = () => {
   const currentTeam = useEntityStore((state) => 
     currentTeamId ? state.getTeam(currentTeamId) : null
   );
+  const currentUserId = useSessionStore((state) => state.currentUser?.id);
   const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync);
   
   // Get insight IDs (stable array reference)
@@ -69,9 +74,15 @@ export const RightPanel = () => {
   const [showTaskContext, setShowTaskContext] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const applyingExternalSyncRef = useRef(false);
-  const lastSyncEmitAtRef = useRef(0);
   const suppressAnchorEmitUntilRef = useRef(0);
   const lastAppliedInsightRef = useRef<{ id: string; at: number } | null>(null);
+  const shouldAutoFollowRef = useRef(true);
+  const lastLinkHoverTrackRef = useRef<{ insightId: string; at: number } | null>(null);
+
+  const isNearBottom = useCallback((container: HTMLDivElement): boolean => {
+    const distanceToBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
+    return distanceToBottom <= AUTO_FOLLOW_THRESHOLD_PX;
+  }, []);
 
   // Fetch insights when team changes
   useEffect(() => {
@@ -166,14 +177,34 @@ export const RightPanel = () => {
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      shouldAutoFollowRef.current = true;
     }
   }, [currentTeamId]);
 
-  // Keep panel chronologically bottom-aligned (like chat)
+  // Track whether user is near bottom so we preserve reading position when they scroll up.
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const updateAutoFollow = () => {
+      shouldAutoFollowRef.current = isNearBottom(container);
+    };
+
+    updateAutoFollow();
+    container.addEventListener('scroll', updateAutoFollow, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', updateAutoFollow);
+    };
+  }, [currentTeamId, contentFilter, isNearBottom]);
+
+  // Keep panel bottom-aligned only when user is already near the bottom.
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    if (!shouldAutoFollowRef.current) return;
+
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [
     contentFilter,
     summaryInsights.length,
@@ -224,16 +255,60 @@ export const RightPanel = () => {
     const newState = !isTeamAIEnabled;
     useEntityStore.getState().updateTeam(currentTeamId, { isChimeEnabled: newState });
     socketService.toggleTeamAI(currentTeamId, newState);
+
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'team_ai_toggle_changed',
+      teamId: currentTeamId,
+      actorUserId: currentUserId,
+      metadata: {
+        enabled: newState,
+      },
+    });
   };
 
-  const focusInsightById = (insightId: string) => {
+  const handleToggleTaskContext = () => {
+    const nextVisible = !showTaskContext;
+    setShowTaskContext(nextVisible);
+
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'task_context_panel_toggled',
+      teamId: currentTeamId || undefined,
+      actorUserId: currentUserId,
+      metadata: {
+        visible: nextVisible,
+      },
+    });
+  };
+
+  const handleContentFilterChange = (nextFilter: ContentFilter) => {
+    if (nextFilter === contentFilter) return;
+
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'right_panel_tab_changed',
+      teamId: currentTeamId || undefined,
+      actorUserId: currentUserId,
+      metadata: {
+        from: contentFilter,
+        to: nextFilter,
+      },
+    });
+
+    setContentFilter(nextFilter);
+  };
+
+  const focusInsightById = (insightId: string, preferredTab: ContentFilter | 'by-type' = 'by-type') => {
     if (!insightId) return;
 
     const insight = insightsById[insightId];
     if (!insight) return;
 
     const nextTab: ContentFilter =
-      insight.type === 'summary'
+      preferredTab === 'all'
+        ? 'all'
+        : insight.type === 'summary'
         ? 'summaries'
         : insight.type === 'document'
         ? 'research'
@@ -269,7 +344,7 @@ export const RightPanel = () => {
       const elementRect = insightElement.getBoundingClientRect();
       const distanceFromCenter = Math.abs((elementRect.top + elementRect.height / 2) - (containerRect.top + container.clientHeight / 2));
 
-      if (distanceFromCenter > 24) {
+      if (distanceFromCenter > 14) {
         insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
       insightElement.classList.add('fypai-link-highlight');
@@ -280,11 +355,28 @@ export const RightPanel = () => {
   };
 
   const handleJumpToSource = (sourceId: string) => {
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'jump_to_insight_marker',
+      teamId: currentTeamId || undefined,
+      actorUserId: currentUserId,
+      insightId: sourceId,
+    });
+
     focusInsightById(sourceId);
   };
 
   const handleJumpToChatMarker = (insightId: string) => {
     if (!insightId) return;
+
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'jump_to_chat_marker',
+      teamId: currentTeamId || undefined,
+      actorUserId: currentUserId,
+      insightId,
+    });
+
     window.dispatchEvent(
       new CustomEvent('fypai:focus-chat-marker', {
         detail: { insightId },
@@ -294,10 +386,16 @@ export const RightPanel = () => {
 
   useEffect(() => {
     const handleFocusInsight = (event: Event) => {
-      const customEvent = event as CustomEvent<{ insightId?: string }>;
+      const customEvent = event as CustomEvent<{
+        insightId?: string;
+        preferredTab?: ContentFilter;
+        source?: 'chat-marker' | 'insight-card' | string;
+      }>;
       const insightId = customEvent.detail?.insightId;
       if (!insightId) return;
-      focusInsightById(insightId);
+
+      const preferredTab = customEvent.detail?.preferredTab === 'all' ? 'all' : 'by-type';
+      focusInsightById(insightId, preferredTab);
     };
 
     window.addEventListener('fypai:focus-insight', handleFocusInsight as EventListener);
@@ -317,6 +415,22 @@ export const RightPanel = () => {
 
       if (customEvent.detail?.active) {
         insightElement.classList.add('fypai-link-highlight-soft');
+
+        const now = Date.now();
+        const previous = lastLinkHoverTrackRef.current;
+        if (!previous || previous.insightId !== insightId || now - previous.at > 750) {
+          trackSessionEvent({
+            eventType: 'navigation',
+            eventName: 'link_hover',
+            teamId: currentTeamId || undefined,
+            actorUserId: currentUserId,
+            insightId,
+            metadata: {
+              source: 'right-panel',
+            },
+          });
+          lastLinkHoverTrackRef.current = { insightId, at: now };
+        }
       } else {
         insightElement.classList.remove('fypai-link-highlight-soft');
       }
@@ -326,65 +440,32 @@ export const RightPanel = () => {
     return () => {
       window.removeEventListener('fypai:link-hover', handleLinkHover as EventListener);
     };
-  }, []);
-
-  useEffect(() => {
-    if (!enableTimelineSync) return;
-
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const onScroll = () => {
-      if (applyingExternalSyncRef.current) return;
-      if (Date.now() < suppressAnchorEmitUntilRef.current) return;
-
-      const now = Date.now();
-      if (now - lastSyncEmitAtRef.current < 80) return;
-      lastSyncEmitAtRef.current = now;
-
-      const cards = Array.from(container.querySelectorAll<HTMLElement>('[id^="insight-"]'));
-      if (!cards.length) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const centerY = containerRect.top + container.clientHeight / 2;
-
-      let bestInsightId: string | null = null;
-      let bestDistance = Number.POSITIVE_INFINITY;
-
-      for (const card of cards) {
-        const cardRect = card.getBoundingClientRect();
-        const cardCenterY = cardRect.top + cardRect.height / 2;
-        const distance = Math.abs(cardCenterY - centerY);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestInsightId = card.id.replace('insight-', '');
-        }
-      }
-
-      if (!bestInsightId) return;
-
-      window.dispatchEvent(
-        new CustomEvent('fypai:anchor-sync', {
-          detail: {
-            source: 'right-panel',
-            insightId: bestInsightId,
-          },
-        })
-      );
-    };
-
-    container.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      container.removeEventListener('scroll', onScroll);
-    };
-  }, [enableTimelineSync, contentFilter, currentTeamId, activeInsights.length]);
+  }, [currentTeamId, currentUserId]);
 
   useEffect(() => {
     if (!enableTimelineSync) return;
 
     const handleAnchorSync = (event: Event) => {
-      const customEvent = event as CustomEvent<{ source?: 'chat' | 'right-panel'; insightId?: string }>;
+      const customEvent = event as CustomEvent<{
+        source?: 'chat' | 'right-panel';
+        insightId?: string;
+        syncMode?: 'bottom' | 'focus';
+      }>;
       if (customEvent.detail?.source !== 'chat') return;
+
+      if (customEvent.detail?.syncMode === 'bottom') {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        applyingExternalSyncRef.current = true;
+        suppressAnchorEmitUntilRef.current = Date.now() + 1200;
+        shouldAutoFollowRef.current = true;
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        setTimeout(() => {
+          applyingExternalSyncRef.current = false;
+        }, 420);
+        return;
+      }
 
       const insightId = customEvent.detail.insightId;
       if (!insightId) return;
@@ -430,7 +511,7 @@ export const RightPanel = () => {
       <div className="flex-shrink-0">
         <RightPanelHeader
           isContextVisible={showTaskContext}
-          onToggleContext={() => setShowTaskContext((prev) => !prev)}
+          onToggleContext={handleToggleTaskContext}
         >
           <TaskContextCard
             teamId={currentTeamId}
@@ -612,7 +693,7 @@ export const RightPanel = () => {
           <SegmentedControl
             items={bottomTabItems}
             activeKey={contentFilter}
-            onChange={setContentFilter}
+            onChange={handleContentFilterChange}
             wrap
           />
         </div>

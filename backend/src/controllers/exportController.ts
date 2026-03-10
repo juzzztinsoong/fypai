@@ -1,6 +1,7 @@
 import { prisma } from '../db.js'
 import { MessageController } from './messageController.js'
 import { AIInsightController } from './aiInsightController.js'
+import { SessionEventController } from './sessionEventController.js'
 import { Prisma } from '@prisma/client'
 
 function csvEscape(value: string | number | null | undefined): string {
@@ -13,13 +14,18 @@ function csvEscape(value: string | number | null | undefined): string {
 }
 
 export class ExportController {
-  static async exportSession(teamId: string, format: string = 'json') {
+  static async exportSession(
+    teamId: string,
+    format: string = 'json',
+    options?: { sessionId?: string }
+  ) {
     if (!teamId) {
       throw new Error('teamId is required')
     }
 
-    if (format !== 'json' && format !== 'csv') {
-      throw new Error('Unsupported format. Use json or csv')
+    const validFormats = ['json', 'csv', 'timeline-json', 'metrics-csv']
+    if (!validFormats.includes(format)) {
+      throw new Error('Unsupported format. Use json, csv, timeline-json, or metrics-csv')
     }
 
     const [messages, insights] = await Promise.all([
@@ -67,13 +73,82 @@ export class ExportController {
       createdAt: item.createdAt.toISOString(),
     }))
 
+    const events = await SessionEventController.getEvents(teamId, {
+      sessionId: options?.sessionId,
+      limit: 5000,
+    })
+
+    const metrics = SessionEventController.computeMetrics(events, teamId, options?.sessionId)
+
+    if (format === 'timeline-json') {
+      return {
+        teamId,
+        sessionId: options?.sessionId,
+        exportedAt: new Date().toISOString(),
+        timeline: events,
+        metrics,
+      }
+    }
+
+    if (format === 'metrics-csv') {
+      const headers = [
+        'teamId',
+        'sessionId',
+        'windowStart',
+        'windowEnd',
+        'totalEvents',
+        'uniqueUsers',
+        'messageSentCount',
+        'insightStatusChangeCount',
+        'tabSwitchCount',
+        'contextEditCount',
+        'exportCount',
+        'resetCount',
+        'markerJumpCount',
+        'timelineSyncCount',
+        'linkHoverCount',
+        'actionAcceptedCount',
+        'actionDismissedCount',
+        'actionCompletedCount',
+        'avgSecondsBetweenEvents',
+      ]
+
+      const row = [
+        csvEscape(metrics.teamId),
+        csvEscape(metrics.sessionId),
+        csvEscape(metrics.windowStart),
+        csvEscape(metrics.windowEnd),
+        csvEscape(metrics.totalEvents),
+        csvEscape(metrics.uniqueUsers),
+        csvEscape(metrics.messageSentCount),
+        csvEscape(metrics.insightStatusChangeCount),
+        csvEscape(metrics.tabSwitchCount),
+        csvEscape(metrics.contextEditCount),
+        csvEscape(metrics.exportCount),
+        csvEscape(metrics.resetCount),
+        csvEscape(metrics.markerJumpCount),
+        csvEscape(metrics.timelineSyncCount),
+        csvEscape(metrics.linkHoverCount),
+        csvEscape(metrics.actionAcceptedCount),
+        csvEscape(metrics.actionDismissedCount),
+        csvEscape(metrics.actionCompletedCount),
+        csvEscape(metrics.avgSecondsBetweenEvents),
+      ]
+
+      return [headers.join(','), row.join(',')].join('\n')
+    }
+
     if (format === 'json') {
       return {
         teamId,
+        sessionId: options?.sessionId,
         exportedAt: new Date().toISOString(),
         messages,
         insights,
         feedback,
+        events,
+        timeline: events,
+        metrics,
       }
     }
 

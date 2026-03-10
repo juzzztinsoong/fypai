@@ -1,5 +1,7 @@
 import { api, getErrorMessage } from './api'
 
+export type SessionExportFormat = 'json' | 'csv' | 'timeline-json' | 'metrics-csv'
+
 function downloadBlob(content: BlobPart, fileName: string, type: string) {
   const blob = new Blob([content], { type })
   const url = URL.createObjectURL(blob)
@@ -12,21 +14,23 @@ function downloadBlob(content: BlobPart, fileName: string, type: string) {
   URL.revokeObjectURL(url)
 }
 
-export async function exportSession(teamId: string, format: 'json' | 'csv'): Promise<void> {
+export async function exportSession(teamId: string, format: SessionExportFormat): Promise<void> {
   try {
-    if (format === 'csv') {
+    if (format === 'csv' || format === 'metrics-csv') {
       const response = await api.get<string>(`/export/session/${teamId}`, {
-        params: { format: 'csv' },
+        params: { format },
         responseType: 'text' as const,
       })
-      downloadBlob(response.data, `session-${teamId}.csv`, 'text/csv;charset=utf-8')
+      const fileName = format === 'metrics-csv' ? `session-${teamId}-metrics.csv` : `session-${teamId}.csv`
+      downloadBlob(response.data, fileName, 'text/csv;charset=utf-8')
       return
     }
 
     const response = await api.get(`/export/session/${teamId}`, {
-      params: { format: 'json' },
+      params: { format },
     })
-    downloadBlob(JSON.stringify(response.data, null, 2), `session-${teamId}.json`, 'application/json;charset=utf-8')
+    const fileName = format === 'timeline-json' ? `session-${teamId}-timeline.json` : `session-${teamId}.json`
+    downloadBlob(JSON.stringify(response.data, null, 2), fileName, 'application/json;charset=utf-8')
   } catch (error) {
     const message = getErrorMessage(error)
     console.error('[ExportService] Failed to export session:', message)

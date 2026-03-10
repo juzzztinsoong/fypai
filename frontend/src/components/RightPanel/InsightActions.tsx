@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import type { AIInsightDTO, InsightStatus } from '@fypai/types';
 import { updateInsightStatus } from '@/services/insightService';
+import { trackSessionEvent } from '@/services/analyticsService';
 
 interface InsightActionsProps {
   insight: AIInsightDTO;
@@ -65,6 +66,21 @@ export const InsightActions = ({ insight, userId = 'user1' }: InsightActionsProp
     setLoading(true);
     try {
       await updateInsightStatus(insight.id, newStatus, userId);
+
+      trackSessionEvent({
+        eventType: 'insight',
+        eventName: 'insight_status_changed',
+        teamId: insight.teamId,
+        actorUserId: userId,
+        insightId: insight.id,
+        content: insight.content,
+        metadata: {
+          insightType: insight.type,
+          title: insight.title,
+          fromStatus: status,
+          toStatus: newStatus,
+        },
+      });
     } catch (error) {
       console.error('[InsightActions] Failed to update status:', error);
     } finally {

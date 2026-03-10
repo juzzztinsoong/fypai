@@ -21,7 +21,7 @@ import { AgentPreferencesService } from '../services/agentPreferencesService.js'
 import { embeddingService } from '../services/embeddingService.js';
 import { IntentClassifier, MessageClassification } from '../ai/core/intentClassifier.js';
 import { prisma } from '../db.js';
-import { MessageDTO, CreateAIInsightRequest } from '@fypai/types';
+import { MessageDTO, CreateAIInsightRequest, AIInsightDTO } from '@fypai/types';
 import { Server as SocketIOServer } from 'socket.io';
 
 export class AIAgentController {
@@ -361,7 +361,7 @@ export class AIAgentController {
     prompt: string,
     longFormType: 'summary' | 'document' | 'code',
     parentMessageId?: string
-  ): Promise<MessageDTO> {
+  ): Promise<AIInsightDTO> {
     const messages = await MessageController.getMessages(teamId);
     const team = await TeamController.getTeamById(teamId);
 
@@ -438,37 +438,10 @@ export class AIAgentController {
       },
     })
 
-    const agentMessage = await MessageController.createMessage({
-      teamId,
-      authorId: 'agent',
-      content: `Created ${longFormType === 'document' ? 'a research brief' : `a ${longFormType}`} in Insights. Open the linked marker to view details.`,
-      contentType: 'text',
-      metadata: {
-        parentMessageId,
-        markerType: 'insight-link',
-        linkedInsightId: insight.id,
-        linkedInsightType: insight.type,
-        markerLabel:
-          insight.type === 'document'
-            ? 'Research brief'
-            : insight.type === 'summary'
-            ? 'Summary'
-            : insight.type === 'code'
-            ? 'Code output'
-            : 'Insight',
-      },
-    })
-
-    // Broadcast short conversational response (insight itself is broadcast separately)
-    if (this.io) {
-      const roomSize = this.io.sockets.adapter.rooms.get(`team:${teamId}`)?.size || 0;
-      this.io.to(`team:${teamId}`).emit('message:new', agentMessage);
-      console.log(`[AI Agent] 🤖 Broadcasted short ${longFormType} completion message to team: ${teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
-    } else {
-      console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
-    }
-
-    return agentMessage;
+    // createInsight already emits/broadcasts a canonical marker message. Avoid legacy
+    // duplicate completion messages in chat for long-form generations.
+    void parentMessageId;
+    return insight;
   }
 
   /**
