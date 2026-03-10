@@ -19,6 +19,8 @@ import { classifyIntent } from '@/services/intentService'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
 import { socketService } from '@/services/socketService'
+import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl'
+import { uiTokens } from '@/styles/uiTokens'
 import type { MessageMetadata } from '@/types'
 
 type ComposerMode = 'ask' | 'research'
@@ -44,6 +46,12 @@ function inferComposerMode(input: string): ComposerMode {
   const hasResearchSignal = RESEARCH_PATTERNS.some((pattern) => pattern.test(normalized))
   return hasResearchSignal ? 'research' : 'ask'
 }
+
+const COMPOSER_SEGMENTS: SegmentedControlItem<ComposerOverrideMode>[] = [
+  { key: 'auto', label: 'Auto', accent: 'brand' },
+  { key: 'ask', label: 'Ask Assistant', accent: 'brand' },
+  { key: 'research', label: 'Research', accent: 'success' },
+]
 
 export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
@@ -245,7 +253,7 @@ export const ChatWindow = () => {
   const isAutoMode = composerOverrideMode === 'auto'
 
   return (
-    <main className="flex-1 min-w-0 flex flex-col h-screen border-x border-gray-200">
+    <main className="flex-1 min-w-0 flex flex-col h-screen">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
         <ChatHeader />
@@ -257,59 +265,27 @@ export const ChatWindow = () => {
       </div>
 
       {/* Fixed Footer - Message Composer */}
-      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white">
-        <div className="mb-2 flex items-center gap-1.5">
-          <button
-            onClick={() => setComposerOverrideMode('auto')}
-            className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
-              composerOverrideMode === 'auto'
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Auto
-          </button>
-          <button
-            onClick={() => setComposerOverrideMode('ask')}
-            className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
-              composerOverrideMode === 'ask'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Ask Assistant
-          </button>
-          <button
-            onClick={() => setComposerOverrideMode('research')}
-            className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
-              composerOverrideMode === 'research'
-                ? 'bg-purple-100 text-purple-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Research
-          </button>
-          <span className="text-xs text-gray-500">
+      <div className={`flex-shrink-0 ${uiTokens.layout.railFooter} px-4 py-3 border-t border-gray-200 bg-white`}>
+        <div className="mb-2 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <SegmentedControl
+            items={COMPOSER_SEGMENTS}
+            activeKey={composerOverrideMode}
+            onChange={setComposerOverrideMode}
+          />
+          <span className={uiTokens.text.meta}>
             {isAutoMode
               ? `Auto-routed: ${effectiveMode === 'research' ? 'Research' : 'Ask'}`
               : `${effectiveMode === 'research' ? 'Research' : 'Ask'} mode`}
           </span>
           {effectiveMode === 'research' && (
-            <span className="text-xs text-purple-600">→ long-form insight in Research</span>
+            <span className={uiTokens.text.successMeta}>→ long-form insight in Research</span>
+          )}
+          {lastRouteDecision && (
+            <span className="text-xs text-slate-400">
+              Last: {lastRouteDecision.mode === 'research' ? 'Research' : 'Ask'} ({Math.round(lastRouteDecision.confidence * 100)}%)
+            </span>
           )}
         </div>
-
-        {lastRouteDecision && (
-          <div className="mb-2 inline-flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] text-indigo-700">
-            <span className="font-medium">
-              Routed: {lastRouteDecision.mode === 'research' ? 'Research' : 'Ask'}
-            </span>
-            <span className="text-indigo-500">•</span>
-            <span>{Math.round(lastRouteDecision.confidence * 100)}% confidence</span>
-            <span className="text-indigo-500">•</span>
-            <span className="capitalize">{lastRouteDecision.source.replace('-', ' ')}</span>
-          </div>
-        )}
 
         {/* Message Composer */}
         <div className="flex space-x-2">
@@ -323,13 +299,13 @@ export const ChatWindow = () => {
               }
             }}
             placeholder={effectiveMode === 'research' ? 'Ask a research question...' : 'Type a message...'}
-            className="flex-1 min-h-[40px] max-h-32 px-3 py-2 text-sm leading-5 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+            className="flex-1 min-h-[40px] max-h-32 px-3 py-2 text-sm leading-5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
             rows={1}
           />
           <button
             onClick={handleSend}
             disabled={!newMessage.trim() || isResearchGenerating}
-            className="h-10 w-10 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`h-10 w-10 flex items-center justify-center rounded-lg transition-colors ${uiTokens.controls.button.brandSolid}`}
             title={isResearchGenerating ? 'Generating research insight...' : 'Send message'}
           >
             {isResearchGenerating ? (

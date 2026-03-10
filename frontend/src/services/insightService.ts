@@ -63,6 +63,8 @@ export async function getInsights(teamId: string): Promise<AIInsightDTO[]> {
  */
 export async function createInsight(data: CreateAIInsightRequest): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
+  const uiStore = useUIStore.getState()
+  uiStore.setLoading('insight-generation', true)
   
   try {
     const response = await api.post<AIInsightDTO>('/insights', data)
@@ -75,6 +77,8 @@ export async function createInsight(data: CreateAIInsightRequest): Promise<AIIns
   } catch (error) {
     console.error('[InsightService] Failed to create insight:', getErrorMessage(error))
     throw error
+  } finally {
+    uiStore.setLoading('insight-generation', false)
   }
 }
 
@@ -135,6 +139,8 @@ export async function resetTeamInsights(
  */
 export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
+  const uiStore = useUIStore.getState()
+  uiStore.setLoading('insight-generation', true)
   
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/summary', { teamId })
@@ -147,6 +153,8 @@ export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
   } catch (error) {
     console.error(`[InsightService] Failed to generate summary for team ${teamId}:`, getErrorMessage(error))
     throw error
+  } finally {
+    uiStore.setLoading('insight-generation', false)
   }
 }
 
@@ -159,6 +167,8 @@ export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
  */
 export async function generateReport(teamId: string, prompt?: string): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
+  const uiStore = useUIStore.getState()
+  uiStore.setLoading('insight-generation', true)
   
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/report', { teamId, prompt })
@@ -171,6 +181,8 @@ export async function generateReport(teamId: string, prompt?: string): Promise<A
   } catch (error) {
     console.error(`[InsightService] Failed to generate report for team ${teamId}:`, getErrorMessage(error))
     throw error
+  } finally {
+    uiStore.setLoading('insight-generation', false)
   }
 }
 

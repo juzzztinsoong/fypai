@@ -25,7 +25,7 @@ export const InsightsList = ({ insights, onJumpToSource, onJumpToChatMarker }: I
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {insights.map((insight) => (
         <InsightCard key={insight.id} insight={insight} onJumpToSource={onJumpToSource} onJumpToChatMarker={onJumpToChatMarker} />
       ))}

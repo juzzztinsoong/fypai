@@ -15,13 +15,13 @@ import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
 import type { MessageDTO } from '@/types'
 import { getMessages } from '@/services/messageService'
-import { createInsight } from '@/services/insightService'
 import { TypingIndicator } from './TypingIndicator'
 import { AgentMetadataTag } from './AgentMetadataTag'
 import { RAGContextPanel } from './RAGContextPanel'
 import { FeedbackButtons } from './FeedbackButtons'
-import { getAvatarBackgroundColor, getMessageBorderColor, getUserInitials } from '../../utils/avatarUtils'
+import { getAvatarBackgroundColor, getMessageSurfaceTheme, getUserInitials } from '../../utils/avatarUtils'
 import { getLinkVisuals } from '@/utils/linkVisuals'
+import { getChipClass } from '@/styles/uiTokens'
 import ReactMarkdown from 'react-markdown'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 
@@ -64,46 +64,18 @@ export const MessageList = () => {
   // Get loading/error states from UIStore
   const isLoading = useUIStore((state) => state.getLoading('messages'))
   const error = useUIStore((state) => state.getError('messages'))
+  const isInsightGenerationLoading = useUIStore((state) => state.getLoading('insight-generation'))
   
   // Phase 6.5: Get showAIDetails preference
   const showAIDetails = useUIStore((state) => state.preferences.showAIDetails)
   const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync)
   
   const virtuosoRef = useRef<VirtuosoHandle>(null)
-  const promotingFromMessageRef = useRef<Set<string>>(new Set())
   const applyingExternalSyncRef = useRef(false)
   const lastAnchorSyncInsightRef = useRef<string | null>(null)
   const suppressAnchorEmitUntilRef = useRef(0)
   const lastAppliedInsightRef = useRef<{ id: string; at: number } | null>(null)
-
-  const handlePromoteAgentMessage = async (message: MessageDTO) => {
-    if (!message?.content || promotingFromMessageRef.current.has(message.id)) return
-
-    const excerpt = String(message.content).replace(/\s+/g, ' ').trim().slice(0, 500)
-    if (!excerpt) return
-
-    promotingFromMessageRef.current.add(message.id)
-    try {
-      const actionTitle = excerpt.length > 80 ? `${excerpt.slice(0, 80)}...` : excerpt
-      await createInsight({
-        teamId: message.teamId,
-        type: 'action',
-        title: `Action: ${actionTitle}`,
-        content: `- ${excerpt}`,
-        priority: 'medium',
-        tags: ['promoted-from-agent-message', 'user-requested'],
-        relatedMessageIds: [message.id],
-        metadata: {
-          sourceMessageId: message.id,
-          sourceMessageExcerpt: excerpt,
-        } as any,
-      })
-    } catch (error) {
-      console.error('[MessageList] Failed to promote agent message:', error)
-    } finally {
-      promotingFromMessageRef.current.delete(message.id)
-    }
-  }
+  const routeChipClassName = `gap-1 ${getChipClass('brand', 'xs')}`
 
   // Map typing user IDs to names (filter out current user)
   const typingUserNames = useMemo(() => {
@@ -122,6 +94,27 @@ export const MessageList = () => {
   const isAgentTyping = useMemo(() => {
     return typingUserIds?.includes('agent') || false
   }, [typingUserIds])
+
+  const isLatestMessageInsightMarker = useMemo(() => {
+    if (messages.length === 0) return false
+    const lastMessage = messages[messages.length - 1]
+    return (
+      (lastMessage.metadata?.markerType === 'action-insight-link' ||
+        lastMessage.metadata?.markerType === 'insight-link') &&
+      Boolean(lastMessage.metadata?.linkedInsightId)
+    )
+  }, [messages])
+
+  const pendingMarkerLabel = useMemo(() => {
+    if (aiProcessingStage === 'searching-memory') return 'Research marker'
+    if (aiProcessingStage === 'analyzing') return 'Insight marker'
+    if (isInsightGenerationLoading) return 'Insight marker'
+    return 'Summary marker'
+  }, [aiProcessingStage, isInsightGenerationLoading])
+
+  const showPendingInsightMarker =
+    (aiProcessingStage !== 'idle' || isInsightGenerationLoading) &&
+    !isLatestMessageInsightMarker
 
   // Fetch messages when team changes
   useEffect(() => {
@@ -184,9 +177,9 @@ export const MessageList = () => {
         if (!markers.length) return
 
         const target = markers[markers.length - 1]
-        target.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-2')
+        target.classList.add('fypai-link-highlight')
         setTimeout(() => {
-          target.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2')
+          target.classList.remove('fypai-link-highlight')
         }, 1800)
       }, 220)
     }
@@ -207,9 +200,9 @@ export const MessageList = () => {
       const markers = document.querySelectorAll<HTMLElement>(`[data-linked-insight-id="${escapedInsightId}"]`)
       markers.forEach((marker) => {
         if (customEvent.detail?.active) {
-          marker.classList.add('ring-2', 'ring-indigo-300', 'ring-offset-2')
+          marker.classList.add('fypai-link-highlight-soft')
         } else {
-          marker.classList.remove('ring-2', 'ring-indigo-300', 'ring-offset-2')
+          marker.classList.remove('fypai-link-highlight-soft')
         }
       })
     }
@@ -289,27 +282,30 @@ export const MessageList = () => {
 
         // Message alignment and style
         if (message.authorId === currentUser?.id) {
-          // Current user: right - use consistent color from team position
-          const userBgColor = getAvatarBackgroundColor(currentUser.id, members);
+          // Current user: right - use same per-user palette source as the rest of the app
+          const userTheme = getMessageSurfaceTheme(currentUser.id, members)
+          const userAvatarBgColor = getAvatarBackgroundColor(currentUser.id, members)
           return (
             <div className="flex justify-end">
-              <div className="flex items-center space-x-2">
+              <div className="group flex items-center space-x-2">
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-500 mb-1">You</span>
-                  <div className="bg-blue-600 text-white rounded-lg p-3 w-fit min-w-[4rem] max-w-[70%]">
+                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 shadow-sm w-fit min-w-[4rem] max-w-[70%}`}>
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                   {message.metadata?.routeMode && (
-                    <div className="mt-1 inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700">
-                      <span className="font-medium">Routed {message.metadata.routeMode === 'research' ? 'Research' : 'Ask'}</span>
-                      {typeof message.metadata.routeConfidence === 'number' && (
-                        <span>• {Math.round(message.metadata.routeConfidence * 100)}%</span>
-                      )}
+                    <div className="max-h-0 overflow-hidden opacity-0 transition-[max-height,opacity,margin] duration-200 group-hover:mt-1 group-hover:max-h-10 group-hover:opacity-100 group-focus-within:mt-1 group-focus-within:max-h-10 group-focus-within:opacity-100">
+                      <div className={routeChipClassName}>
+                        <span className="font-medium">Routed {message.metadata.routeMode === 'research' ? 'Research' : 'Ask'}</span>
+                        {typeof message.metadata.routeConfidence === 'number' && (
+                          <span>• {Math.round(message.metadata.routeConfidence * 100)}%</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
                 <div className="relative">
-                  <div className={`w-8 h-8 rounded-full ${userBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
+                  <div className={`w-8 h-8 rounded-full ${userAvatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
                     {getUserInitials(currentUser.name)}
                   </div>
                   {isUserOnline(currentUser.id) && (
@@ -322,15 +318,30 @@ export const MessageList = () => {
         } else if (message.authorId === 'agent') {
           if (isInsightLinkMarker) {
             const insightId = message.metadata?.linkedInsightId
-            const visuals = getLinkVisuals(insightId)
+            const markerLabel = message.metadata?.markerLabel?.toLowerCase() || ''
+            const inferredInsightType =
+              message.metadata?.linkedInsightType ||
+              (markerLabel.includes('action')
+                ? 'action'
+                : markerLabel.includes('research') || markerLabel.includes('document') || markerLabel.includes('brief')
+                ? 'document'
+                : markerLabel.includes('summary')
+                ? 'summary'
+                : markerLabel.includes('suggestion')
+                ? 'suggestion'
+                : undefined)
+            const visuals = getLinkVisuals({
+              insightId,
+              insightType: inferredInsightType,
+            })
             return (
               <div
                 id={`marker-${message.id}`}
-                data-linked-insight-id={insightId}
                 className="flex justify-center"
               >
                 <button
                   type="button"
+                  data-linked-insight-id={insightId}
                   onMouseEnter={() => {
                     if (!insightId) return
                     window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId, active: true } }))
@@ -346,55 +357,59 @@ export const MessageList = () => {
                       detail: { insightId },
                     }))
                   }}
-                  className={`max-w-[85%] rounded-md border px-3 py-2 text-left text-xs ${visuals.marker}`}
+                  className={`max-w-[85%] rounded-md border px-4 py-2.5 text-left text-xs leading-5 ${visuals.marker}`}
                 >
-                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${visuals.pill}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
-                    Linked Insight
+                  <span className="flex items-center gap-2">
+                    <span className={`inline-flex shrink-0 items-center gap-1 font-semibold leading-5 ${visuals.icon}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
+                      <span>🔗 {message.metadata?.markerLabel || 'Insight'} Marker</span>
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-current leading-5">
+                      {message.metadata?.sourceActionTitle || message.content}
+                    </span>
+                    <span className="shrink-0 text-[11px] opacity-80 leading-5">(open insight)</span>
                   </span>
-                  <span className="ml-2 font-semibold">🔗 {message.metadata?.markerLabel || 'Insight'} Marker</span>
-                  <span className="ml-2">{message.metadata?.sourceActionTitle || message.content}</span>
-                  <span className="ml-2 opacity-80">(open insight)</span>
                 </button>
               </div>
             )
           }
 
-          // Agent: center, bright purple
+          // Agent: center, brand accent
           const tier = message.agentMetadata?.tier;
           const isAutonomous = Boolean(message.metadata?.chimeRuleName);
+          const agentBubbleTheme = isAutonomous
+            ? 'bg-amber-50 border-amber-300 text-amber-950'
+            : 'bg-violet-100 border-violet-500 text-violet-950';
 
           return (
             <div className="flex justify-center">
               <div className="flex flex-col items-center max-w-[80%]">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="relative w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-white text-[10px] font-semibold border border-purple-300">
+                  <div className="relative w-6 h-6 rounded-full bg-violet-700 flex items-center justify-center text-white text-[10px] font-semibold border border-violet-500">
                     AI
-                    <span className="absolute -bottom-0.5 -right-0.5 block h-2 w-2 rounded-full bg-green-500 ring-1 ring-white"></span>
+                    <span className="absolute -bottom-0.5 -right-0.5 block h-2 w-2 rounded-full bg-emerald-600 ring-1 ring-white"></span>
                   </div>
                   {tier && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                      tier === 'tier1' 
-                        ? 'bg-green-100 text-green-700 border border-green-200' 
-                        : 'bg-blue-100 text-blue-700 border border-blue-200'
-                    }`}>
+                    <span
+                      className={
+                        tier === 'tier1'
+                          ? 'inline-flex items-center rounded-md border border-emerald-700 bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm'
+                          : getChipClass('brand', 'xs')
+                      }
+                    >
                       {tier === 'tier1' ? 'Fast' : 'Smart'}
                     </span>
                   )}
                   {isAutonomous && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                    <span className={getChipClass('warning', 'xs')}>
                       Auto
                     </span>
                   )}
                 </div>
-                <div className={`text-white rounded-xl p-3 shadow-md w-full border-2 ${
-                  isAutonomous
-                    ? 'bg-orange-500 border-orange-600'
-                    : 'bg-purple-500 border-purple-600'
-                }`}>
+                <div className={`rounded-xl p-3 shadow-sm w-full border ${agentBubbleTheme}`}>
                   <ReactMarkdown
                     components={{
-                      p: ({ children }) => <p className="whitespace-pre-wrap break-words font-semibold mb-2 last:mb-0">{children}</p>,
+                      p: ({ children }) => <p className="whitespace-pre-wrap break-words font-medium mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
                       ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
@@ -432,27 +447,17 @@ export const MessageList = () => {
                   userId={currentUser?.id}
                   chimeRuleId={message.metadata?.chimeRuleId}
                 />
-
-                {!isInsightLinkMarker && (
-                  <button
-                    type="button"
-                    onClick={() => handlePromoteAgentMessage(message)}
-                    className="mt-2 rounded border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-medium text-purple-700 hover:bg-purple-100"
-                  >
-                    Promote to Action
-                  </button>
-                )}
               </div>
             </div>
           )
         } else {
           // Other users: left, outlined, color per user
           const member = members.find((m) => m.userId === message.authorId)
-          const borderColor = getMessageBorderColor(message.authorId, members)
+          const userTheme = getMessageSurfaceTheme(message.authorId, members)
           const avatarBgColor = getAvatarBackgroundColor(message.authorId, members)
           return (
             <div className="flex justify-start">
-              <div className="flex items-center space-x-2">
+              <div className="group flex items-center space-x-2">
                 <div className="relative">
                   <div className={`w-8 h-8 rounded-full ${avatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
                     {getUserInitials(member?.name || 'User')}
@@ -462,16 +467,18 @@ export const MessageList = () => {
                   )}
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="text-xs text-gray-500 mb-1">{member?.name || 'User'}</span>
-                  <div className={`border-2 ${borderColor} rounded-lg p-3 w-fit min-w-[4rem] max-w-[70%] bg-white text-gray-900`}> 
+                  <span className={`text-xs mb-1 ${userTheme.bubbleMutedText}`}>{member?.name || 'User'}</span>
+                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] shadow-sm ${userTheme.bubbleBg} ${userTheme.bubbleText}`}> 
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                   {message.metadata?.routeMode && (
-                    <div className="mt-1 inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700">
-                      <span className="font-medium">Routed {message.metadata.routeMode === 'research' ? 'Research' : 'Ask'}</span>
-                      {typeof message.metadata.routeConfidence === 'number' && (
-                        <span>• {Math.round(message.metadata.routeConfidence * 100)}%</span>
-                      )}
+                    <div className="max-h-0 overflow-hidden opacity-0 transition-[max-height,opacity,margin] duration-200 group-hover:mt-1 group-hover:max-h-10 group-hover:opacity-100 group-focus-within:mt-1 group-focus-within:max-h-10 group-focus-within:opacity-100">
+                      <div className={routeChipClassName}>
+                        <span className="font-medium">Routed {message.metadata.routeMode === 'research' ? 'Research' : 'Ask'}</span>
+                        {typeof message.metadata.routeConfidence === 'number' && (
+                          <span>• {Math.round(message.metadata.routeConfidence * 100)}%</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -527,8 +534,19 @@ export const MessageList = () => {
         )}
         components={{
           Footer: () =>
-            typingUserNames.length > 0 || isAgentTyping ? (
+            typingUserNames.length > 0 || isAgentTyping || showPendingInsightMarker ? (
               <div className="px-4 py-2">
+                {showPendingInsightMarker && (
+                  <div className="mb-2 flex justify-center">
+                    <div className="max-w-[85%] rounded-md border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-xs text-indigo-700">
+                      <div className="flex items-center gap-2 leading-5">
+                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
+                        <span className="font-semibold">🔗 {pendingMarkerLabel}</span>
+                        <span className="opacity-90">Generating...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <TypingIndicator
                   userNames={typingUserNames}
                   isAgentTyping={isAgentTyping}

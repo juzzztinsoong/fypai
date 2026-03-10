@@ -15,9 +15,12 @@ import ReactMarkdown from 'react-markdown';
 
 interface TaskContextCardProps {
   teamId: string;
+  mode?: 'collapsible' | 'embedded';
+  onClose?: () => void;
 }
 
-export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
+export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskContextCardProps) => {
+  const isEmbedded = mode === 'embedded';
   const storedContext = useEntityStore((state) => state.taskContexts[teamId]);
   const currentUser = useSessionStore((state) => state.currentUser);
   const currentUserId = currentUser?.id || null;
@@ -26,11 +29,13 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
   const [draft, setDraft] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isEmbedded);
 
   // Fetch task context on mount / team change
   useEffect(() => {
     if (!teamId) return;
+    if (storedContext) return;
+
     setIsLoading(true);
     getTaskContext(teamId)
       .then((ctx) => {
@@ -40,13 +45,19 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
         console.error('[TaskContextCard] Failed to load context:', err);
       })
       .finally(() => setIsLoading(false));
-  }, [teamId]);
+  }, [teamId, storedContext]);
 
   // Close edit mode when team changes
   useEffect(() => {
     setIsEditing(false);
-    setIsExpanded(false);
-  }, [teamId]);
+    setIsExpanded(isEmbedded);
+  }, [teamId, isEmbedded]);
+
+  useEffect(() => {
+    if (isEmbedded) {
+      setIsExpanded(true);
+    }
+  }, [isEmbedded]);
 
   const content = storedContext?.content || null;
   const updatedAt = storedContext?.updatedAt;
@@ -78,6 +89,14 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
   }, [teamId, currentUserId, draft]);
 
   if (isLoading) {
+    if (isEmbedded) {
+      return (
+        <div className="rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5 p-4">
+          <div className="h-3 bg-slate-200 rounded w-1/3 animate-pulse" />
+        </div>
+      );
+    }
+
     return (
       <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100">
         <div className="h-3 bg-indigo-200 rounded w-1/3 animate-pulse" />
@@ -86,7 +105,7 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
   }
 
   // ── Compact bar (collapsed) ──
-  if (!isExpanded && !isEditing) {
+  if (!isEmbedded && !isExpanded && !isEditing) {
     return (
       <div className="px-5 py-2 bg-indigo-50/80 border-b border-indigo-100 flex items-center justify-between">
         <button
@@ -117,29 +136,65 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
     );
   }
 
+  const wrapperClassName = isEmbedded
+    ? 'rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5'
+    : 'bg-indigo-50/80 border-b border-indigo-100';
+
+  const headerClassName = isEmbedded
+    ? 'px-4 py-3 border-b border-slate-100 flex items-center justify-between'
+    : 'px-5 py-2 flex items-center justify-between';
+
+  const bodyClassName = isEmbedded ? 'px-4 py-3' : 'px-5 pb-3';
+
+  const textareaClassName = isEmbedded
+    ? 'w-full h-40 text-sm border border-slate-300 rounded-md p-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y bg-white placeholder:text-slate-400'
+    : 'w-full h-28 text-sm border border-indigo-300 rounded-md p-2.5 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 resize-y bg-white placeholder:text-indigo-300';
+
+  const metaTextClassName = isEmbedded ? 'text-xs text-slate-500 mt-1.5' : 'text-xs text-indigo-400 mt-1.5';
+
   // ── Expanded view ──
   return (
-    <div className="bg-indigo-50/80 border-b border-indigo-100">
+    <div className={wrapperClassName}>
       {/* Expanded header */}
-      <div className="px-5 py-2 flex items-center justify-between">
+      <div className={headerClassName}>
         <div className="flex items-center space-x-2">
           <span className="text-sm">📋</span>
-          <h3 className="text-[11px] font-semibold text-indigo-800 uppercase tracking-wide">
+          <h3 className={`text-[11px] font-semibold uppercase tracking-wide ${isEmbedded ? 'text-slate-700' : 'text-indigo-800'}`}>
             Project Context
           </h3>
-          <span className="text-xs text-indigo-400">(grounding AI)</span>
+          <span className={`text-xs ${isEmbedded ? 'text-slate-400' : 'text-indigo-400'}`}>(grounding AI)</span>
         </div>
         <div className="flex items-center space-x-1">
           {!isEditing && (
             <button
               type="button"
               onClick={handleStartEdit}
-              className="text-xs px-2 py-0.5 rounded text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+              className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                isEmbedded
+                  ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                  : 'text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700'
+              }`}
             >
               Edit
             </button>
           )}
-          {!isEditing && (
+
+          {isEmbedded && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              aria-label="Close project context"
+              title="Close project context"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+
+          {!isEmbedded && !isEditing && (
             <button
               type="button"
               onClick={() => setIsExpanded(false)}
@@ -152,18 +207,18 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
       </div>
 
       {/* Content / Editor */}
-      <div className="px-5 pb-3">
+      <div className={bodyClassName}>
         {isEditing ? (
           <div className="space-y-2">
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Describe your project goals, current sprint tasks, tech stack, or anything the AI should know about your team's work..."
-              className="w-full h-28 text-sm border border-indigo-300 rounded-md p-2.5 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 resize-y bg-white placeholder:text-indigo-300"
+              className={textareaClassName}
               autoFocus
             />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-indigo-400">
+              <span className={`text-xs ${isEmbedded ? 'text-slate-400' : 'text-indigo-400'}`}>
                 Markdown supported
               </span>
               <div className="flex space-x-2">
@@ -188,18 +243,18 @@ export const TaskContextCard = ({ teamId }: TaskContextCardProps) => {
           </div>
         ) : content ? (
           <div>
-            <div className="prose prose-sm max-w-none text-gray-700 max-h-40 overflow-y-auto">
+            <div className={`prose prose-sm max-w-none ${isEmbedded ? 'text-slate-700 max-h-56' : 'text-gray-700 max-h-40'} overflow-y-auto`}>
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
             {updatedAt && (
-              <p className="text-xs text-indigo-400 mt-1.5">
+              <p className={metaTextClassName}>
                 Updated {new Date(updatedAt).toLocaleString()}
                 {updatedBy && ` by ${updatedBy}`}
               </p>
             )}
           </div>
         ) : (
-          <p className="text-sm text-indigo-400 italic">
+          <p className={`text-sm italic ${isEmbedded ? 'text-slate-500' : 'text-indigo-400'}`}>
             No context set yet. Click <strong>Edit</strong> to describe your project — the AI will use this to give more relevant responses.
           </p>
         )}

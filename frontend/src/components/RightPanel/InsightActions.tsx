@@ -5,12 +5,11 @@
  * Shows contextual actions based on current status.
  */
 import { useState } from 'react';
-import type { InsightStatus } from '@fypai/types';
+import type { AIInsightDTO, InsightStatus } from '@fypai/types';
 import { updateInsightStatus } from '@/services/insightService';
 
 interface InsightActionsProps {
-  insightId: string;
-  status?: InsightStatus;
+  insight: AIInsightDTO;
   userId?: string;
 }
 
@@ -35,14 +34,37 @@ const AVAILABLE_ACTIONS: Record<InsightStatus, { status: InsightStatus; label: s
   ],
 };
 
-export const InsightActions = ({ insightId, status = 'new', userId = 'user1' }: InsightActionsProps) => {
+export const InsightActions = ({ insight, userId = 'user1' }: InsightActionsProps) => {
   const [loading, setLoading] = useState(false);
-  const actions = AVAILABLE_ACTIONS[status] || AVAILABLE_ACTIONS.new;
+  const status = insight.status || 'new';
+  const isAction = insight.type === 'action';
+
+  let actions = AVAILABLE_ACTIONS[status] || AVAILABLE_ACTIONS.new;
+
+  // Action items follow a two-step flow:
+  // 1) Decide (Accept/Dismiss)
+  // 2) Mark complete (archives the item)
+  if (isAction) {
+    if (status === 'accepted' || status === 'dismissed') {
+      actions = [
+        {
+          status: 'archived',
+          label: 'Mark complete',
+          icon: '✅',
+          className: 'text-emerald-700 hover:bg-emerald-50',
+        },
+      ];
+    } else if (status === 'archived') {
+      actions = [
+        { status: 'new', label: 'Restore', icon: '↩', className: 'text-blue-600 hover:bg-blue-50' },
+      ];
+    }
+  }
 
   const handleAction = async (newStatus: InsightStatus) => {
     setLoading(true);
     try {
-      await updateInsightStatus(insightId, newStatus, userId);
+      await updateInsightStatus(insight.id, newStatus, userId);
     } catch (error) {
       console.error('[InsightActions] Failed to update status:', error);
     } finally {

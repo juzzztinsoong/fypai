@@ -1,35 +1,41 @@
 /**
  * ReportCard Component
  * 
- * Displays AI-generated research briefs with a purple theme and markdown formatting
+ * Displays AI-generated research briefs with an emerald theme and rich markdown formatting.
  */
 
 import type { AIInsightDTO } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import { InsightFrame } from './InsightFrame';
+import { sanitizeInsightContent } from '@/utils/insightContent';
 
 interface ReportCardProps {
   insight: AIInsightDTO;
   onJumpToSource?: (messageId: string) => void;
+  onJumpToChatMarker?: (insightId: string) => void;
 }
 
-export const ReportCard = ({ insight, onJumpToSource }: ReportCardProps) => {
+export const ReportCard = ({ insight, onJumpToSource, onJumpToChatMarker }: ReportCardProps) => {
+  const displayContent = sanitizeInsightContent(insight.content);
+
   const content = (
-    <div className="prose prose-sm max-w-none text-gray-800">
+    <div className="prose prose-sm max-w-none text-emerald-950/90">
       <ReactMarkdown
         components={{
-          h1: ({ children }) => <h1 className="text-xl font-bold text-purple-900 mt-4 mb-2 border-b-2 border-purple-200 pb-1">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-bold text-purple-800 mt-3 mb-2">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-base font-semibold text-purple-700 mt-2 mb-1">{children}</h3>,
-          ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 ml-2">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 ml-2">{children}</ol>,
-          p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
-          strong: ({ children }) => <strong className="font-semibold text-purple-900">{children}</strong>,
-          em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
-          code: ({ children }) => <code className="bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+          h1: ({ children }) => <h1 className="text-xl font-bold text-emerald-950 mt-4 mb-2 border-b border-emerald-300 pb-1">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-lg font-bold text-emerald-900 mt-4 mb-2">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-base font-semibold text-emerald-800 mt-3 mb-1">{children}</h3>,
+          ul: ({ children }) => <ul className="list-disc list-outside pl-5 marker:text-emerald-600 space-y-1.5 my-3">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-outside pl-5 marker:text-emerald-600 space-y-1.5 my-3">{children}</ol>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          p: ({ children }) => <p className="my-2.5 leading-7">{children}</p>,
+          strong: ({ children }) => <strong className="font-semibold text-emerald-950">{children}</strong>,
+          em: ({ children }) => <em className="italic text-emerald-900/80">{children}</em>,
+          code: ({ children }) => <code className="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+          hr: () => <hr className="my-4 border-emerald-200" />,
         }}
       >
-        {insight.content}
+        {displayContent}
       </ReactMarkdown>
     </div>
   );
@@ -39,13 +45,11 @@ export const ReportCard = ({ insight, onJumpToSource }: ReportCardProps) => {
       insight={insight}
       title="🔎 Research Brief"
       icon={<span className="text-2xl">🔎</span>}
-      containerClassName="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg shadow-sm border border-purple-200 p-4"
-      titleClassName="font-semibold text-purple-900"
-      timeClassName="text-xs text-purple-700"
+      containerClassName="bg-white rounded-lg shadow-sm border border-slate-200 p-5"
+      titleClassName="font-semibold text-emerald-950"
       content={content}
       onJumpToSource={onJumpToSource}
-      jumpButtonClassName="mt-3 px-3 py-1.5 text-sm text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-md transition-colors flex items-center space-x-1"
-      metadataClassName="mt-3 pt-3 border-t border-purple-100 text-xs text-purple-700"
+      onJumpToChatMarker={onJumpToChatMarker}
     />
   );
 };

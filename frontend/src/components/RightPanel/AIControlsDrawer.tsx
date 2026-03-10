@@ -1,20 +1,19 @@
 /**
  * AIControlsDrawer — Expandable footer for the RightPanel
  * 
- * Collapsed: Master AI toggle + gear button to expand + action buttons row
+ * Collapsed: Master AI toggle + gear button to expand
  * Expanded:  All the above + full AgentSettingsPanel (personality, proactivity,
  *            response length, model tier segment pickers)
  * 
- * Replaces the old separate AIToggle + ActionButtons footer and the
+ * Replaces the old separate AIToggle footer and the
  * sidebar-hosted SettingsModal, consolidating all AI controls in one place.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { AgentPreferencesDTO, AgentPersonality, AgentProactivity, AgentResponseLength, AgentModelTier } from '@fypai/types'
 import { getAgentPreferences, updateAgentPreferences, resetAgentPreferences } from '@/services/agentPreferencesService'
-import { useEntityStore } from '@/stores/entityStore'
-import * as insightService from '@/services/insightService'
 import { RuleTogglePanel } from './RuleTogglePanel'
+import { getSegmentedActiveClass, getSwitchThumbClass, getSwitchTrackClass, uiTokens } from '@/styles/uiTokens'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -22,6 +21,7 @@ interface AIControlsDrawerProps {
   teamId: string
   isAIEnabled: boolean
   onToggleAI: () => void
+  integrated?: boolean
 }
 
 // ─── Compact Segment Picker ─────────────────────────────────
@@ -43,18 +43,20 @@ function CompactPicker<T extends string>({
   value: T
   onChange: (v: T) => void
 }) {
+  const activeClass = `${getSegmentedActiveClass('brand')} shadow-sm ring-1 ring-indigo-200`
+
   return (
     <div className="space-y-1">
-      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{label}</span>
-      <div className="flex bg-gray-100 rounded-md p-0.5 gap-0.5">
+      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+      <div className="flex bg-slate-100 rounded-md p-0.5 gap-0.5">
         {options.map((opt) => (
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
             className={`flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all ${
               value === opt.value
-                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-200'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? activeClass
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             }`}
             title={opt.label}
           >
@@ -69,7 +71,7 @@ function CompactPicker<T extends string>({
 
 // ─── Main Component ─────────────────────────────────────────
 
-export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControlsDrawerProps) => {
+export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated = false }: AIControlsDrawerProps) => {
   const [expanded, setExpanded] = useState(false)
   const [showRules, setShowRules] = useState(false)
 
@@ -79,11 +81,6 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<string | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // ── Action Buttons state ───────────────────────────────
-  const currentTeam = useEntityStore((state) => teamId ? state.getTeam(teamId) : null)
-  const [loadingSummary, setLoadingSummary] = useState(false)
-  const [loadingResearch, setLoadingResearch] = useState(false)
 
   // Load prefs when drawer expands or team changes
   useEffect(() => {
@@ -95,7 +92,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
         const p = await getAgentPreferences(teamId)
         if (!cancelled) setPrefs(p)
       } catch {
-        // Silently fail — user still has toggle + action buttons
+        // Silently fail — user still has toggle + base controls
       } finally {
         if (!cancelled) setPrefsLoading(false)
       }
@@ -144,53 +141,22 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
     finally { setSaving(false) }
   }
 
-  // ── Action Button handlers ─────────────────────────────
-  const isGenerating = loadingSummary || loadingResearch
-
-  const handleGenerateSummary = async () => {
-    if (!currentTeam || isGenerating) return
-    setLoadingSummary(true)
-    try {
-      await insightService.generateSummary(currentTeam.id)
-    } catch (err) {
-      console.error('Failed to generate summary:', err)
-    } finally {
-      setLoadingSummary(false)
-    }
-  }
-
-  const handleGenerateResearch = async () => {
-    if (!currentTeam || isGenerating) return
-    setLoadingResearch(true)
-    try {
-      await insightService.generateReport(currentTeam.id)
-    } catch (err) {
-      console.error('Failed to generate research:', err)
-    } finally {
-      setLoadingResearch(false)
-    }
-  }
-
   return (
-    <div className="flex-shrink-0 border-t border-gray-200 bg-white">
-      {/* ── Always-visible row: AI toggle + expand + action buttons ── */}
-      <div className="px-4 py-3">
+    <div className={`relative flex-shrink-0 bg-white ${integrated ? '' : 'border-t border-gray-200'}`}>
+      {/* ── Always-visible row: AI toggle + expand ── */}
+      <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center ${integrated ? 'border-t border-gray-100' : ''}`}>
         {/* Top row: Toggle + gear */}
-        <div className="flex items-center justify-between mb-2.5">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <button
               onClick={onToggleAI}
-              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors ${
-                isAIEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 hover:bg-gray-400'
-              }`}
+              className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(isAIEnabled)}`}
               role="switch"
               aria-checked={isAIEnabled}
               aria-label="Toggle AI Assistant"
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                  isAIEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
-                } mt-0.5`}
+                className={`${uiTokens.controls.switch.thumbBase} ${getSwitchThumbClass(isAIEnabled)}`}
               />
             </button>
             <span className="text-xs font-medium text-gray-700">
@@ -200,8 +166,8 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
 
           <div className="flex items-center gap-2">
             {/* Save status */}
-            {saving && <span className="text-[10px] text-blue-500 animate-pulse">Saving...</span>}
-            {lastSaved && !saving && <span className="text-[10px] text-green-500">✓</span>}
+            {saving && <span className="text-[10px] text-indigo-500 animate-pulse">Saving...</span>}
+            {lastSaved && !saving && <span className="text-[10px] text-emerald-500">✓</span>}
 
             {/* Expand / Collapse button */}
             <button
@@ -224,31 +190,17 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI }: AIControls
             </button>
           </div>
         </div>
-
-        {/* Action Buttons Row — always visible */}
-        <div className="flex gap-1.5">
-          <button
-            onClick={handleGenerateSummary}
-            disabled={isGenerating}
-            className="flex-1 h-10 flex items-center justify-center gap-1.5 px-2 rounded-md text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <span>{loadingSummary ? '⏳' : '📝'}</span>
-            <span>{loadingSummary ? '...' : 'Summary'}</span>
-          </button>
-          <button
-            onClick={handleGenerateResearch}
-            disabled={isGenerating}
-            className="flex-1 h-10 flex items-center justify-center gap-1.5 px-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <span>{loadingResearch ? '⏳' : '🔎'}</span>
-            <span>{loadingResearch ? '...' : 'Research'}</span>
-          </button>
-        </div>
       </div>
 
       {/* ── Expandable Settings Drawer ── */}
       {expanded && (
-        <div className="border-t border-gray-100 px-4 py-3 space-y-3 max-h-[40vh] overflow-y-auto">
+        <div
+          className={
+            integrated
+              ? 'absolute inset-x-4 bottom-full z-30 mb-2 rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3 shadow-xl shadow-slate-900/10 max-h-[40vh] overflow-y-auto'
+              : 'border-t border-gray-100 px-4 py-3 space-y-3 max-h-[40vh] overflow-y-auto'
+          }
+        >
           {prefsLoading ? (
             <div className="flex items-center justify-center py-4 text-gray-400 text-xs">
               <svg className="animate-spin h-4 w-4 mr-1.5" viewBox="0 0 24 24">

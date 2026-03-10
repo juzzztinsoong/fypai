@@ -1,14 +1,11 @@
 import type { AIInsightDTO } from '../../types';
 import { InsightTypeIcon } from './InsightTypeIcon';
-import { PriorityBadge } from './PriorityBadge';
 import { InsightStatusBadge } from './InsightStatusBadge';
 import { InsightActions } from './InsightActions';
-import { ActionItemControls } from './ActionItemControls';
-import { getInsightTypeColor } from './insightUtils';
+import { getInsightTypeTheme } from './insightUtils';
 import ReactMarkdown from 'react-markdown';
-import { useState } from 'react';
-import { createInsight } from '@/services/insightService';
-import { getLinkVisuals } from '@/utils/linkVisuals';
+import { getChipClass } from '@/styles/uiTokens';
+import { sanitizeInsightContent } from '@/utils/insightContent';
 
 interface InsightCardProps {
   insight: AIInsightDTO;
@@ -18,8 +15,8 @@ interface InsightCardProps {
 
 export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: InsightCardProps) => {
   const isDismissed = insight.status === 'dismissed' || insight.status === 'archived';
-  const [isPromoting, setIsPromoting] = useState(false);
-  const visuals = getLinkVisuals(insight.id);
+  const theme = getInsightTypeTheme(insight.type);
+  const displayContent = sanitizeInsightContent(insight.content);
   const lineageMetadata = insight.metadata as
     | (typeof insight.metadata & {
         sourceInsightId?: string;
@@ -27,90 +24,52 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
       })
     | undefined;
 
-  const canPromote = insight.type !== 'action' && insight.type !== 'code';
-
-  const handlePromoteToAction = async () => {
-    if (!canPromote || isPromoting) return;
-
-    const excerpt = insight.content.replace(/\s+/g, ' ').trim().slice(0, 500);
-    if (!excerpt) return;
-
-    setIsPromoting(true);
-    try {
-      const actionTitle = excerpt.length > 80 ? `${excerpt.slice(0, 80)}...` : excerpt;
-      await createInsight({
-        teamId: insight.teamId,
-        type: 'action',
-        title: `Action: ${actionTitle}`,
-        content: `- ${excerpt}`,
-        priority: 'medium',
-        tags: ['promoted-from-insight', 'user-requested'],
-        relatedMessageIds: insight.relatedMessageIds,
-        metadata: {
-          ...(insight.metadata || {}),
-          sourceInsightId: insight.id,
-          sourceExcerpt: excerpt,
-        } as any,
-      });
-    } catch (error) {
-      console.error('[InsightCard] Failed to promote insight:', error);
-    } finally {
-      setIsPromoting(false);
-    }
-  };
-
   return (
     <div
       id={`insight-${insight.id}`}
       data-insight-id={insight.id}
       onMouseEnter={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: true } }))}
       onMouseLeave={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: false } }))}
-      className={`border rounded-lg p-4 bg-white shadow-sm ${getInsightTypeColor(insight.type)} ${
+      className={`border rounded-lg p-5 shadow-sm ${theme.card} ${
         isDismissed ? 'opacity-60' : ''
       }`}
     >
       {/* Insight Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <div className={`p-1.5 rounded ${getInsightTypeColor(insight.type)}`}>
-            <InsightTypeIcon type={insight.type} />
+          <div className={`p-1.5 rounded ${theme.iconShell}`}>
+            <div className={theme.icon}>
+              <InsightTypeIcon type={insight.type} />
+            </div>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-800">{insight.title}</h3>
-            <p className="text-xs text-gray-500">
-              {new Date(insight.createdAt).toLocaleString()}
-            </p>
-            <div className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${visuals.pill}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
-              Linked to chat
-            </div>
+            <h3 className={`font-semibold ${theme.title}`}>{insight.title}</h3>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <InsightStatusBadge status={insight.status} />
-          <PriorityBadge priority={insight.priority} />
         </div>
       </div>
 
       {insight.metadata?.chimeRuleName && (
-        <div className="mb-3">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+        <div className="mb-4">
+          <span className={getChipClass('warning', 'sm')}>
             ⚙️ Rule: {insight.metadata.chimeRuleName}
           </span>
         </div>
       )}
 
       {insight.type === 'action' && lineageMetadata?.sourceInsightId && (
-        <div className="mb-3 rounded-md border border-purple-200 bg-purple-50 px-3 py-2">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-purple-700">Promoted from Research</div>
+        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Promoted from Research</div>
           {lineageMetadata.sourceExcerpt && (
-            <p className="mt-1 text-xs text-purple-800 line-clamp-2">{lineageMetadata.sourceExcerpt}</p>
+            <p className="mt-1 text-xs text-emerald-800 line-clamp-2">{lineageMetadata.sourceExcerpt}</p>
           )}
           {onJumpToSource && (
             <button
               type="button"
               onClick={() => onJumpToSource(lineageMetadata.sourceInsightId!)}
-              className="mt-1 text-xs font-medium text-purple-700 hover:text-purple-900"
+              className="mt-1 text-xs font-medium text-emerald-700 hover:text-emerald-900"
             >
               View source research →
             </button>
@@ -119,19 +78,19 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
       )}
 
       {/* Insight Content */}
-      <div className="text-sm text-gray-700">
+      <div className="text-sm text-slate-700">
         {insight.type === 'code' ? (
           <pre className="bg-gray-900 text-gray-100 p-3 rounded overflow-x-auto">
-            <code>{insight.content}</code>
+            <code>{displayContent}</code>
           </pre>
         ) : (
           <div className="prose prose-sm max-w-none">
             <ReactMarkdown
               components={{
                 // Style headers
-                h1: ({ children }) => <h1 className="text-lg font-bold text-gray-900 mt-3 mb-2">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-base font-bold text-gray-800 mt-2 mb-1">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-700 mt-2 mb-1">{children}</h3>,
+                h1: ({ children }) => <h1 className={`text-lg font-bold mt-3 mb-2 ${theme.title}`}>{children}</h1>,
+                h2: ({ children }) => <h2 className={`text-base font-bold mt-2 mb-1 ${theme.title}`}>{children}</h2>,
+                h3: ({ children }) => <h3 className={`text-sm font-semibold mt-2 mb-1 ${theme.icon}`}>{children}</h3>,
                 // Style lists
                 ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
                 ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
@@ -139,78 +98,32 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
                 // Style paragraphs
                 p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
                 // Style bold and italic
-                strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-                em: ({ children }) => <em className="italic text-gray-600">{children}</em>,
+                strong: ({ children }) => <strong className={`font-semibold ${theme.title}`}>{children}</strong>,
+                em: ({ children }) => <em className="italic text-slate-600">{children}</em>,
                 // Style code
-                code: ({ children }) => <code className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+                code: ({ children }) => <code className="bg-white/80 border border-slate-200 text-slate-800 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
                 // Style blockquotes
-                blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-2">{children}</blockquote>,
+                blockquote: ({ children }) => <blockquote className="border-l-4 border-slate-300 pl-4 italic text-slate-600 my-2">{children}</blockquote>,
               }}
             >
-              {insight.content}
+              {displayContent}
             </ReactMarkdown>
           </div>
         )}
       </div>
 
-      {/* Tags */}
-      {insight.tags && insight.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {insight.tags.map((tag: string) => (
-            <span
-              key={tag}
-              className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {(insight.metadata?.model || insight.metadata?.prompt) && (
-        <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
-          {insight.metadata?.model && (
-            <div>
-              Generated by {insight.metadata.model}
-              {insight.metadata.tokensUsed && ` • ${insight.metadata.tokensUsed} tokens`}
-            </div>
-          )}
-          {insight.metadata?.prompt && (
-            <div className="mt-1 italic">"{insight.metadata.prompt}"</div>
-          )}
-        </div>
-      )}
-
-      {/* Action Item Controls (Sprint D - Part 3) */}
-      {insight.type === 'action' && (
-        <ActionItemControls insight={insight} />
-      )}
-
-      {canPromote && (
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={handlePromoteToAction}
-            disabled={isPromoting}
-            className="rounded border border-purple-200 bg-purple-50 px-2 py-1 text-[11px] font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50"
-          >
-            {isPromoting ? 'Promoting...' : 'Promote to Action'}
-          </button>
-        </div>
-      )}
-
       {/* Actions */}
-      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+      <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
         {onJumpToChatMarker ? (
           <button
             type="button"
             onClick={() => onJumpToChatMarker(insight.id)}
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+            className={`text-xs font-medium ${theme.link}`}
           >
             View marker in chat →
           </button>
         ) : <span />}
-        <InsightActions insightId={insight.id} status={insight.status} />
+        <InsightActions insight={insight} />
       </div>
     </div>
   );

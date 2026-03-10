@@ -1,48 +1,50 @@
-const LINK_PALETTES = [
-  {
-    marker: 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100',
-    pill: 'border-sky-200 bg-sky-100 text-sky-700',
-    dot: 'bg-sky-500',
-  },
-  {
-    marker: 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100',
-    pill: 'border-violet-200 bg-violet-100 text-violet-700',
-    dot: 'bg-violet-500',
-  },
-  {
-    marker: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
-    pill: 'border-emerald-200 bg-emerald-100 text-emerald-700',
-    dot: 'bg-emerald-500',
-  },
-  {
-    marker: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
-    pill: 'border-amber-200 bg-amber-100 text-amber-700',
-    dot: 'bg-amber-500',
-  },
-  {
-    marker: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100',
-    pill: 'border-pink-200 bg-pink-100 text-pink-700',
-    dot: 'bg-pink-500',
-  },
-] as const
+import type { AIInsightDTO } from '@fypai/types'
+import { getMarkerDotClass, getMarkerIconClass, uiTokens } from '@/styles/uiTokens'
 
-function hashInsightId(insightId: string): number {
-  let hash = 0
-  for (let index = 0; index < insightId.length; index += 1) {
-    hash = (hash * 31 + insightId.charCodeAt(index)) >>> 0
-  }
-  return hash
+type LinkVisualInput =
+  | string
+  | {
+      insightId?: string
+      insightType?: AIInsightDTO['type']
+    }
+
+type InsightType = AIInsightDTO['type']
+
+const markerByType: Record<InsightType, string> = {
+  summary: 'border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100',
+  document: 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
+  action: 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100',
+  suggestion: 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800 hover:bg-fuchsia-100',
+  analysis: 'border-orange-300 bg-orange-50 text-orange-800 hover:bg-orange-100',
+  code: 'border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100',
 }
 
-export function getLinkVisuals(insightId?: string) {
-  if (!insightId) {
-    return {
-      marker: 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100',
-      pill: 'border-indigo-200 bg-indigo-100 text-indigo-700',
-      dot: 'bg-indigo-500',
-    }
+const pillByType: Record<InsightType, string> = {
+  summary: 'border-sky-300 bg-sky-100/80 text-sky-800',
+  document: 'border-emerald-300 bg-emerald-100/80 text-emerald-800',
+  action: 'border-amber-300 bg-amber-100/80 text-amber-800',
+  suggestion: 'border-fuchsia-300 bg-fuchsia-100/80 text-fuchsia-800',
+  analysis: 'border-orange-300 bg-orange-100/80 text-orange-800',
+  code: 'border-slate-300 bg-slate-100/80 text-slate-800',
+}
+
+function resolveInput(input?: LinkVisualInput): { insightType?: AIInsightDTO['type'] } {
+  if (!input || typeof input === 'string') {
+    return {}
   }
 
-  const palette = LINK_PALETTES[hashInsightId(insightId) % LINK_PALETTES.length]
-  return palette
+  return {
+    insightType: input.insightType,
+  }
+}
+
+export function getLinkVisuals(input?: LinkVisualInput) {
+  const { insightType } = resolveInput(input)
+
+  return {
+    marker: insightType ? markerByType[insightType] : uiTokens.marker.base,
+    pill: insightType ? pillByType[insightType] : uiTokens.marker.pill,
+    dot: getMarkerDotClass(insightType),
+    icon: getMarkerIconClass(insightType),
+  }
 }

@@ -19,6 +19,13 @@ import { getTeamsForUser } from '@/services/teamService'
 import { exportSession } from '@/services/exportService'
 import { resetTeamSession } from '@/services/messageService'
 import { resetTeamInsights } from '@/services/insightService'
+import {
+  getChipClass,
+  getSwitchThumbClass,
+  getSwitchTrackClass,
+  uiTokens,
+  type ChipVariant,
+} from '@/styles/uiTokens'
 
 // Mock users for testing typing indicators
 const TEST_USERS = [
@@ -126,7 +133,7 @@ export const Sidebar = () => {
   // Get avatar color for current user
   const userAvatarColor = allTeams.length > 0 && currentUser
     ? getAvatarBackgroundColor(currentUser.id, allTeams[0].members) 
-    : 'bg-blue-500'
+    : 'bg-indigo-500'
 
   const isUserOnline = (userId: string) => onlineUsers.includes(userId)
   
@@ -138,6 +145,16 @@ export const Sidebar = () => {
     if (diff < 1000) return 'Just now'
     if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`
     return `${Math.floor(diff / 60000)}m ago`
+  }
+
+  const getConnectionChipVariant = (
+    connectionState: 'connected' | 'connecting' | 'disconnected' | 'reconnecting' | 'failed',
+  ): ChipVariant => {
+    if (connectionState === 'connected') return 'success'
+    if (connectionState === 'reconnecting') return 'warning'
+    if (connectionState === 'connecting') return 'brand'
+    if (connectionState === 'failed') return 'danger'
+    return 'neutral'
   }
 
   if (isLoading) {
@@ -179,12 +196,12 @@ export const Sidebar = () => {
                   onClick={() => setCurrentTeamId(team.id)}
                   className={`w-full px-3 py-2 rounded-lg text-left flex items-center space-x-3 text-sm font-medium
                     ${currentTeamId === team.id 
-                      ? 'bg-blue-50 text-blue-600' 
+                      ? 'bg-indigo-50 text-indigo-600' 
                       : 'text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                   <svg 
-                    className={`w-5 h-5 ${currentTeamId === team.id ? 'text-blue-600' : 'text-gray-400'}`}
+                    className={`w-5 h-5 ${currentTeamId === team.id ? 'text-indigo-600' : 'text-gray-400'}`}
                     xmlns="http://www.w3.org/2000/svg" 
                     viewBox="0 0 24 24" 
                     fill="currentColor"
@@ -240,13 +257,7 @@ export const Sidebar = () => {
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-gray-600">Connection</span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                  socket.connectionState === 'connected' ? 'bg-green-100 text-green-800' :
-                  socket.connectionState === 'reconnecting' ? 'bg-yellow-100 text-yellow-800' :
-                  socket.connectionState === 'connecting' ? 'bg-blue-100 text-blue-800' :
-                  socket.connectionState === 'failed' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span className={getChipClass(getConnectionChipVariant(socket.connectionState), 'sm')}>
                   {socket.connectionState}
                 </span>
               </div>
@@ -263,7 +274,7 @@ export const Sidebar = () => {
                 </div>
               )}
               {socket.connectionState === 'reconnecting' && (
-                <div className="text-xs text-yellow-600">
+                <div className="text-xs text-amber-600">
                   Attempt {socket.reconnectAttempts}/5
                 </div>
               )}
@@ -279,17 +290,13 @@ export const Sidebar = () => {
               </div>
               <button
                 onClick={() => updatePreference('showAIDetails', !showAIDetails)}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  showAIDetails ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
+                className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(showAIDetails)}`}
                 role="switch"
                 aria-checked={showAIDetails}
                 aria-label="Show AI response details"
               >
                 <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    showAIDetails ? 'translate-x-4' : 'translate-x-0'
-                  }`}
+                  className={`${uiTokens.controls.switch.thumbBase} ${getSwitchThumbClass(showAIDetails)}`}
                 />
               </button>
             </div>
@@ -305,17 +312,13 @@ export const Sidebar = () => {
               </div>
               <button
                 onClick={() => updatePreference('enableTimelineSync', !enableTimelineSync)}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  enableTimelineSync ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
+                className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(enableTimelineSync)}`}
                 role="switch"
                 aria-checked={enableTimelineSync}
                 aria-label="Enable timeline sync"
               >
                 <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    enableTimelineSync ? 'translate-x-4' : 'translate-x-0'
-                  }`}
+                  className={`${uiTokens.controls.switch.thumbBase} ${getSwitchThumbClass(enableTimelineSync)}`}
                 />
               </button>
             </div>
@@ -327,19 +330,19 @@ export const Sidebar = () => {
                 <button
                   onClick={() => handleSessionExport('json')}
                   disabled={!currentTeamId || isExporting}
-                  className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.secondary}`}
                 >
                   JSON
                 </button>
                 <button
                   onClick={() => handleSessionExport('csv')}
                   disabled={!currentTeamId || isExporting}
-                  className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.secondary}`}
                 >
                   CSV
                 </button>
               </div>
-              {exportError && <p className="mt-2 text-xs text-red-500">{exportError}</p>}
+              {exportError && <p className="mt-2 text-xs text-rose-500">{exportError}</p>}
             </div>
 
             <div className="pt-2 border-t border-gray-100">
@@ -347,11 +350,11 @@ export const Sidebar = () => {
               <button
                 onClick={handleSessionReset}
                 disabled={!currentTeamId || isResetting}
-                className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`${uiTokens.controls.button.sm} ${uiTokens.controls.button.danger}`}
               >
                 {isResetting ? 'Resetting…' : 'Reset Current Team'}
               </button>
-              {resetError && <p className="mt-2 text-xs text-red-500">{resetError}</p>}
+              {resetError && <p className="mt-2 text-xs text-rose-500">{resetError}</p>}
             </div>
 
             <div className="pt-2 border-t border-gray-100 relative">
@@ -410,7 +413,7 @@ export const Sidebar = () => {
                         setShowUserMenu(false)
                       }}
                       className={`w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 ${
-                        currentUser?.id === testUser.id ? 'bg-blue-50' : ''
+                        currentUser?.id === testUser.id ? 'bg-indigo-50' : ''
                       }`}
                     >
                       <div className={`w-7 h-7 rounded-full ${getAvatarBackgroundColor(testUser.id, allTeams[0]?.members || [])} flex items-center justify-center text-white font-semibold text-xs`}>
@@ -421,7 +424,7 @@ export const Sidebar = () => {
                         <p className="text-[11px] text-gray-500">{testUser.id}</p>
                       </div>
                       {currentUser?.id === testUser.id && (
-                        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}

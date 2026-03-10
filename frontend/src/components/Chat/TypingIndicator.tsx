@@ -10,7 +10,7 @@
  * 
  * Visual:
  * - Users: Left-aligned with gray bubble and avatar placeholder
- * - Agent: Center-aligned with purple bubble and AI icon
+ * - Agent: Center-aligned with violet bubble and AI icon
  */
 
 interface TypingIndicatorProps {
@@ -45,7 +45,7 @@ export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: 
     </div>
   )
 
-  // Agent typing indicator (center-aligned, purple)
+  // Agent typing indicator (center-aligned, violet)
   if (isAgentTyping) {
     const stageMessage =
       aiStage === 'searching-memory'
@@ -57,13 +57,13 @@ export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: 
     return (
       <div className="flex justify-center">
         <div className="flex flex-col items-center">
-          <span className="text-xs text-purple-700 mb-1 font-bold">AI Assistant</span>
-          <div className="bg-purple-100 border-2 border-purple-500 text-purple-700 rounded-xl px-4 py-2 shadow-sm flex items-center gap-2">
+          <span className="text-xs text-violet-700 mb-1 font-bold">AI Assistant</span>
+          <div className="bg-violet-100 border border-violet-400 text-violet-950 rounded-xl px-4 py-2 shadow-sm flex items-center gap-2">
             <span className="text-sm font-medium">{stageMessage}</span>
             <AnimatedDots />
           </div>
           <div className="mt-2">
-            <svg className="w-8 h-8 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" />
               <text x="12" y="16" textAnchor="middle" fontSize="10" fill="#fff">AI</text>
             </svg>
@@ -82,7 +82,7 @@ export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: 
         </div>
         <div className="flex flex-col items-start">
           <span className="text-xs text-gray-500 mb-1">{userNames.length > 1 ? 'Multiple users' : userNames[0]}</span>
-          <div className="border-2 border-gray-300 bg-gray-50 text-gray-600 rounded-lg px-3 py-2 flex items-center gap-2">
+          <div className="border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
             <span className="text-sm">{getUserMessage()}</span>
             <AnimatedDots />
           </div>

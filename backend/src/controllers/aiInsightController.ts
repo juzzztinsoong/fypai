@@ -31,6 +31,28 @@ export class AIInsightController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
 
+  private static emitProcessingStage(
+    teamId: string,
+    stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle',
+  ): void {
+    if (!this.io) return;
+    this.io.to(`team:${teamId}`).emit('ai:processing', {
+      teamId,
+      userId: 'agent',
+      stage,
+    });
+    console.log(`[AIInsightController] 🧭 Emitted ai:processing stage=${stage} for team=${teamId}`);
+  }
+
+  private static emitTyping(teamId: string, isTyping: boolean): void {
+    if (!this.io) return;
+    this.io.to(`team:${teamId}`).emit(isTyping ? 'typing:start' : 'typing:stop', {
+      teamId,
+      userId: 'agent',
+    });
+    console.log(`[AIInsightController] ⌨️ Emitted ${isTyping ? 'typing:start' : 'typing:stop'} for team=${teamId}`);
+  }
+
   private static normalizeExcerpt(excerpt: string): string {
     return excerpt.replace(/\s+/g, ' ').trim().toLowerCase();
   }
@@ -253,6 +275,22 @@ export class AIInsightController {
    * @returns {Promise<AIInsightDTO>} Updated insight DTO
    */
   static async updateInsightStatus(id: string, data: UpdateInsightStatusRequest): Promise<AIInsightDTO> {
+    const existingInsight = await prisma.aIInsight.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        teamId: true,
+        type: true,
+        completedAt: true,
+      },
+    });
+
+    if (!existingInsight) {
+      const notFoundError = new Error('Insight not found') as HttpError;
+      notFoundError.statusCode = 404;
+      throw notFoundError;
+    }
+
     const updateData: any = {
       status: data.status,
     };
@@ -263,11 +301,13 @@ export class AIInsightController {
       updateData.reviewedBy = data.userId;
     }
 
-    // Set completedAt when accepted
-    if (data.status === 'accepted') {
+    // Action items are only considered complete when archived via explicit user action.
+    if (
+      existingInsight.type === 'action' &&
+      data.status === 'archived' &&
+      !existingInsight.completedAt
+    ) {
       updateData.completedAt = new Date();
-    } else {
-      updateData.completedAt = null;
     }
 
     const insight = await prisma.aIInsight.update({
@@ -370,64 +410,73 @@ export class AIInsightController {
    * @returns {Promise<AIInsightDTO>} Created summary insight
    */
   static async generateSummary(teamId: string): Promise<AIInsightDTO> {
-    const messages = await MessageController.getMessages(teamId);
-    const team = await TeamController.getTeamById(teamId);
+    this.emitTyping(teamId, true);
+    this.emitProcessingStage(teamId, 'thinking');
 
-    if (!team) throw new Error('Team not found');
-
-    const conversationHistory = buildConversationContext(messages, team, 50);
-
-    let taskContextMessage: { role: 'system'; content: string } | null = null;
     try {
-      const teamData = await prisma.team.findUnique({
-        where: { id: teamId },
-        select: { taskContext: true },
-      });
-      if (teamData?.taskContext) {
-        taskContextMessage = {
-          role: 'system' as const,
-          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
-        };
-        console.log(`[AIInsightController] 📋 Injecting task context into summary (${teamData.taskContext.length} chars)`);
+      const messages = await MessageController.getMessages(teamId);
+      const team = await TeamController.getTeamById(teamId);
+
+      if (!team) throw new Error('Team not found');
+
+      const conversationHistory = buildConversationContext(messages, team, 50);
+
+      let taskContextMessage: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          taskContextMessage = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+          console.log(`[AIInsightController] 📋 Injecting task context into summary (${teamData.taskContext.length} chars)`);
+        }
+      } catch (error) {
+        console.warn('[AIInsightController] Failed to load task context for summary:', error);
       }
-    } catch (error) {
-      console.warn('[AIInsightController] Failed to load task context for summary:', error);
+
+      console.log(`[AIInsightController] Generating summary for team ${teamId}`);
+      this.emitProcessingStage(teamId, 'analyzing');
+
+      const response = await this.llm.generate({
+        messages: [
+          ...(taskContextMessage ? [taskContextMessage] : []),
+          { role: 'system', content: SYSTEM_PROMPTS.summarizer },
+          ...conversationHistory,
+          { role: 'user', content: 'Please provide a concise conversation summary focused on discussion highlights, decisions made, rationale, and open questions. Do not include action-item checklists.' },
+        ],
+        model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for summaries
+        maxTokens: 4096,
+        temperature: 0.7,
+      });
+
+      console.log(`[AIInsightController] 📝 LLM generated summary content (${response.content.length} chars)`);
+
+      await this.archiveSupersededLongForm(teamId, 'summary');
+
+      const insightDTO = await this.createInsight({
+        teamId,
+        type: 'summary',
+        title: 'Conversation Summary',
+        content: response.content,
+        priority: 'medium',
+        tags: ['auto-generated', 'summary', response.model],
+        relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
+        metadata: {
+          model: response.model,
+          tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+        },
+      });
+
+      console.log(`[AIInsightController] 💾 Summary insight saved to database: ${insightDTO.id}`);
+      return insightDTO;
+    } finally {
+      this.emitTyping(teamId, false);
+      this.emitProcessingStage(teamId, 'idle');
     }
-
-    console.log(`[AIInsightController] Generating summary for team ${teamId}`);
-
-    const response = await this.llm.generate({
-      messages: [
-        ...(taskContextMessage ? [taskContextMessage] : []),
-        { role: 'system', content: SYSTEM_PROMPTS.summarizer },
-        ...conversationHistory,
-        { role: 'user', content: 'Please provide a concise conversation summary focused on discussion highlights, decisions made, rationale, and open questions. Do not include action-item checklists.' },
-      ],
-      model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for summaries
-      maxTokens: 4096,
-      temperature: 0.7,
-    });
-
-    console.log(`[AIInsightController] 📝 LLM generated summary content (${response.content.length} chars)`);
-
-    await this.archiveSupersededLongForm(teamId, 'summary');
-
-    const insightDTO = await this.createInsight({
-      teamId,
-      type: 'summary',
-      title: 'Conversation Summary',
-      content: response.content,
-      priority: 'medium',
-      tags: ['auto-generated', 'summary', response.model],
-      relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
-      metadata: {
-        model: response.model,
-        tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
-      },
-    });
-
-    console.log(`[AIInsightController] 💾 Summary insight saved to database: ${insightDTO.id}`);
-    return insightDTO;
   }
 
   /**
@@ -438,63 +487,72 @@ export class AIInsightController {
    * @returns {Promise<AIInsightDTO>} Created research insight
    */
   static async generateReport(teamId: string, prompt?: string): Promise<AIInsightDTO> {
-    const messages = await MessageController.getMessages(teamId);
-    const team = await TeamController.getTeamById(teamId);
+    this.emitTyping(teamId, true);
+    this.emitProcessingStage(teamId, 'thinking');
 
-    if (!team) throw new Error('Team not found');
-
-    const conversationHistory = buildConversationContext(messages, team, 50);
-
-    let taskContextMessage: { role: 'system'; content: string } | null = null;
     try {
-      const teamData = await prisma.team.findUnique({
-        where: { id: teamId },
-        select: { taskContext: true },
-      });
-      if (teamData?.taskContext) {
-        taskContextMessage = {
-          role: 'system' as const,
-          content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
-        };
-        console.log(`[AIInsightController] 📋 Injecting task context into research (${teamData.taskContext.length} chars)`);
+      const messages = await MessageController.getMessages(teamId);
+      const team = await TeamController.getTeamById(teamId);
+
+      if (!team) throw new Error('Team not found');
+
+      const conversationHistory = buildConversationContext(messages, team, 50);
+
+      let taskContextMessage: { role: 'system'; content: string } | null = null;
+      try {
+        const teamData = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { taskContext: true },
+        });
+        if (teamData?.taskContext) {
+          taskContextMessage = {
+            role: 'system' as const,
+            content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
+          };
+          console.log(`[AIInsightController] 📋 Injecting task context into research (${teamData.taskContext.length} chars)`);
+        }
+      } catch (error) {
+        console.warn('[AIInsightController] Failed to load task context for research:', error);
       }
-    } catch (error) {
-      console.warn('[AIInsightController] Failed to load task context for research:', error);
+
+      const defaultPrompt = 'Generate a comprehensive research brief from the team discussion with context, key topics, decisions, rationale, risks, and open questions. Do not include task lists, assignees, or deadlines.';
+      const reportPrompt = prompt || defaultPrompt;
+
+      console.log(`[AIInsightController] Generating research brief for team ${teamId}`);
+      this.emitProcessingStage(teamId, 'analyzing');
+
+      const response = await this.llm.generate({
+        messages: [
+          ...(taskContextMessage ? [taskContextMessage] : []),
+          { role: 'system', content: SYSTEM_PROMPTS.reporter },
+          ...conversationHistory,
+          { role: 'user', content: reportPrompt },
+        ],
+        maxTokens: 4096,
+        temperature: 0.7,
+      });
+
+      console.log(`[AIInsightController] 🔎 LLM generated research content (${response.content.length} chars)`);
+
+      const insightDTO = await this.createInsight({
+        teamId,
+        type: 'document',
+        title: 'Research Brief',
+        content: response.content,
+        priority: 'high',
+        tags: ['auto-generated', 'research', response.model],
+        relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
+        metadata: {
+          model: response.model,
+          tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+        },
+      });
+
+      console.log(`[AIInsightController] 💾 Research insight saved to database: ${insightDTO.id}`);
+      return insightDTO;
+    } finally {
+      this.emitTyping(teamId, false);
+      this.emitProcessingStage(teamId, 'idle');
     }
-
-    const defaultPrompt = 'Generate a comprehensive research brief from the team discussion with context, key topics, decisions, rationale, risks, and open questions. Do not include task lists, assignees, or deadlines.';
-    const reportPrompt = prompt || defaultPrompt;
-
-    console.log(`[AIInsightController] Generating research brief for team ${teamId}`);
-
-    const response = await this.llm.generate({
-      messages: [
-        ...(taskContextMessage ? [taskContextMessage] : []),
-        { role: 'system', content: SYSTEM_PROMPTS.reporter },
-        ...conversationHistory,
-        { role: 'user', content: reportPrompt },
-      ],
-      maxTokens: 4096,
-      temperature: 0.7,
-    });
-
-    console.log(`[AIInsightController] 🔎 LLM generated research content (${response.content.length} chars)`);
-
-    const insightDTO = await this.createInsight({
-      teamId,
-      type: 'document',
-      title: 'Research Brief',
-      content: response.content,
-      priority: 'high',
-      tags: ['auto-generated', 'research', response.model],
-      relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
-      metadata: {
-        model: response.model,
-        tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
-      },
-    });
-
-    console.log(`[AIInsightController] 💾 Research insight saved to database: ${insightDTO.id}`);
-    return insightDTO;
   }
 }

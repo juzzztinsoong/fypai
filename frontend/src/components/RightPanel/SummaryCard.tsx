@@ -8,6 +8,7 @@
 import type { AIInsightDTO } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import { InsightFrame } from './InsightFrame';
+import { sanitizeInsightContent } from '@/utils/insightContent';
 
 interface SummaryCardProps {
   insight: AIInsightDTO;
@@ -16,22 +17,24 @@ interface SummaryCardProps {
 }
 
 export const SummaryCard = ({ insight, onJumpToSource, onJumpToChatMarker }: SummaryCardProps) => {
+  const displayContent = sanitizeInsightContent(insight.content);
+
   const content = (
-    <div className="prose prose-sm prose-blue max-w-none text-gray-800">
+    <div className="prose prose-sm max-w-none text-slate-800">
       <ReactMarkdown
         components={{
-          h1: ({ children }) => <h1 className="text-xl font-bold text-blue-900 mt-4 mb-2">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-bold text-blue-800 mt-3 mb-2">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-base font-semibold text-blue-700 mt-2 mb-1">{children}</h3>,
+          h1: ({ children }) => <h1 className="text-xl font-bold text-sky-950 mt-4 mb-2">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-lg font-bold text-sky-900 mt-3 mb-2">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-base font-semibold text-sky-800 mt-2 mb-1">{children}</h3>,
           ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
           p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
-          strong: ({ children }) => <strong className="font-semibold text-blue-900">{children}</strong>,
-          em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
-          code: ({ children }) => <code className="bg-blue-100 text-blue-800 px-1 py-0.5 rounded text-sm">{children}</code>,
+          strong: ({ children }) => <strong className="font-semibold text-sky-950">{children}</strong>,
+          em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
+          code: ({ children }) => <code className="bg-sky-100 text-sky-800 px-1 py-0.5 rounded text-sm">{children}</code>,
         }}
       >
-        {insight.content}
+        {displayContent}
       </ReactMarkdown>
     </div>
   );
@@ -42,7 +45,7 @@ export const SummaryCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Sum
       title="📊 Conversation Summary"
       icon={
         <svg
-          className="w-5 h-5 text-blue-600"
+          className="w-5 h-5 text-sky-700"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -55,14 +58,11 @@ export const SummaryCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Sum
           />
         </svg>
       }
-      containerClassName="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-200 p-4"
-      titleClassName="font-semibold text-blue-900"
-      timeClassName="text-xs text-blue-700"
+      containerClassName="bg-white rounded-lg shadow-sm border border-slate-200 p-5"
+      titleClassName="font-semibold text-sky-950"
       content={content}
       onJumpToSource={onJumpToSource}
       onJumpToChatMarker={onJumpToChatMarker}
-      jumpButtonClassName="mt-3 text-sm text-blue-700 hover:text-blue-900 font-medium flex items-center space-x-1"
-      metadataClassName="mt-3 pt-3 border-t border-blue-100 text-xs text-blue-600"
     />
   );
 };

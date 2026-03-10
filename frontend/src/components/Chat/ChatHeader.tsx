@@ -13,6 +13,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useEntityStore } from '@/stores/entityStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { getAvatarBackgroundColor, getUserInitials } from '../../utils/avatarUtils';
+import { uiTokens } from '@/styles/uiTokens';
 
 export const ChatHeader = () => {
   const currentTeamId = useUIStore((state) => state.currentTeamId);
@@ -23,8 +24,8 @@ export const ChatHeader = () => {
 
   if (!currentTeam) {
     return (
-      <header className="px-5 py-4 min-h-[72px] border-b border-gray-200 bg-white flex items-center">
-        <div className="flex items-center justify-between">
+      <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-gray-200 bg-white flex items-center`}>
+        <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-gray-800 leading-6">No Team Selected</h1>
             <p className="text-xs text-gray-500 mt-0.5">Select a team from the sidebar</p>
@@ -46,8 +47,8 @@ export const ChatHeader = () => {
   const totalMembers = currentTeam.members.length;
 
   return (
-    <header className="px-5 py-4 min-h-[72px] border-b border-gray-200 bg-white flex items-center">
-      <div className="flex items-center justify-between">
+    <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-gray-200 bg-white flex items-center`}>
+      <div className="w-full flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-800 leading-6">{currentTeam.name}</h1>
           <div className="flex items-center space-x-4 mt-0.5">
@@ -82,7 +83,7 @@ export const ChatHeader = () => {
               return (
                 <div
                   key={member.id}
-                  className="relative w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-semibold border-2 border-white animate-pulse"
+                  className="relative w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold border-2 border-white animate-pulse"
                   title={`${member.name} (online)`}
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

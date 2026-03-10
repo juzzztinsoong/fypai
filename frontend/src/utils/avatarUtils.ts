@@ -10,27 +10,79 @@
  *   - Provides border colors for message bubbles
  */
 
-// Avatar background colors (for user initials circles)
-const avatarBackgroundColors = [
-  'bg-blue-500',      // User 0
-  'bg-green-500',     // User 1
-  'bg-yellow-500',    // User 2
-  'bg-pink-500',      // User 3
-  'bg-orange-500',    // User 4
-  'bg-teal-500',      // User 5
-  'bg-red-500',       // User 6
-];
+interface UserPalette {
+  avatarBg: string
+  bubbleBg: string
+  bubbleBorder: string
+  bubbleText: string
+  bubbleMutedText: string
+}
 
-// Border colors for message bubbles
-const messageBorderColors = [
-  'border-blue-500',
-  'border-green-500',
-  'border-yellow-500',
-  'border-pink-500',
-  'border-orange-500',
-  'border-teal-500',
-  'border-red-500',
-];
+const userPalettes: UserPalette[] = [
+  {
+    avatarBg: 'bg-indigo-600',
+    bubbleBg: 'bg-indigo-50',
+    bubbleBorder: 'border-indigo-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-indigo-700',
+  },
+  {
+    avatarBg: 'bg-neutral-600',
+    bubbleBg: 'bg-neutral-50',
+    bubbleBorder: 'border-neutral-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-neutral-700',
+  },
+  {
+    avatarBg: 'bg-rose-600',
+    bubbleBg: 'bg-rose-50',
+    bubbleBorder: 'border-rose-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-rose-700',
+  },
+  {
+    avatarBg: 'bg-lime-600',
+    bubbleBg: 'bg-lime-50',
+    bubbleBorder: 'border-lime-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-lime-700',
+  },
+  {
+    avatarBg: 'bg-red-600',
+    bubbleBg: 'bg-red-50',
+    bubbleBorder: 'border-red-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-red-700',
+  },
+  {
+    avatarBg: 'bg-purple-600',
+    bubbleBg: 'bg-purple-50',
+    bubbleBorder: 'border-purple-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-purple-700',
+  },
+  {
+    avatarBg: 'bg-zinc-600',
+    bubbleBg: 'bg-zinc-50',
+    bubbleBorder: 'border-zinc-200',
+    bubbleText: 'text-slate-900',
+    bubbleMutedText: 'text-zinc-700',
+  },
+]
+
+function resolveColorIndex(userId: string, members: any[], paletteSize: number): number {
+  const memberIndex = members.findIndex((m) => m.userId === userId)
+  if (memberIndex >= 0) {
+    return memberIndex % paletteSize
+  }
+
+  // Deterministic fallback for users not present in current member list.
+  let hash = 0
+  for (let i = 0; i < userId.length; i += 1) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0
+  }
+  return hash % paletteSize
+}
 
 /**
  * Get avatar background color for a user
@@ -39,8 +91,8 @@ const messageBorderColors = [
  * @returns Tailwind CSS class for background color (e.g., 'bg-blue-500')
  */
 export function getAvatarBackgroundColor(userId: string, members: any[]): string {
-  const idx = members.findIndex((m) => m.userId === userId);
-  return avatarBackgroundColors[idx % avatarBackgroundColors.length];
+  const idx = resolveColorIndex(userId, members, userPalettes.length)
+  return userPalettes[idx].avatarBg
 }
 
 /**
@@ -50,8 +102,13 @@ export function getAvatarBackgroundColor(userId: string, members: any[]): string
  * @returns Tailwind CSS class for border color (e.g., 'border-blue-500')
  */
 export function getMessageBorderColor(userId: string, members: any[]): string {
-  const idx = members.findIndex((m) => m.userId === userId);
-  return messageBorderColors[idx % messageBorderColors.length];
+  const idx = resolveColorIndex(userId, members, userPalettes.length)
+  return userPalettes[idx].bubbleBorder
+}
+
+export function getMessageSurfaceTheme(userId: string, members: any[]): UserPalette {
+  const idx = resolveColorIndex(userId, members, userPalettes.length)
+  return userPalettes[idx]
 }
 
 /**

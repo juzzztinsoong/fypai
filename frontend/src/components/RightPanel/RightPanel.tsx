@@ -3,22 +3,21 @@
  *
  * Tabbed section layout:
  *   1. Fixed header (team name, insight count)
- *   2. Section tabs (Summaries | Research | Actions | Suggestions)
- *   3. Scrollable content area for selected section
- *   4. Collapsible AI Controls footer (toggle + action buttons + settings drawer)
+ *   2. Scrollable content area for selected section
+ *   3. Bottom tabs (All | Summaries | Research | Actions | Suggestions)
+ *   4. Collapsible AI Controls footer (toggle + settings drawer)
  */
 import { useEntityStore } from '@/stores/entityStore';
 import { useUIStore } from '@/stores/uiStore';
-import { useSessionStore } from '@/stores/sessionStore';
 import { socketService } from '@/services';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { RightPanelHeader } from './RightPanelHeader';
 import { InsightsList } from './InsightsList';
-import { LongFormContentViewer } from './LongFormContentViewer';
 import { AIControlsDrawer } from './AIControlsDrawer';
 import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
-import { getResearchJobs } from '@/services/researchJobService';
+import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl';
+import { type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
 
 type ContentFilter = 'all' | 'summaries' | 'research' | 'actions' | 'suggestions';
 
@@ -30,6 +29,14 @@ const TABS: { key: ContentFilter; label: string; emoji?: string }[] = [
   { key: 'suggestions', label: 'Suggestions', emoji: '💡' },
 ];
 
+const TAB_ACCENTS: Record<ContentFilter, SegmentedAccent> = {
+  all: 'brand',
+  summaries: 'brand',
+  research: 'success',
+  actions: 'success',
+  suggestions: 'brand',
+};
+
 export const RightPanel = () => {
   
   // Get current team from UIStore
@@ -38,8 +45,6 @@ export const RightPanel = () => {
     currentTeamId ? state.getTeam(currentTeamId) : null
   );
   const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync);
-  const teamName = currentTeam?.name || 'Team';
-  const researchRuns = useSessionStore((state) => state.getResearchRuns(currentTeamId || ''));
   
   // Get insight IDs (stable array reference)
   const insightIds = useEntityStore((state) => state.getTeamInsights(currentTeamId || ''));
@@ -61,6 +66,7 @@ export const RightPanel = () => {
   const [showArchivedActions, setShowArchivedActions] = useState(false);
   const [showArchivedSuggestions, setShowArchivedSuggestions] = useState(false);
   const [showCompletedActions, setShowCompletedActions] = useState(false);
+  const [showTaskContext, setShowTaskContext] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const applyingExternalSyncRef = useRef(false);
   const lastSyncEmitAtRef = useRef(0);
@@ -71,9 +77,6 @@ export const RightPanel = () => {
   useEffect(() => {
     if (currentTeamId) {
       getInsights(currentTeamId);
-      getResearchJobs(currentTeamId).catch((error) => {
-        console.error('[RightPanel] Failed to fetch research jobs:', error);
-      });
     }
   }, [currentTeamId]);
 
@@ -85,12 +88,27 @@ export const RightPanel = () => {
   }, [teamInsights, currentTeamId]);
 
   const activeInsights = useMemo(
-    () => insights.filter(i => i.status !== 'dismissed' && i.status !== 'archived'),
+    () => insights.filter((insight) => {
+      if (insight.status === 'archived') return false;
+
+      // Keep dismissed action items visible until the user marks them complete.
+      if (insight.status === 'dismissed' && insight.type !== 'action') return false;
+
+      return true;
+    }),
     [insights]
   );
 
   const archivedInsights = useMemo(
-    () => insights.filter(i => i.status === 'dismissed' || i.status === 'archived'),
+    () =>
+      insights.filter((insight) => {
+        if (insight.status === 'archived') return true;
+
+        // Non-action dismissed insights remain archived/dismissed bucket.
+        if (insight.status === 'dismissed' && insight.type !== 'action') return true;
+
+        return false;
+      }),
     [insights]
   );
 
@@ -173,25 +191,33 @@ export const RightPanel = () => {
     showCompletedActions,
   ]);
 
-  const totalContent = activeInsights.length;
   const allCount = activeInsights.length;
   const summaryCount = summaryInsights.length;
   const researchCount = researchInsights.length;
   const actionCount = actionInsights.length;
   const suggestionCount = suggestionInsights.length;
-  const visibleResearchRuns = useMemo(() => {
-    return [...researchRuns]
-      .filter((run) => run.status === 'queued' || run.status === 'running' || run.status === 'failed')
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 3);
-  }, [researchRuns]);
+  const bottomTabItems = useMemo<SegmentedControlItem<ContentFilter>[]>(() => {
+    return TABS.map((tab) => {
+      const count =
+        tab.key === 'all'
+          ? allCount
+          : tab.key === 'summaries'
+          ? summaryCount
+          : tab.key === 'research'
+          ? researchCount
+          : tab.key === 'actions'
+          ? actionCount
+          : suggestionCount;
 
-  const getRunStatusStyle = (status: 'queued' | 'running' | 'done' | 'failed') => {
-    if (status === 'queued') return 'bg-amber-100 text-amber-700 border-amber-200';
-    if (status === 'running') return 'bg-blue-100 text-blue-700 border-blue-200';
-    if (status === 'done') return 'bg-green-100 text-green-700 border-green-200';
-    return 'bg-red-100 text-red-700 border-red-200';
-  };
+      return {
+        key: tab.key,
+        label: tab.label,
+        emoji: tab.emoji,
+        count,
+        accent: TAB_ACCENTS[tab.key],
+      };
+    });
+  }, [allCount, summaryCount, researchCount, actionCount, suggestionCount]);
 
   const handleToggleAI = () => {
     if (!currentTeamId) return;
@@ -222,9 +248,9 @@ export const RightPanel = () => {
       if (!insightElement) return;
 
       insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      insightElement.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-2');
+      insightElement.classList.add('fypai-link-highlight');
       setTimeout(() => {
-        insightElement.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2');
+        insightElement.classList.remove('fypai-link-highlight');
       }, 1800);
     }, 120);
   };
@@ -246,9 +272,9 @@ export const RightPanel = () => {
       if (distanceFromCenter > 24) {
         insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
-      insightElement.classList.add('ring-2', 'ring-indigo-400', 'ring-offset-2');
+      insightElement.classList.add('fypai-link-highlight');
       setTimeout(() => {
-        insightElement.classList.remove('ring-2', 'ring-indigo-400', 'ring-offset-2');
+        insightElement.classList.remove('fypai-link-highlight');
       }, 1800);
     }, 80);
   };
@@ -290,9 +316,9 @@ export const RightPanel = () => {
       if (!insightElement) return;
 
       if (customEvent.detail?.active) {
-        insightElement.classList.add('ring-2', 'ring-indigo-300', 'ring-offset-2');
+        insightElement.classList.add('fypai-link-highlight-soft');
       } else {
-        insightElement.classList.remove('ring-2', 'ring-indigo-300', 'ring-offset-2');
+        insightElement.classList.remove('fypai-link-highlight-soft');
       }
     };
 
@@ -387,7 +413,7 @@ export const RightPanel = () => {
   // Show empty state when no team selected (AFTER all hooks)
   if (!currentTeamId) {
     return (
-      <aside className="flex-1 min-w-0 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
+      <aside className="flex-1 min-w-0 h-screen bg-gray-50 flex flex-col">
         <div className="p-6 flex-1">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">AI Insights</h2>
           <p className="text-gray-500">
@@ -399,52 +425,25 @@ export const RightPanel = () => {
   }
 
   return (
-    <aside className="flex-1 min-w-0 h-screen bg-gray-50 border-l border-gray-200 flex flex-col">
+    <aside className="flex-1 min-w-0 h-screen bg-gray-50 flex flex-col">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
-        <RightPanelHeader teamName={teamName} insightCount={totalContent} />
-        <TaskContextCard teamId={currentTeamId} />
-      </div>
-
-      {/* Section Tabs */}
-      <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-        <div className="flex items-center px-5 py-2">
-          <div className="flex space-x-1">
-            {TABS.map((tab) => {
-              const count =
-                tab.key === 'all'
-                  ? allCount
-                  : tab.key === 'summaries'
-                  ? summaryCount
-                  : tab.key === 'research'
-                  ? researchCount
-                  : tab.key === 'actions'
-                  ? actionCount
-                  : suggestionCount;
-              const isActive = contentFilter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setContentFilter(tab.key)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {tab.emoji && <span className="mr-1">{tab.emoji}</span>}
-                  {tab.label} ({count})
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <RightPanelHeader
+          isContextVisible={showTaskContext}
+          onToggleContext={() => setShowTaskContext((prev) => !prev)}
+        >
+          <TaskContextCard
+            teamId={currentTeamId}
+            mode="embedded"
+            onClose={() => setShowTaskContext(false)}
+          />
+        </RightPanelHeader>
       </div>
 
       {/* Scrollable Content Area */}
-      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-6 py-5 space-y-4">
         {contentFilter === 'all' && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             {activeInsights.length > 0 ? (
               <InsightsList insights={activeInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
@@ -454,9 +453,9 @@ export const RightPanel = () => {
         )}
 
         {contentFilter === 'summaries' && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             {summaryInsights.length > 0 ? (
-              <LongFormContentViewer insights={summaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+              <InsightsList insights={summaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No summary yet</p>
             )}
@@ -464,7 +463,7 @@ export const RightPanel = () => {
             {archivedSummaryInsights.length > 0 && (
               <button
                 onClick={() => setShowArchivedSummaries(prev => !prev)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 {showArchivedSummaries
                   ? 'Hide archived summaries'
@@ -476,7 +475,7 @@ export const RightPanel = () => {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Summaries</h3>
                 {archivedSummaryInsights.length > 0 ? (
-                  <LongFormContentViewer insights={archivedSummaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+                  <InsightsList insights={archivedSummaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
                   <p className="text-xs text-gray-500">No archived summaries</p>
                 )}
@@ -486,28 +485,9 @@ export const RightPanel = () => {
         )}
 
         {contentFilter === 'research' && (
-          <section className="space-y-3">
-            {visibleResearchRuns.length > 0 && (
-              <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Research Pipeline</h3>
-                  <span className="text-[11px] text-gray-500">{visibleResearchRuns.length} active</span>
-                </div>
-                <div className="space-y-1.5">
-                  {visibleResearchRuns.map((run) => (
-                    <div key={run.id} className="flex items-start justify-between gap-2">
-                      <p className="text-xs text-gray-700 leading-5 truncate">{run.query}</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-medium ${getRunStatusStyle(run.status)}`}>
-                        {run.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
+          <section className="space-y-4">
             {researchInsights.length > 0 ? (
-              <LongFormContentViewer insights={researchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+              <InsightsList insights={researchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No research briefs yet</p>
             )}
@@ -515,7 +495,7 @@ export const RightPanel = () => {
             {archivedResearchInsights.length > 0 && (
               <button
                 onClick={() => setShowArchivedResearch(prev => !prev)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 {showArchivedResearch
                   ? 'Hide archived research'
@@ -527,7 +507,7 @@ export const RightPanel = () => {
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Research</h3>
                 {archivedResearchInsights.length > 0 ? (
-                  <LongFormContentViewer insights={archivedResearchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+                  <InsightsList insights={archivedResearchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
                   <p className="text-xs text-gray-500">No archived research</p>
                 )}
@@ -537,7 +517,7 @@ export const RightPanel = () => {
         )}
 
         {contentFilter === 'actions' && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             {openActions.length > 0 ? (
               <InsightsList insights={openActions} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
@@ -548,7 +528,7 @@ export const RightPanel = () => {
               <div>
                 <button
                   onClick={() => setShowCompletedActions(prev => !prev)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
                 >
                   {showCompletedActions
                     ? 'Hide completed actions'
@@ -565,7 +545,7 @@ export const RightPanel = () => {
             {archivedActionInsights.length > 0 && (
               <button
                 onClick={() => setShowArchivedActions(prev => !prev)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 {showArchivedActions
                   ? 'Hide archived actions'
@@ -587,7 +567,7 @@ export const RightPanel = () => {
         )}
 
         {contentFilter === 'suggestions' && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             {suggestionInsights.length > 0 ? (
               <InsightsList insights={suggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
@@ -597,7 +577,7 @@ export const RightPanel = () => {
             {archivedSuggestionInsights.length > 0 && (
               <button
                 onClick={() => setShowArchivedSuggestions(prev => !prev)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 {showArchivedSuggestions
                   ? 'Hide archived suggestions'
@@ -621,17 +601,30 @@ export const RightPanel = () => {
         {activeInsights.length === 0 && (
           <div className="text-center py-10 text-gray-500">
             <p className="text-sm font-medium">No active AI content yet</p>
-            <p className="text-xs text-gray-400 mt-1">Use Summary or Research below to generate content</p>
+            <p className="text-xs text-gray-400 mt-1">Insights will appear as the conversation progresses</p>
           </div>
         )}
       </div>
 
-      {/* Collapsible AI Controls Footer */}
-      <AIControlsDrawer
-        teamId={currentTeamId}
-        isAIEnabled={isTeamAIEnabled}
-        onToggleAI={handleToggleAI}
-      />
+      <div className={`relative flex-shrink-0 ${uiTokens.layout.railFooter} bg-white`}>
+        {/* Bottom Insight Tabs */}
+        <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center border-t border-gray-200`}>
+          <SegmentedControl
+            items={bottomTabItems}
+            activeKey={contentFilter}
+            onChange={setContentFilter}
+            wrap
+          />
+        </div>
+
+        {/* Collapsible AI Controls Footer */}
+        <AIControlsDrawer
+          teamId={currentTeamId}
+          isAIEnabled={isTeamAIEnabled}
+          onToggleAI={handleToggleAI}
+          integrated
+        />
+      </div>
     </aside>
   );
 };

@@ -1,5 +1,5 @@
 /**
- * RuleTogglePanel — Integrated into RightPanel
+ * RuleTogglePanel — Integrated into AIControlsDrawer
  * 
  * Chime rule management grouped by the insight type each rule produces.
  * Rules that generate "action" insights appear under a purple-accented group,
