@@ -10,6 +10,13 @@
 
 import { MessageDTO, TeamWithMembersDTO, AgentPreferencesDTO } from '@fypai/types';
 
+export type PromptArchetype =
+  | 'decision-brief'
+  | 'research-analyst'
+  | 'execution-coach'
+  | 'pragmatic-advisor'
+  | 'implementation-partner';
+
 export const SYSTEM_PROMPTS = {
   assistant: `You are an AI collaboration assistant embedded in a team productivity app.
 
@@ -114,6 +121,97 @@ Critical Rules:
 - If the conversation already addressed the issue, say nothing new.
 - Focus ONLY on the most recent triggering message, not old context.`,
 };
+
+const PROMPT_ARCHETYPE_MODIFIERS: Record<PromptArchetype, string> = {
+  'decision-brief': `
+Archetype: Decision Brief
+- Prioritize clarity on decision, rationale, and tradeoffs.
+- Separate confirmed facts from assumptions.
+- End with 1-2 decision-ready options when applicable.`,
+  'research-analyst': `
+Archetype: Research Analyst
+- Compare options with evidence and constraints.
+- Surface risks, confidence, and unknowns explicitly.
+- Keep claims specific and avoid vague generalities.`,
+  'execution-coach': `
+Archetype: Execution Coach
+- Focus on concrete next steps and sequencing.
+- Keep actions concise and low-friction.
+- Highlight blockers and dependency order.`,
+  'pragmatic-advisor': `
+Archetype: Pragmatic Advisor
+- Give practical recommendations with short justification.
+- Prefer high-leverage, low-complexity options first.
+- Call out tradeoffs in one line when relevant.`,
+  'implementation-partner': `
+Archetype: Implementation Partner
+- Be implementation-oriented and technically specific.
+- Include safe defaults and failure/edge-case awareness.
+- Prefer actionable guidance over abstract commentary.`,
+};
+
+const PROMPT_ARCHETYPE_ALIASES: Record<string, PromptArchetype> = {
+  'decision-brief': 'decision-brief',
+  decision: 'decision-brief',
+  summary: 'decision-brief',
+  recap: 'decision-brief',
+  'research-analyst': 'research-analyst',
+  research: 'research-analyst',
+  analyst: 'research-analyst',
+  document: 'research-analyst',
+  'execution-coach': 'execution-coach',
+  execution: 'execution-coach',
+  action: 'execution-coach',
+  actions: 'execution-coach',
+  'pragmatic-advisor': 'pragmatic-advisor',
+  advisor: 'pragmatic-advisor',
+  suggestion: 'pragmatic-advisor',
+  help: 'pragmatic-advisor',
+  'implementation-partner': 'implementation-partner',
+  implementation: 'implementation-partner',
+  code: 'implementation-partner',
+  coding: 'implementation-partner',
+};
+
+export function isPromptArchetypeEnabled(): boolean {
+  return process.env.ENABLE_PROMPT_ARCHETYPES === 'true';
+}
+
+export function resolvePromptArchetype(rawArchetype?: string | null): PromptArchetype | undefined {
+  if (!rawArchetype || typeof rawArchetype !== 'string') {
+    return undefined;
+  }
+
+  return PROMPT_ARCHETYPE_ALIASES[rawArchetype.trim().toLowerCase()];
+}
+
+export function applyPromptArchetype(
+  basePrompt: string,
+  archetype?: PromptArchetype | null,
+): { prompt: string; applied: boolean; archetype?: PromptArchetype } {
+  if (!archetype || !isPromptArchetypeEnabled()) {
+    return {
+      prompt: basePrompt,
+      applied: false,
+      archetype: archetype || undefined,
+    };
+  }
+
+  const modifier = PROMPT_ARCHETYPE_MODIFIERS[archetype];
+  if (!modifier) {
+    return {
+      prompt: basePrompt,
+      applied: false,
+      archetype: undefined,
+    };
+  }
+
+  return {
+    prompt: `${basePrompt}\n\n--- Response Archetype ---${modifier}`,
+    applied: true,
+    archetype,
+  };
+}
 
 /**
  * Build conversation context for LLM from recent messages

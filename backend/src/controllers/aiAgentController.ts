@@ -9,7 +9,16 @@
  */
 
 import { GitHubModelsClient } from '../ai/core/llm.js';
-import { SYSTEM_PROMPTS, buildConversationContext, buildRAGContext, applyPreferences, getModelForPreferences } from '../ai/core/prompts.js';
+import {
+  SYSTEM_PROMPTS,
+  applyPreferences,
+  applyPromptArchetype,
+  buildConversationContext,
+  buildRAGContext,
+  getModelForPreferences,
+  isPromptArchetypeEnabled,
+  resolvePromptArchetype,
+} from '../ai/core/prompts.js';
 import { UnifiedRuleEngine } from '../ai/autonomous/unifiedRuleEngine.js';
 import { MessageController } from './messageController.js';
 import { TeamController } from './teamController.js';
@@ -20,14 +29,56 @@ import { ragService } from '../services/ragService.js';
 import { AgentPreferencesService } from '../services/agentPreferencesService.js';
 import { embeddingService } from '../services/embeddingService.js';
 import { IntentClassifier, MessageClassification } from '../ai/core/intentClassifier.js';
+import { IntentController, InsightGenerationType } from './intentController.js';
 import { prisma } from '../db.js';
-import { MessageDTO, CreateAIInsightRequest, AIInsightDTO } from '@fypai/types';
+import { AgentPromptArchetype, MessageDTO, CreateAIInsightRequest, AIInsightDTO } from '@fypai/types';
 import { Server as SocketIOServer } from 'socket.io';
+
+type ContinuationTrigger = 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command';
+
+type RouteDecision = Awaited<ReturnType<typeof IntentController.decideAgentRoute>>;
 
 export class AIAgentController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
   private static teamAIEnabled: Map<string, boolean> = new Map(); // In-memory cache for AI enabled state
+  private static readonly SHORT_CHAT_MAX_SENTENCES = parseInt(process.env.SHORT_CHAT_MAX_SENTENCES || '4', 10);
+  private static readonly SHORT_CHAT_MAX_CHARS = parseInt(process.env.SHORT_CHAT_MAX_CHARS || '550', 10);
+  private static readonly CONTINUATION_MIN_CONFIDENCE = Math.min(
+    1,
+    Math.max(0, parseFloat(process.env.CONTINUATION_MIN_CONFIDENCE || '0.6')),
+  );
+  private static readonly CONTINUATION_WINDOW_MS = Math.max(
+    0,
+    Number.parseInt(process.env.CONTINUATION_WINDOW_MINUTES || '5', 10),
+  ) * 60 * 1000;
+
+  private static emitContinuationStatus(
+    teamId: string,
+    payload: {
+      status: 'active' | 'ended';
+      confidence: number;
+      trigger: ContinuationTrigger;
+      reason?: string;
+    }
+  ): void {
+    if (!this.io) return;
+
+    this.io.to(`team:${teamId}`).emit('ai:continuation', {
+      teamId,
+      status: payload.status,
+      confidence: Math.min(1, Math.max(0, payload.confidence)),
+      threshold: this.CONTINUATION_MIN_CONFIDENCE,
+      trigger: payload.trigger,
+      reason: payload.reason,
+      updatedAt: new Date().toISOString(),
+    });
+
+    console.log(
+      `[AI Agent] 🧷 Emitted ai:continuation status=${payload.status} ` +
+        `confidence=${payload.confidence.toFixed(2)} trigger=${payload.trigger} team=${teamId}`
+    );
+  }
 
   /**
    * Set Socket.IO instance for broadcasting
@@ -65,6 +116,165 @@ export class AIAgentController {
     return this.teamAIEnabled.get(teamId) ?? true;
   }
 
+  private static countSentences(content: string): number {
+    return content
+      .split(/[.!?]+/)
+      .map((chunk) => chunk.trim())
+      .filter((chunk) => chunk.length > 0).length;
+  }
+
+  private static shouldEscalateChatResponse(content: string): boolean {
+    if (!content) return false;
+    if (content.length > this.SHORT_CHAT_MAX_CHARS) return true;
+
+    const sentenceCount = this.countSentences(content);
+    return sentenceCount > this.SHORT_CHAT_MAX_SENTENCES;
+  }
+
+  private static getInsightTitle(insightType: InsightGenerationType): string {
+    if (insightType === 'summary') return 'Conversation Summary';
+    if (insightType === 'action') return 'Action Items';
+    if (insightType === 'suggestion') return 'Help';
+    return 'Research Brief';
+  }
+
+  private static getDefaultArchetypeForInsightType(insightType: InsightGenerationType): AgentPromptArchetype {
+    if (insightType === 'summary') return 'decision-brief';
+    if (insightType === 'action') return 'execution-coach';
+    if (insightType === 'suggestion') return 'pragmatic-advisor';
+    return 'research-analyst';
+  }
+
+  private static resolveArchetypeForInsight(
+    insightType: InsightGenerationType,
+    requestedArchetype?: string,
+  ): { archetype: AgentPromptArchetype; source: 'request' | 'default' } {
+    const requested = resolvePromptArchetype(requestedArchetype);
+    if (requested) {
+      return {
+        archetype: requested,
+        source: 'request',
+      };
+    }
+
+    return {
+      archetype: this.getDefaultArchetypeForInsightType(insightType),
+      source: 'default',
+    };
+  }
+
+  private static resolveArchetypeForChat(
+    triggerMessage: MessageDTO,
+    routeDecision?: Pick<RouteDecision, 'insightType' | 'suggestedInsightType'>,
+  ): { archetype: AgentPromptArchetype; source: 'request' | 'route' | 'default' } {
+    const requestedArchetype = resolvePromptArchetype(triggerMessage.metadata?.routeArchetype);
+    if (requestedArchetype) {
+      return {
+        archetype: requestedArchetype,
+        source: 'request',
+      };
+    }
+
+    const routedInsightType = routeDecision?.insightType || routeDecision?.suggestedInsightType;
+    if (routedInsightType) {
+      return {
+        archetype: this.getDefaultArchetypeForInsightType(routedInsightType),
+        source: 'route',
+      };
+    }
+
+    const normalizedContent = triggerMessage.content.toLowerCase();
+    if (normalizedContent.includes('code') || normalizedContent.includes('implement')) {
+      return {
+        archetype: 'implementation-partner',
+        source: 'default',
+      };
+    }
+
+    if (normalizedContent.includes('summary') || normalizedContent.includes('summarize')) {
+      return {
+        archetype: 'decision-brief',
+        source: 'default',
+      };
+    }
+
+    return {
+      archetype: 'pragmatic-advisor',
+      source: 'default',
+    };
+  }
+
+  private static buildInsightClarificationMessage(insightType: InsightGenerationType): string {
+    if (insightType === 'summary') {
+      return 'I can generate a Summary in Insights. Reply with `/summary` if that is what you want.';
+    }
+    if (insightType === 'action') {
+      return 'I can generate Action Items in Insights. Reply with `/actions` to create them.';
+    }
+    if (insightType === 'suggestion') {
+      return 'I can generate Help in Insights. Reply with `/help` (or `/suggest`) if you want recommendations.';
+    }
+    return 'I can generate a Research Brief in Insights. Reply with `/research` if you want the long-form version.';
+  }
+
+  private static async executeInsightDecision(
+    teamId: string,
+    insightType: InsightGenerationType,
+    promptOverride?: string,
+    archetypeHint?: string,
+  ): Promise<void> {
+    if (insightType === 'summary') {
+      await AIInsightController.generateSummary(teamId, archetypeHint);
+      return;
+    }
+
+    if (insightType === 'action') {
+      await AIInsightController.generateAction(teamId, promptOverride, archetypeHint);
+      return;
+    }
+
+    if (insightType === 'suggestion') {
+      await AIInsightController.generateSuggestion(teamId, promptOverride, archetypeHint);
+      return;
+    }
+
+    await AIInsightController.generateReport(teamId, promptOverride, archetypeHint);
+  }
+
+  private static async createEscalatedInsightFromChat(
+    teamId: string,
+    parentMessageId: string,
+    insightType: InsightGenerationType,
+    response: {
+      content: string;
+      model: string;
+      usage: { inputTokens: number; outputTokens: number };
+      promptArchetype?: AgentPromptArchetype;
+      promptArchetypeApplied?: boolean;
+      promptArchetypeSource?: 'request' | 'route' | 'default' | 'none';
+      promptArchetypeFlagEnabled?: boolean;
+    },
+  ): Promise<void> {
+    await AIInsightController.createInsight({
+      teamId,
+      type: insightType,
+      title: this.getInsightTitle(insightType),
+      content: response.content,
+      priority: insightType === 'action' || insightType === 'document' ? 'high' : 'medium',
+      tags: ['auto-generated', 'auto-escalated-from-chat', insightType, response.model],
+      relatedMessageIds: [parentMessageId],
+      metadata: {
+        prompt: 'auto-escalated-from-chat',
+        model: response.model,
+        tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+        promptArchetype: response.promptArchetype,
+        promptArchetypeApplied: response.promptArchetypeApplied,
+        promptArchetypeSource: response.promptArchetypeSource,
+        promptArchetypeFlagEnabled: response.promptArchetypeFlagEnabled,
+      },
+    });
+  }
+
   /**
    * Main entry point: Called when a new message arrives
    * Following copilot-instructions.md: Agent subscribes to message streams
@@ -92,23 +302,75 @@ export class AIAgentController {
 
       // 2. Check if this is an @agent mention (reactive mode)
       const hasAgentMention = message.content.toLowerCase().includes('@agent');
+      const hasExplicitInsightCommand = IntentController.hasExplicitInsightCommand(message.content);
 
-      // 2.5 Conversational Mode gate (strict by default)
-      // Default behavior: only explicit replies to an agent message continue the
-      // conversation (or explicit @agent mention above).
+      // 2.5 Conversational continuation gate
+      // Continuation is accepted by explicit mention/reply, or inferred when a
+      // recent agent turn is followed by a message that remains above
+      // CONTINUATION_MIN_CONFIDENCE.
       const parentMessageId = this.getParentMessageId(message);
       const parentMessage = parentMessageId
         ? messages.find((m) => m.id === parentMessageId)
         : undefined;
 
+      let routeDecisionCache: Awaited<ReturnType<typeof IntentController.decideAgentRoute>> | null = null;
+      let hasEmittedContinuationStatus = false;
+      const getRouteDecision = async () => {
+        if (!routeDecisionCache) {
+          routeDecisionCache = await IntentController.decideAgentRoute(message.content, message.teamId);
+        }
+        return routeDecisionCache;
+      };
+
       let isReplyToAgent = Boolean(parentMessage && parentMessage.authorId === 'agent');
+      let isConfidenceContinuedConversation = false;
       if (isReplyToAgent) {
         console.log('[AI Agent] 🗣️ Explicit reply-to-agent detected via parentMessageId');
       }
 
+      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && messages.length >= 2) {
+        const previousMessage = messages[messages.length - 2];
+        const elapsedMs = new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
+        const isRecentAgentTurn =
+          previousMessage.authorId === 'agent' &&
+          elapsedMs >= 0 &&
+          elapsedMs <= this.CONTINUATION_WINDOW_MS;
+
+        if (isRecentAgentTurn) {
+          const routeDecision = await getRouteDecision();
+          if (routeDecision.confidence >= this.CONTINUATION_MIN_CONFIDENCE) {
+            isReplyToAgent = true;
+            isConfidenceContinuedConversation = true;
+            this.emitContinuationStatus(message.teamId, {
+              status: 'active',
+              confidence: routeDecision.confidence,
+              trigger: 'confidence-gate',
+              reason: 'Continuation confidence is above threshold.',
+            });
+            hasEmittedContinuationStatus = true;
+            console.log(
+              `[AI Agent] 🔁 Confidence-gated continuation accepted ` +
+                `(confidence=${routeDecision.confidence.toFixed(2)} >= ${this.CONTINUATION_MIN_CONFIDENCE.toFixed(2)})`
+            );
+          } else {
+            this.emitContinuationStatus(message.teamId, {
+              status: 'ended',
+              confidence: routeDecision.confidence,
+              trigger: 'confidence-gate',
+              reason: 'Continuation confidence fell below threshold.',
+            });
+            hasEmittedContinuationStatus = true;
+            console.log(
+              `[AI Agent] ⏹️ Continuation ended by confidence gate ` +
+                `(confidence=${routeDecision.confidence.toFixed(2)} < ${this.CONTINUATION_MIN_CONFIDENCE.toFixed(2)})`
+            );
+          }
+        }
+      }
+
       // Optional implicit mode (off by default): use Tier 1 only when enabled.
       const enableImplicitConversationalMode = process.env.ENABLE_IMPLICIT_CONVERSATIONAL_MODE === 'true';
-      if (!hasAgentMention && !isReplyToAgent && enableImplicitConversationalMode && messages.length >= 2) {
+      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && enableImplicitConversationalMode && messages.length >= 2) {
         const previousMessage = messages[messages.length - 2];
         const timeDiff = new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
         const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutes
@@ -124,15 +386,25 @@ export class AIAgentController {
         }
       }
 
-      if (hasAgentMention || isReplyToAgent) {
-        console.log(`[AI Agent] 🎯 ${hasAgentMention ? '@agent mention' : 'Reply to agent'} detected - responding in reactive mode`);
+      if (hasAgentMention || isReplyToAgent || hasExplicitInsightCommand) {
+        console.log(
+          `[AI Agent] 🎯 ${
+            hasExplicitInsightCommand
+              ? 'explicit insight command'
+              : hasAgentMention
+              ? '@agent mention'
+              : isConfidenceContinuedConversation
+              ? 'confidence-gated continuation'
+              : 'Reply to agent'
+          } detected - responding in reactive mode`
+        );
         
         // Inline cooldown check (replaces shouldAgentRespond from reactiveRules.ts)
         // Direct mentions and conversational replies bypass cooldown
         let shouldRespond = true;
         let skipReason = '';
         
-        if (!hasAgentMention) {
+        if (!hasAgentMention && !hasExplicitInsightCommand && !isReplyToAgent) {
           // Apply cooldown for conversational replies. Explicit @agent bypasses cooldown.
           const lastAgentTime = this.getLastAgentResponseTime(messages);
           if (lastAgentTime) {
@@ -148,7 +420,7 @@ export class AIAgentController {
         if (!shouldRespond) {
           console.log(`[AI Agent] Not responding: ${skipReason}`);
         } else {
-          console.log(`[AI Agent] Responding to ${hasAgentMention ? '@agent mention' : 'conversational reply'}`);
+          console.log(`[AI Agent] Responding to reactive trigger`);
           this.emitProcessingStage(message.teamId, 'thinking');
 
           // Emit typing indicator - agent is generating
@@ -160,55 +432,132 @@ export class AIAgentController {
             console.log(`[AI Agent] ⌨️  Emitted typing:start for agent`);
           }
 
-          // 3a. Check if user is requesting an action item be created
-          const isActionRequest = this.isActionCreationRequest(message.content);
-          
-          if (isActionRequest) {
-            // Extract what the action item should be and create a real insight
-            await this.handleActionCreation(message, messages, team);
-          } else {
-            // 3b. Normal conversational response
-            const response = await this.generateResponse(messages, team, message);
+          const routeDecision = await getRouteDecision();
+          if (!hasEmittedContinuationStatus) {
+            const trigger: ContinuationTrigger = isConfidenceContinuedConversation
+              ? 'confidence-gate'
+              : hasExplicitInsightCommand
+              ? 'explicit-command'
+              : hasAgentMention
+              ? 'explicit-mention'
+              : 'explicit-reply';
 
-            // Calculate cost
-            const cost = this.calculateCost(response.model, response.usage.inputTokens, response.usage.outputTokens);
-            const tier = response.model.includes('mini') ? 'tier1' : 'tier2';
+            this.emitContinuationStatus(message.teamId, {
+              status: 'active',
+              confidence: routeDecision.confidence,
+              trigger,
+              reason: 'Reactive continuation remains active for this turn.',
+            });
+            hasEmittedContinuationStatus = true;
+          }
 
-            // 4. Post as message (unified with regular messages per copilot-instructions.md)
-            const agentMessage = await MessageController.createMessage({
+          if (routeDecision.channel === 'insight' && routeDecision.insightType) {
+            console.log(
+              `[AI Agent] Routing to insight generation (${routeDecision.insightType}) ` +
+                `(confidence=${routeDecision.confidence.toFixed(2)}, explicit=${routeDecision.explicit})`
+            );
+
+            const insightArchetype = this.resolveArchetypeForInsight(
+              routeDecision.insightType,
+              message.metadata?.routeArchetype,
+            );
+
+            await this.executeInsightDecision(
+              message.teamId,
+              routeDecision.insightType,
+              routeDecision.promptOverride,
+              insightArchetype.archetype,
+            );
+          } else if (
+            routeDecision.channel === 'chat_message' &&
+            routeDecision.clarify &&
+            routeDecision.suggestedInsightType
+          ) {
+            const clarificationContent = this.buildInsightClarificationMessage(routeDecision.suggestedInsightType);
+
+            const clarificationMessage = await MessageController.createMessage({
               teamId: message.teamId,
               authorId: 'agent',
-              content: response.content,
+              content: clarificationContent,
               contentType: 'text',
               metadata: {
                 parentMessageId: message.id,
+                routeRationale: routeDecision.rationale,
               },
-              agentMetadata: {
-                model: response.model,
-                cost,
-                tier,
-                tokensUsed: {
-                  input: response.usage.inputTokens,
-                  output: response.usage.outputTokens
-                },
-                confidence: response.confidence,
-                ragContext: response.ragContextItems
-              }
             });
 
-            console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
-
-            // 5. Broadcast agent message via WebSocket
             if (this.io) {
-              const roomSize = this.io.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0;
-              this.io.to(`team:${message.teamId}`).emit('message:new', agentMessage);
-              console.log(`[AI Agent] 🤖 Broadcasted AI message to team: ${message.teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
-            } else {
-              console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
+              this.io.to(`team:${message.teamId}`).emit('message:new', clarificationMessage);
             }
+          } else {
+            // 3b. Normal conversational response
+            const response = await this.generateResponse(messages, team, message, routeDecision);
 
-            // 6. Extract insights if needed
-            await this.extractInsights(message.teamId, messages, response.content);
+            if (this.shouldEscalateChatResponse(response.content)) {
+              const escalationInsightType = routeDecision.suggestedInsightType || 'document';
+              console.log(
+                `[AI Agent] Escalating long chat response to insight (${escalationInsightType}) ` +
+                  `(chars=${response.content.length}, sentences=${this.countSentences(response.content)})`
+              );
+              await this.createEscalatedInsightFromChat(
+                message.teamId,
+                message.id,
+                escalationInsightType,
+                {
+                  content: response.content,
+                  model: response.model,
+                  usage: {
+                    inputTokens: response.usage.inputTokens,
+                    outputTokens: response.usage.outputTokens,
+                  },
+                  promptArchetype: response.promptArchetype,
+                  promptArchetypeApplied: response.promptArchetypeApplied,
+                  promptArchetypeSource: response.promptArchetypeSource,
+                  promptArchetypeFlagEnabled: response.promptArchetypeFlagEnabled,
+                },
+              );
+            } else {
+              // Calculate cost
+              const cost = this.calculateCost(response.model, response.usage.inputTokens, response.usage.outputTokens);
+              const tier = response.model.includes('mini') ? 'tier1' : 'tier2';
+
+              // 4. Post as message (unified with regular messages per copilot-instructions.md)
+              const agentMessage = await MessageController.createMessage({
+                teamId: message.teamId,
+                authorId: 'agent',
+                content: response.content,
+                contentType: 'text',
+                metadata: {
+                  parentMessageId: message.id,
+                },
+                agentMetadata: {
+                  model: response.model,
+                  cost,
+                  tier,
+                  tokensUsed: {
+                    input: response.usage.inputTokens,
+                    output: response.usage.outputTokens
+                  },
+                  confidence: response.confidence,
+                  ragContext: response.ragContextItems,
+                  promptArchetype: response.promptArchetype,
+                  promptArchetypeApplied: response.promptArchetypeApplied,
+                  promptArchetypeSource: response.promptArchetypeSource,
+                  promptArchetypeFlagEnabled: response.promptArchetypeFlagEnabled,
+                }
+              });
+
+              console.log(`[AI Agent] Posted response message ${agentMessage.id}`);
+
+              // 5. Broadcast agent message via WebSocket
+              if (this.io) {
+                const roomSize = this.io.sockets.adapter.rooms.get(`team:${message.teamId}`)?.size || 0;
+                this.io.to(`team:${message.teamId}`).emit('message:new', agentMessage);
+                console.log(`[AI Agent] 🤖 Broadcasted AI message to team: ${message.teamId} | message: ${agentMessage.id} | clients in room: ${roomSize}`);
+              } else {
+                console.warn('[AI Agent] ⚠️  Socket.IO not available, AI message not broadcasted!');
+              }
+            }
           }
 
           // Stop typing indicator - agent finished generating
@@ -245,8 +594,19 @@ export class AIAgentController {
   private static async generateResponse(
     messages: MessageDTO[],
     team: any,
-    triggerMessage: MessageDTO
-  ): Promise<{ content: string; model: string; usage: any; ragContextItems?: any[]; confidence: number }> {
+    triggerMessage: MessageDTO,
+    routeDecision?: Pick<RouteDecision, 'insightType' | 'suggestedInsightType'>,
+  ): Promise<{
+    content: string;
+    model: string;
+    usage: any;
+    ragContextItems?: any[];
+    confidence: number;
+    promptArchetype?: AgentPromptArchetype;
+    promptArchetypeApplied: boolean;
+    promptArchetypeSource: 'request' | 'route' | 'default' | 'none';
+    promptArchetypeFlagEnabled: boolean;
+  }> {
     const conversationHistory = buildConversationContext(messages, team, 20);
 
     // Phase 6.5.2: Load team agent preferences
@@ -315,6 +675,9 @@ export class AIAgentController {
     // Phase 6.5.2: Apply team preferences to system prompt
     systemPrompt = applyPreferences(systemPrompt, preferences);
 
+    const chatArchetype = this.resolveArchetypeForChat(triggerMessage, routeDecision);
+    const archetypedPrompt = applyPromptArchetype(systemPrompt, chatArchetype.archetype);
+
     // Phase 6.5.2: Select model based on team preferences
     const model = getModelForPreferences(preferences, 'tier2');
     this.emitProcessingStage(triggerMessage.teamId, 'analyzing');
@@ -340,7 +703,7 @@ export class AIAgentController {
     const response = await this.llm.generate({
       messages: [
         ...(taskContextMessage ? [taskContextMessage] : []),
-        { role: 'system' as const, content: systemPrompt },
+        { role: 'system' as const, content: archetypedPrompt.prompt },
         ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...conversationHistory,
       ],
@@ -349,7 +712,15 @@ export class AIAgentController {
       temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
     });
 
-    return { ...response, ragContextItems, confidence };
+    return {
+      ...response,
+      ragContextItems,
+      confidence,
+      promptArchetype: archetypedPrompt.archetype,
+      promptArchetypeApplied: archetypedPrompt.applied,
+      promptArchetypeSource: archetypedPrompt.archetype ? chatArchetype.source : 'none',
+      promptArchetypeFlagEnabled: isPromptArchetypeEnabled(),
+    };
   }
 
   /**
@@ -359,7 +730,7 @@ export class AIAgentController {
   static async generateLongFormContent(
     teamId: string,
     prompt: string,
-    longFormType: 'summary' | 'document' | 'code',
+    longFormType: 'summary' | 'document',
     parentMessageId?: string
   ): Promise<AIInsightDTO> {
     const messages = await MessageController.getMessages(teamId);
@@ -369,10 +740,8 @@ export class AIAgentController {
 
     const conversationHistory = buildConversationContext(messages, team, 50);
 
-    const systemPrompt = longFormType === 'summary' 
-      ? SYSTEM_PROMPTS.summarizer 
-      : longFormType === 'code'
-      ? SYSTEM_PROMPTS.codeGenerator
+    const systemPrompt = longFormType === 'summary'
+      ? SYSTEM_PROMPTS.summarizer
       : SYSTEM_PROMPTS.assistant;
 
     // Phase 6.5.2: Load and apply team preferences
@@ -383,6 +752,11 @@ export class AIAgentController {
       console.warn('[AI Agent] Failed to load preferences for long-form:', error);
     }
     const finalPrompt = applyPreferences(systemPrompt, preferences);
+    const longFormArchetype =
+      longFormType === 'summary'
+        ? ('decision-brief' as AgentPromptArchetype)
+        : ('research-analyst' as AgentPromptArchetype);
+    const archetypedLongFormPrompt = applyPromptArchetype(finalPrompt, longFormArchetype);
     const model = getModelForPreferences(preferences, 'tier2');
 
     // Sprint D - Part 5: Inject shared task context if available
@@ -407,7 +781,7 @@ export class AIAgentController {
     const response = await this.llm.generate({
       messages: [
         ...(taskCtxMsg ? [taskCtxMsg] : []),
-        { role: 'system', content: finalPrompt },
+        { role: 'system', content: archetypedLongFormPrompt.prompt },
         ...conversationHistory,
         { role: 'user', content: prompt },
       ],
@@ -417,7 +791,7 @@ export class AIAgentController {
     });
 
     const mappedInsightType: CreateAIInsightRequest['type'] =
-      longFormType === 'summary' ? 'summary' : longFormType === 'code' ? 'code' : 'document'
+      longFormType === 'summary' ? 'summary' : 'document'
 
     const insight = await AIInsightController.createInsight({
       teamId,
@@ -425,8 +799,6 @@ export class AIAgentController {
       title:
         longFormType === 'summary'
           ? 'Conversation Summary'
-          : longFormType === 'code'
-          ? 'Code Output'
           : 'Research Brief',
       content: response.content,
       priority: longFormType === 'document' ? 'high' : 'medium',
@@ -435,6 +807,10 @@ export class AIAgentController {
         prompt,
         model: response.model,
         tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+        promptArchetype: archetypedLongFormPrompt.archetype,
+        promptArchetypeApplied: archetypedLongFormPrompt.applied,
+        promptArchetypeSource: archetypedLongFormPrompt.archetype ? 'default' : 'none',
+        promptArchetypeFlagEnabled: isPromptArchetypeEnabled(),
       },
     })
 

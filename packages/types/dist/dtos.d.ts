@@ -68,6 +68,7 @@ export interface TeamWithMembersDTO {
  * Message Metadata
  * Parsed metadata object for messages
  */
+export type AgentPromptArchetype = 'decision-brief' | 'research-analyst' | 'execution-coach' | 'pragmatic-advisor' | 'implementation-partner';
 export interface MessageMetadata {
     suggestions?: string[];
     parentMessageId?: string;
@@ -85,6 +86,7 @@ export interface MessageMetadata {
     routeRationale?: string;
     routeSource?: 'manual-override' | 'server-classifier' | 'frontend-fallback';
     routeOverrideUsed?: boolean;
+    routeArchetype?: AgentPromptArchetype;
     markerType?: 'insight-link' | 'action-insight-link' | 'system-link';
     linkedInsightId?: string;
     linkedActionId?: string;
@@ -118,6 +120,10 @@ export interface AgentMetadata {
     };
     confidence?: number;
     ragContext?: RAGContextItem[];
+    promptArchetype?: AgentPromptArchetype;
+    promptArchetypeApplied?: boolean;
+    promptArchetypeSource?: 'request' | 'route' | 'default' | 'none';
+    promptArchetypeFlagEnabled?: boolean;
 }
 /**
  * Message DTO
@@ -154,6 +160,10 @@ export interface AIInsightMetadata {
     model?: string;
     tokensUsed?: number;
     prompt?: string;
+    promptArchetype?: AgentPromptArchetype;
+    promptArchetypeApplied?: boolean;
+    promptArchetypeSource?: 'request' | 'route' | 'default' | 'none';
+    promptArchetypeFlagEnabled?: boolean;
     chimeRuleName?: string;
     chimeRuleId?: string;
     confidence?: number;

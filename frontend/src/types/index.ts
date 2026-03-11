@@ -46,6 +46,7 @@ export {
   type TeamWithMembersDTO,
   type MessageDTO,
   type MessageMetadata,
+  type AgentPromptArchetype,
   type AIInsightDTO,
   type AIInsightMetadata,
   

@@ -4,7 +4,7 @@
  * Tabbed section layout:
  *   1. Fixed header (team name, insight count)
  *   2. Scrollable content area for selected section
- *   3. Bottom tabs (All | Summaries | Research | Actions | Suggestions)
+ *   3. Bottom tabs (All | Summaries | Research | Actions | Help)
  *   4. Collapsible AI Controls footer (toggle + settings drawer)
  */
 import { useEntityStore } from '@/stores/entityStore';
@@ -28,18 +28,24 @@ const TABS: { key: ContentFilter; label: string; emoji?: string }[] = [
   { key: 'summaries', label: 'Summaries', emoji: '📝' },
   { key: 'research', label: 'Research', emoji: '🔎' },
   { key: 'actions', label: 'Actions', emoji: '✅' },
-  { key: 'suggestions', label: 'Suggestions', emoji: '💡' },
+  { key: 'suggestions', label: 'Help', emoji: '💡' },
 ];
 
 const TAB_ACCENTS: Record<ContentFilter, SegmentedAccent> = {
-  all: 'brand',
-  summaries: 'brand',
+  all: 'neutral',
+  summaries: 'summary',
   research: 'success',
-  actions: 'success',
-  suggestions: 'brand',
+  actions: 'action',
+  suggestions: 'suggestion',
 };
 
 const AUTO_FOLLOW_THRESHOLD_PX = 96;
+const CHAT_TO_PANEL_REPEAT_LOCK_MS = 550;
+const CHAT_TO_PANEL_SUPPRESS_EMIT_MS = 780;
+const CHAT_TO_PANEL_BOTTOM_SUPPRESS_EMIT_MS = 650;
+const CHAT_TO_PANEL_RELEASE_MS = 260;
+const CHAT_TO_PANEL_CENTER_SNAP_TOLERANCE_PX = 8;
+const CHAT_TO_PANEL_FOCUS_DELAY_MS = 40;
 
 export const RightPanel = () => {
   
@@ -344,14 +350,14 @@ export const RightPanel = () => {
       const elementRect = insightElement.getBoundingClientRect();
       const distanceFromCenter = Math.abs((elementRect.top + elementRect.height / 2) - (containerRect.top + container.clientHeight / 2));
 
-      if (distanceFromCenter > 14) {
+      if (distanceFromCenter > CHAT_TO_PANEL_CENTER_SNAP_TOLERANCE_PX) {
         insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
       insightElement.classList.add('fypai-link-highlight');
       setTimeout(() => {
         insightElement.classList.remove('fypai-link-highlight');
       }, 1800);
-    }, 80);
+    }, CHAT_TO_PANEL_FOCUS_DELAY_MS);
   };
 
   const handleJumpToSource = (sourceId: string) => {
@@ -458,31 +464,31 @@ export const RightPanel = () => {
         if (!container) return;
 
         applyingExternalSyncRef.current = true;
-        suppressAnchorEmitUntilRef.current = Date.now() + 1200;
+        suppressAnchorEmitUntilRef.current = Date.now() + CHAT_TO_PANEL_BOTTOM_SUPPRESS_EMIT_MS;
         shouldAutoFollowRef.current = true;
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         setTimeout(() => {
           applyingExternalSyncRef.current = false;
-        }, 420);
+        }, CHAT_TO_PANEL_RELEASE_MS);
         return;
       }
 
       const insightId = customEvent.detail.insightId;
       if (!insightId) return;
 
-      if (lastAppliedInsightRef.current?.id === insightId && Date.now() - lastAppliedInsightRef.current.at < 1400) {
+      if (lastAppliedInsightRef.current?.id === insightId && Date.now() - lastAppliedInsightRef.current.at < CHAT_TO_PANEL_REPEAT_LOCK_MS) {
         return;
       }
 
       applyingExternalSyncRef.current = true;
-      suppressAnchorEmitUntilRef.current = Date.now() + 1600;
+      suppressAnchorEmitUntilRef.current = Date.now() + CHAT_TO_PANEL_SUPPRESS_EMIT_MS;
       lastAppliedInsightRef.current = { id: insightId, at: Date.now() };
       // Passive scroll sync should not change active category tab.
       // Only focus items that are already rendered in the current tab.
       focusRenderedInsightOnly(insightId);
       setTimeout(() => {
         applyingExternalSyncRef.current = false;
-      }, 420);
+      }, CHAT_TO_PANEL_RELEASE_MS);
     };
 
     window.addEventListener('fypai:anchor-sync', handleAnchorSync as EventListener);
@@ -652,7 +658,7 @@ export const RightPanel = () => {
             {suggestionInsights.length > 0 ? (
               <InsightsList insights={suggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
-              <p className="text-xs text-gray-500">No research suggestions yet</p>
+              <p className="text-xs text-gray-500">No help insights yet</p>
             )}
 
             {archivedSuggestionInsights.length > 0 && (
@@ -661,18 +667,18 @@ export const RightPanel = () => {
                 className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
               >
                 {showArchivedSuggestions
-                  ? 'Hide archived suggestions'
-                  : `Show archived suggestions (${archivedSuggestionInsights.length})`}
+                  ? 'Hide archived help'
+                  : `Show archived help (${archivedSuggestionInsights.length})`}
               </button>
             )}
 
             {showArchivedSuggestions && (
               <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Suggestions</h3>
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Help</h3>
                 {archivedSuggestionInsights.length > 0 ? (
                   <InsightsList insights={archivedSuggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
                 ) : (
-                  <p className="text-xs text-gray-500">No archived suggestions</p>
+                  <p className="text-xs text-gray-500">No archived help</p>
                 )}
               </div>
             )}
@@ -695,6 +701,7 @@ export const RightPanel = () => {
             activeKey={contentFilter}
             onChange={handleContentFilterChange}
             wrap
+            styleVariant="pill"
           />
         </div>
 

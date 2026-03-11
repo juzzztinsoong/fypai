@@ -3,9 +3,9 @@
  * 
  * Chime rule management grouped by the insight type each rule produces.
  * Rules that generate "action" insights appear under a purple-accented group,
- * "suggestion" rules under orange, "summary" under blue, and chat-only rules
- * under a gray group. This visual linkage lets users see exactly which rules
- * feed which tab (Actions / Suggestions / Summaries).
+ * "suggestion" (Help) rules under orange, "summary" under blue, and
+ * chat-only rules under a gray group. This visual linkage lets users see
+ * exactly which rules feed which tab (Actions / Help / Summaries).
  * 
  * Endpoints used:
  *   GET   /api/chime/teams/:teamId/rules
@@ -87,7 +87,7 @@ const CATEGORIES: CategoryConfig[] = [
   },
   {
     key: 'suggestion',
-    label: 'Suggestion Rules',
+    label: 'Help Rules',
     emoji: '💡',
     accent: 'border-orange-200',
     badgeBg: 'bg-orange-100',

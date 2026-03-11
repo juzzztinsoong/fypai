@@ -17,9 +17,23 @@
  */
 
 import { prisma } from '../db.js'
-import { AIInsightDTO, CreateAIInsightRequest, UpdateAIInsightRequest, UpdateInsightStatusRequest, aiInsightToDTO, aiInsightsToDTO } from '../types.js'
+import {
+  AIInsightDTO,
+  AgentPromptArchetype,
+  CreateAIInsightRequest,
+  UpdateAIInsightRequest,
+  UpdateInsightStatusRequest,
+  aiInsightToDTO,
+  aiInsightsToDTO,
+} from '../types.js'
 import { GitHubModelsClient } from '../ai/core/llm.js'
-import { SYSTEM_PROMPTS, buildConversationContext } from '../ai/core/prompts.js'
+import {
+  SYSTEM_PROMPTS,
+  applyPromptArchetype,
+  buildConversationContext,
+  isPromptArchetypeEnabled,
+  resolvePromptArchetype,
+} from '../ai/core/prompts.js'
 import { MessageController } from './messageController.js'
 import { TeamController } from './teamController.js'
 import { Server as SocketIOServer } from 'socket.io'
@@ -30,6 +44,7 @@ type HttpError = Error & { statusCode?: number }
 export class AIInsightController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
+  private static readonly ACTIVE_INSIGHT_TYPES = new Set(['summary', 'document', 'action', 'suggestion']);
 
   private static emitProcessingStage(
     teamId: string,
@@ -85,6 +100,24 @@ export class AIInsightController {
     return metadata;
   }
 
+  private static resolveArchetype(
+    requestedArchetype: string | undefined,
+    defaultArchetype: AgentPromptArchetype,
+  ): { archetype?: AgentPromptArchetype; source: 'request' | 'default' | 'none' } {
+    const requested = resolvePromptArchetype(requestedArchetype);
+    if (requested) {
+      return {
+        archetype: requested,
+        source: 'request',
+      };
+    }
+
+    return {
+      archetype: defaultArchetype,
+      source: 'default',
+    };
+  }
+
   private static async createActionMarkerMessage(
     teamId: string,
     insight: AIInsightDTO,
@@ -110,7 +143,7 @@ export class AIInsightController {
       action: 'Action item',
       summary: 'Summary',
       document: 'Research brief',
-      suggestion: 'Suggestion',
+      suggestion: 'Help',
       analysis: 'Analysis',
       code: 'Code output',
     }
@@ -251,6 +284,14 @@ export class AIInsightController {
    * @returns {Promise<AIInsightDTO>} Created insight DTO
    */
   static async createInsight(data: CreateAIInsightRequest): Promise<AIInsightDTO> {
+    if (!this.ACTIVE_INSIGHT_TYPES.has(data.type)) {
+      const invalidTypeError = new Error(
+        `Insight type '${data.type}' is disabled in the current taxonomy pass. Allowed types: summary, document, action, suggestion.`
+      ) as HttpError;
+      invalidTypeError.statusCode = 400;
+      throw invalidTypeError;
+    }
+
     const sanitizedMetadata = this.sanitizeInsightMetadata(data.metadata);
 
     await this.assertNoDuplicatePromotedAction(data.teamId, data.type, sanitizedMetadata);
@@ -426,7 +467,7 @@ export class AIInsightController {
    * @param {string} teamId - Team ID
    * @returns {Promise<AIInsightDTO>} Created summary insight
    */
-  static async generateSummary(teamId: string): Promise<AIInsightDTO> {
+  static async generateSummary(teamId: string, archetypeHint?: string): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
     this.emitProcessingStage(teamId, 'thinking');
 
@@ -458,10 +499,13 @@ export class AIInsightController {
       console.log(`[AIInsightController] Generating summary for team ${teamId}`);
       this.emitProcessingStage(teamId, 'analyzing');
 
+      const archetypeDecision = this.resolveArchetype(archetypeHint, 'decision-brief');
+      const summaryPrompt = applyPromptArchetype(SYSTEM_PROMPTS.summarizer, archetypeDecision.archetype);
+
       const response = await this.llm.generate({
         messages: [
           ...(taskContextMessage ? [taskContextMessage] : []),
-          { role: 'system', content: SYSTEM_PROMPTS.summarizer },
+          { role: 'system', content: summaryPrompt.prompt },
           ...conversationHistory,
           { role: 'user', content: 'Please provide a concise conversation summary focused on discussion highlights, decisions made, rationale, and open questions. Do not include action-item checklists.' },
         ],
@@ -485,6 +529,10 @@ export class AIInsightController {
         metadata: {
           model: response.model,
           tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+          promptArchetype: summaryPrompt.archetype,
+          promptArchetypeApplied: summaryPrompt.applied,
+          promptArchetypeSource: summaryPrompt.archetype ? archetypeDecision.source : 'none',
+          promptArchetypeFlagEnabled: isPromptArchetypeEnabled(),
         },
       });
 
@@ -503,7 +551,11 @@ export class AIInsightController {
    * @param {string} prompt - Optional custom prompt for research generation
    * @returns {Promise<AIInsightDTO>} Created research insight
    */
-  static async generateReport(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+  static async generateReport(
+    teamId: string,
+    prompt?: string,
+    archetypeHint?: string,
+  ): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
     this.emitProcessingStage(teamId, 'thinking');
 
@@ -538,10 +590,13 @@ export class AIInsightController {
       console.log(`[AIInsightController] Generating research brief for team ${teamId}`);
       this.emitProcessingStage(teamId, 'analyzing');
 
+      const archetypeDecision = this.resolveArchetype(archetypeHint, 'research-analyst');
+      const reportSystemPrompt = applyPromptArchetype(SYSTEM_PROMPTS.reporter, archetypeDecision.archetype);
+
       const response = await this.llm.generate({
         messages: [
           ...(taskContextMessage ? [taskContextMessage] : []),
-          { role: 'system', content: SYSTEM_PROMPTS.reporter },
+          { role: 'system', content: reportSystemPrompt.prompt },
           ...conversationHistory,
           { role: 'user', content: reportPrompt },
         ],
@@ -562,6 +617,10 @@ export class AIInsightController {
         metadata: {
           model: response.model,
           tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+          promptArchetype: reportSystemPrompt.archetype,
+          promptArchetypeApplied: reportSystemPrompt.applied,
+          promptArchetypeSource: reportSystemPrompt.archetype ? archetypeDecision.source : 'none',
+          promptArchetypeFlagEnabled: isPromptArchetypeEnabled(),
         },
       });
 
@@ -580,7 +639,11 @@ export class AIInsightController {
    * @param {string} prompt - Optional custom prompt for action generation
    * @returns {Promise<AIInsightDTO>} Created action insight
    */
-  static async generateAction(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+  static async generateAction(
+    teamId: string,
+    prompt?: string,
+    archetypeHint?: string,
+  ): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
     this.emitProcessingStage(teamId, 'thinking');
 
@@ -626,10 +689,13 @@ Rules:
       console.log(`[AIInsightController] Generating action insight for team ${teamId}`);
       this.emitProcessingStage(teamId, 'analyzing');
 
+      const archetypeDecision = this.resolveArchetype(archetypeHint, 'execution-coach');
+      const actionSystemPrompt = applyPromptArchetype(SYSTEM_PROMPTS.assistant, archetypeDecision.archetype);
+
       const response = await this.llm.generate({
         messages: [
           ...(taskContextMessage ? [taskContextMessage] : []),
-          { role: 'system', content: SYSTEM_PROMPTS.assistant },
+          { role: 'system', content: actionSystemPrompt.prompt },
           ...conversationHistory,
           { role: 'user', content: actionPrompt },
         ],
@@ -649,6 +715,10 @@ Rules:
         metadata: {
           model: response.model,
           tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+          promptArchetype: actionSystemPrompt.archetype,
+          promptArchetypeApplied: actionSystemPrompt.applied,
+          promptArchetypeSource: actionSystemPrompt.archetype ? archetypeDecision.source : 'none',
+          promptArchetypeFlagEnabled: isPromptArchetypeEnabled(),
         },
       });
 
@@ -661,13 +731,17 @@ Rules:
   }
 
   /**
-   * Generate AI-powered suggestion insight
-   * Produces concrete recommendations based on recent discussion
+   * Generate AI-powered help insight
+   * Produces practical help and recommendations based on recent discussion
    * @param {string} teamId - Team ID
-   * @param {string} prompt - Optional custom prompt for suggestion generation
-   * @returns {Promise<AIInsightDTO>} Created suggestion insight
+   * @param {string} prompt - Optional custom prompt for help generation
+   * @returns {Promise<AIInsightDTO>} Created help insight (stored as suggestion type)
    */
-  static async generateSuggestion(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+  static async generateSuggestion(
+    teamId: string,
+    prompt?: string,
+    archetypeHint?: string,
+  ): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
     this.emitProcessingStage(teamId, 'thinking');
 
@@ -690,33 +764,36 @@ Rules:
             role: 'system' as const,
             content: `TEAM TASK CONTEXT (ground truth for this team — align your response to this context first):\n\n${teamData.taskContext}`,
           };
-          console.log(`[AIInsightController] 📋 Injecting task context into suggestion generation (${teamData.taskContext.length} chars)`);
+          console.log(`[AIInsightController] 📋 Injecting task context into help generation (${teamData.taskContext.length} chars)`);
         }
       } catch (error) {
-        console.warn('[AIInsightController] Failed to load task context for suggestion generation:', error);
+        console.warn('[AIInsightController] Failed to load task context for help generation:', error);
       }
 
-      const defaultPrompt = `Provide practical suggestions for the team based on the latest discussion.
+      const defaultPrompt = `Provide practical help for the team based on the latest discussion.
 
 Output format:
-## Recommended Next Moves
-- Suggestion and why it helps
+## Help Recommendations
+- Recommendation and why it helps
 
 Rules:
-- Max 5 suggestions
+- Max 5 recommendations
 - Be specific and low-friction
 - Highlight major tradeoffs when relevant
 - Do not produce task checklists, owners, or deadlines`;
 
       const suggestionPrompt = prompt || defaultPrompt;
 
-      console.log(`[AIInsightController] Generating suggestion insight for team ${teamId}`);
+      console.log(`[AIInsightController] Generating help insight for team ${teamId}`);
       this.emitProcessingStage(teamId, 'analyzing');
+
+      const archetypeDecision = this.resolveArchetype(archetypeHint, 'pragmatic-advisor');
+      const suggestionSystemPrompt = applyPromptArchetype(SYSTEM_PROMPTS.assistant, archetypeDecision.archetype);
 
       const response = await this.llm.generate({
         messages: [
           ...(taskContextMessage ? [taskContextMessage] : []),
-          { role: 'system', content: SYSTEM_PROMPTS.assistant },
+          { role: 'system', content: suggestionSystemPrompt.prompt },
           ...conversationHistory,
           { role: 'user', content: suggestionPrompt },
         ],
@@ -728,18 +805,22 @@ Rules:
       const insightDTO = await this.createInsight({
         teamId,
         type: 'suggestion',
-        title: 'Suggestions',
+        title: 'Help',
         content: response.content,
         priority: 'medium',
-        tags: ['auto-generated', 'suggestion', response.model],
+        tags: ['auto-generated', 'help', 'suggestion', response.model],
         relatedMessageIds: messages.length > 0 ? [messages[messages.length - 1].id] : [],
         metadata: {
           model: response.model,
           tokensUsed: response.usage.inputTokens + response.usage.outputTokens,
+          promptArchetype: suggestionSystemPrompt.archetype,
+          promptArchetypeApplied: suggestionSystemPrompt.applied,
+          promptArchetypeSource: suggestionSystemPrompt.archetype ? archetypeDecision.source : 'none',
+          promptArchetypeFlagEnabled: isPromptArchetypeEnabled(),
         },
       });
 
-      console.log(`[AIInsightController] 💾 Suggestion insight saved to database: ${insightDTO.id}`);
+      console.log(`[AIInsightController] 💾 Help insight saved to database: ${insightDTO.id}`);
       return insightDTO;
     } finally {
       this.emitTyping(teamId, false);

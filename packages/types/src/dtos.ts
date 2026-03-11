@@ -85,6 +85,13 @@ export interface TeamWithMembersDTO {
  * Message Metadata
  * Parsed metadata object for messages
  */
+export type AgentPromptArchetype =
+  | 'decision-brief'
+  | 'research-analyst'
+  | 'execution-coach'
+  | 'pragmatic-advisor'
+  | 'implementation-partner'
+
 export interface MessageMetadata {
   suggestions?: string[]
   parentMessageId?: string  // Link to original message for long-form content
@@ -105,6 +112,7 @@ export interface MessageMetadata {
   routeRationale?: string
   routeSource?: 'manual-override' | 'server-classifier' | 'frontend-fallback'
   routeOverrideUsed?: boolean
+  routeArchetype?: AgentPromptArchetype
   // Action ↔ chat marker linkage
   markerType?: 'insight-link' | 'action-insight-link' | 'system-link'
   linkedInsightId?: string
@@ -141,6 +149,10 @@ export interface AgentMetadata {
   }
   confidence?: number  // Overall response confidence (0-1)
   ragContext?: RAGContextItem[]  // Retrieved context used for generation
+  promptArchetype?: AgentPromptArchetype
+  promptArchetypeApplied?: boolean
+  promptArchetypeSource?: 'request' | 'route' | 'default' | 'none'
+  promptArchetypeFlagEnabled?: boolean
 }
 
 /**
@@ -180,6 +192,10 @@ export interface AIInsightMetadata {
   model?: string
   tokensUsed?: number
   prompt?: string
+  promptArchetype?: AgentPromptArchetype
+  promptArchetypeApplied?: boolean
+  promptArchetypeSource?: 'request' | 'route' | 'default' | 'none'
+  promptArchetypeFlagEnabled?: boolean
   // Chime rules metadata (for autonomous AI insights)
   chimeRuleName?: string  // Name of the rule that triggered this insight
   chimeRuleId?: string  // ID of the rule that triggered this insight

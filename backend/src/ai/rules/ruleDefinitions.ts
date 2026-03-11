@@ -28,7 +28,7 @@ export interface RuleConditions {
 export interface RuleAction {
   type: 'chat_message' | 'insight';
   template: string;
-  insightType?: 'action' | 'suggestion' | 'analysis' | 'summary';
+  insightType?: 'action' | 'suggestion' | 'summary' | 'document';
 }
 
 export type RuleType = 'pattern' | 'semantic' | 'intent' | 'schedule';

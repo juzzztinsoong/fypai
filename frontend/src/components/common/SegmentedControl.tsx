@@ -1,4 +1,11 @@
-import { getSegmentedActiveClass, type SegmentedAccent, uiTokens } from '@/styles/uiTokens'
+import {
+  getSegmentedActiveClass,
+  getSegmentedBaseClass,
+  getSegmentedInactiveClass,
+  type SegmentedAccent,
+  type SegmentedStyle,
+  uiTokens,
+} from '@/styles/uiTokens'
 
 export interface SegmentedControlItem<TKey extends string> {
   key: TKey
@@ -13,6 +20,7 @@ interface SegmentedControlProps<TKey extends string> {
   activeKey: TKey
   onChange: (key: TKey) => void
   wrap?: boolean
+  styleVariant?: SegmentedStyle
   className?: string
 }
 
@@ -21,6 +29,7 @@ export function SegmentedControl<TKey extends string>({
   activeKey,
   onChange,
   wrap = false,
+  styleVariant = 'solid',
   className,
 }: SegmentedControlProps<TKey>) {
   const rowClassName = [
@@ -34,9 +43,10 @@ export function SegmentedControl<TKey extends string>({
     <div className={rowClassName}>
       {items.map((item) => {
         const isActive = item.key === activeKey
+        const accent = item.accent || 'brand'
         const stateClassName = isActive
-          ? getSegmentedActiveClass(item.accent)
-          : uiTokens.segmented.buttonInactive
+          ? getSegmentedActiveClass(accent, styleVariant)
+          : getSegmentedInactiveClass(accent, styleVariant)
 
         return (
           <button
@@ -44,7 +54,7 @@ export function SegmentedControl<TKey extends string>({
             type="button"
             onClick={() => onChange(item.key)}
             aria-pressed={isActive}
-            className={`${uiTokens.segmented.buttonBase} ${stateClassName}`}
+            className={`${getSegmentedBaseClass(styleVariant)} ${stateClassName}`}
           >
             {item.emoji && <span className="mr-1">{item.emoji}</span>}
             <span>{item.label}</span>

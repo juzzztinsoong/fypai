@@ -17,7 +17,13 @@
  */
 
 import { api, getErrorMessage } from './api'
-import type { AIInsightDTO, CreateAIInsightRequest, InsightStatus, UpdateAIInsightRequest } from '@fypai/types'
+import type {
+  AIInsightDTO,
+  AgentPromptArchetype,
+  CreateAIInsightRequest,
+  InsightStatus,
+  UpdateAIInsightRequest,
+} from '@fypai/types'
 import { useEntityStore } from '@/stores/entityStore'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -137,13 +143,13 @@ export async function resetTeamInsights(
  * @param teamId - Team ID to generate summary for
  * @returns Newly created summary insight
  */
-export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
+export async function generateSummary(teamId: string, archetype?: AgentPromptArchetype): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
   const uiStore = useUIStore.getState()
   uiStore.setLoading('insight-generation', true)
   
   try {
-    const response = await api.post<AIInsightDTO>('/insights/generate/summary', { teamId })
+    const response = await api.post<AIInsightDTO>('/insights/generate/summary', { teamId, archetype })
     
     // Add to EntityStore (backend socket will also broadcast)
     entityStore.addInsight(response.data)
@@ -165,13 +171,17 @@ export async function generateSummary(teamId: string): Promise<AIInsightDTO> {
  * @param prompt - Optional custom prompt
  * @returns Newly created report insight
  */
-export async function generateReport(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+export async function generateReport(
+  teamId: string,
+  prompt?: string,
+  archetype?: AgentPromptArchetype,
+): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
   const uiStore = useUIStore.getState()
   uiStore.setLoading('insight-generation', true)
   
   try {
-    const response = await api.post<AIInsightDTO>('/insights/generate/report', { teamId, prompt })
+    const response = await api.post<AIInsightDTO>('/insights/generate/report', { teamId, prompt, archetype })
     
     // Add to EntityStore (backend socket will also broadcast)
     entityStore.addInsight(response.data)
@@ -192,13 +202,17 @@ export async function generateReport(teamId: string, prompt?: string): Promise<A
  * @param teamId - Team ID to generate actions for
  * @param prompt - Optional custom prompt
  */
-export async function generateAction(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+export async function generateAction(
+  teamId: string,
+  prompt?: string,
+  archetype?: AgentPromptArchetype,
+): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
   const uiStore = useUIStore.getState()
   uiStore.setLoading('insight-generation', true)
 
   try {
-    const response = await api.post<AIInsightDTO>('/insights/generate/action', { teamId, prompt })
+    const response = await api.post<AIInsightDTO>('/insights/generate/action', { teamId, prompt, archetype })
 
     entityStore.addInsight(response.data)
 
@@ -218,13 +232,17 @@ export async function generateAction(teamId: string, prompt?: string): Promise<A
  * @param teamId - Team ID to generate suggestions for
  * @param prompt - Optional custom prompt
  */
-export async function generateSuggestion(teamId: string, prompt?: string): Promise<AIInsightDTO> {
+export async function generateSuggestion(
+  teamId: string,
+  prompt?: string,
+  archetype?: AgentPromptArchetype,
+): Promise<AIInsightDTO> {
   const entityStore = useEntityStore.getState()
   const uiStore = useUIStore.getState()
   uiStore.setLoading('insight-generation', true)
 
   try {
-    const response = await api.post<AIInsightDTO>('/insights/generate/suggestion', { teamId, prompt })
+    const response = await api.post<AIInsightDTO>('/insights/generate/suggestion', { teamId, prompt, archetype })
 
     entityStore.addInsight(response.data)
 

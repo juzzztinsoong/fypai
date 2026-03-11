@@ -15,18 +15,39 @@ import { useSessionStore } from '@/stores/sessionStore'
 import { useEntityStore } from '@/stores/entityStore'
 import { createMessage } from '@/services/messageService'
 import { createResearchJob } from '@/services/researchJobService'
-import { generateAction, generateSuggestion, generateSummary } from '@/services/insightService'
+import { generateAction, generateReport, generateSuggestion, generateSummary } from '@/services/insightService'
 import { classifyIntent } from '@/services/intentService'
 import { trackSessionEvent } from '@/services/analyticsService'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
 import { socketService } from '@/services/socketService'
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl'
-import { uiTokens } from '@/styles/uiTokens'
-import type { MessageMetadata } from '@/types'
+import {
+  getChipClass,
+  getSegmentedBaseClass,
+  getSegmentedInactiveClass,
+  type ChipVariant,
+  uiTokens,
+} from '@/styles/uiTokens'
+import type { AgentPromptArchetype, MessageMetadata } from '@/types'
 
 type ComposerMode = 'ask' | 'research'
 type ComposerOverrideMode = 'auto' | ComposerMode
+type DeterministicInsightKind = 'summary' | 'action' | 'suggestion' | 'research'
+
+function parseSlashInsightCommand(input: string): { kind: DeterministicInsightKind; prompt?: string } | null {
+  const match = input.trim().match(/^\/(summary|research|actions?|suggest|help)\b\s*(.*)$/i)
+  if (!match) return null
+
+  const command = match[1].toLowerCase()
+  const prompt = match[2]?.trim() || undefined
+
+  if (command === 'summary') return { kind: 'summary', prompt }
+  if (command === 'research') return { kind: 'research', prompt }
+  if (command === 'action' || command === 'actions') return { kind: 'action', prompt }
+  if (command === 'help') return { kind: 'suggestion', prompt }
+  return { kind: 'suggestion', prompt }
+}
 
 const RESEARCH_PATTERNS = [
   /\bresearch\b/i,
@@ -55,11 +76,41 @@ const COMPOSER_SEGMENTS: SegmentedControlItem<ComposerOverrideMode>[] = [
   { key: 'research', label: 'Research', accent: 'success' },
 ]
 
+const QUICK_ACTION_BASE_CLASS = getSegmentedBaseClass('pill')
+
+const QUICK_ACTION_CLASS: Record<'agent' | 'summary' | 'action' | 'suggestion', string> = {
+  agent: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('brand', 'pill')}`,
+  summary: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('summary', 'pill')}`,
+  action: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('action', 'pill')}`,
+  suggestion: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('suggestion', 'pill')}`,
+}
+
+function getModeLabel(mode: ComposerMode): 'Ask' | 'Research' {
+  return mode === 'research' ? 'Research' : 'Ask'
+}
+
+function getRouteConfidenceVariant(confidence: number): ChipVariant {
+  if (confidence >= 0.8) return 'success'
+  if (confidence >= 0.6) return 'warning'
+  return 'danger'
+}
+
+function getArchetypeForRouteMode(mode: ComposerMode): AgentPromptArchetype {
+  return mode === 'research' ? 'research-analyst' : 'pragmatic-advisor'
+}
+
+function getArchetypeForDeterministicKind(kind: DeterministicInsightKind): AgentPromptArchetype {
+  if (kind === 'summary') return 'decision-brief'
+  if (kind === 'action') return 'execution-coach'
+  if (kind === 'suggestion') return 'pragmatic-advisor'
+  return 'research-analyst'
+}
+
 export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
   const [composerOverrideMode, setComposerOverrideMode] = useState<ComposerOverrideMode>('auto')
   const [isResearchGenerating, setIsResearchGenerating] = useState(false)
-  const [quickGeneratingType, setQuickGeneratingType] = useState<'summary' | 'action' | 'suggestion' | null>(null)
+  const [quickGeneratingType, setQuickGeneratingType] = useState<DeterministicInsightKind | null>(null)
   const [lastRouteDecision, setLastRouteDecision] = useState<{
     mode: ComposerMode
     confidence: number
@@ -72,6 +123,10 @@ export const ChatWindow = () => {
   const currentTeamId = useUIStore((state) => state.currentTeamId)
   const currentTeam = useEntityStore((state) => 
     currentTeamId ? state.getTeam(currentTeamId) : null
+  )
+
+  const continuationStatus = useSessionStore((state) =>
+    currentTeamId ? state.presence.aiContinuation[currentTeamId] || null : null
   )
   
   // Get current user from SessionStore
@@ -165,6 +220,30 @@ export const ChatWindow = () => {
     if (!newMessage.trim() || !currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
 
     const submittedMessage = newMessage.trim()
+    const slashInsightCommand = parseSlashInsightCommand(submittedMessage)
+
+    if (slashInsightCommand) {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+        debounceTimeoutRef.current = null
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = null
+      }
+      emitTypingStop()
+
+      setNewMessage('')
+      setLastRouteDecision(null)
+
+      await handleDeterministicGenerate(
+        slashInsightCommand.kind,
+        slashInsightCommand.prompt,
+        'slash-command',
+      )
+      return
+    }
+
     const inferredMode = inferComposerMode(submittedMessage)
 
     let effectiveMode: ComposerMode = composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
@@ -219,6 +298,7 @@ export const ChatWindow = () => {
       routeRationale: routeDecision.rationale,
       routeSource: routeDecision.source,
       routeOverrideUsed: composerOverrideMode !== 'auto',
+      routeArchetype: getArchetypeForRouteMode(routeDecision.mode),
     }
 
     try {
@@ -228,6 +308,22 @@ export const ChatWindow = () => {
         content: submittedMessage,
         contentType: 'text',
         metadata: messageMetadata,
+      })
+
+      trackSessionEvent({
+        eventType: 'chat',
+        eventName: 'message_route_decision',
+        teamId: currentTeam.id,
+        actorUserId: currentUser.id,
+        messageId: createdMessage.id,
+        metadata: {
+          routeMode: routeDecision.mode,
+          routeConfidence: routeDecision.confidence,
+          routeSource: routeDecision.source,
+          routeRationale: routeDecision.rationale,
+          routeOverrideUsed: composerOverrideMode !== 'auto',
+          routeArchetype: messageMetadata.routeArchetype,
+        },
       })
 
       trackSessionEvent({
@@ -242,6 +338,7 @@ export const ChatWindow = () => {
           routeConfidence: routeDecision.confidence,
           routeSource: routeDecision.source,
           overrideMode: composerOverrideMode,
+          routeArchetype: messageMetadata.routeArchetype,
         },
       })
 
@@ -301,28 +398,17 @@ export const ChatWindow = () => {
     }
   }
 
-  const handleSetResearchMode = () => {
-    setComposerOverrideMode('research')
-    composerRef.current?.focus()
-
-    if (currentTeam && currentUser) {
-      trackSessionEvent({
-        eventType: 'chat',
-        eventName: 'composer_mode_quick_set',
-        teamId: currentTeam.id,
-        actorUserId: currentUser.id,
-        metadata: {
-          mode: 'research',
-          source: 'chat-quick-action',
-        },
-      })
-    }
-  }
-
-  const handleDeterministicGenerate = async (kind: 'summary' | 'action' | 'suggestion') => {
+  const handleDeterministicGenerate = async (
+    kind: DeterministicInsightKind,
+    prompt?: string,
+    source: 'chat-quick-action' | 'slash-command' = 'chat-quick-action',
+  ) => {
     if (!currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
 
     setQuickGeneratingType(kind)
+
+    const mappedInsightType = kind === 'research' ? 'document' : kind
+    const archetype = getArchetypeForDeterministicKind(kind)
 
     trackSessionEvent({
       eventType: 'insight',
@@ -330,18 +416,22 @@ export const ChatWindow = () => {
       teamId: currentTeam.id,
       actorUserId: currentUser.id,
       metadata: {
-        insightType: kind,
-        source: 'chat-quick-action',
+        insightType: mappedInsightType,
+        source,
+        hasPromptOverride: Boolean(prompt),
+        promptArchetype: archetype,
       },
     })
 
     try {
       if (kind === 'summary') {
-        await generateSummary(currentTeam.id)
+        await generateSummary(currentTeam.id, archetype)
       } else if (kind === 'action') {
-        await generateAction(currentTeam.id)
+        await generateAction(currentTeam.id, prompt, archetype)
+      } else if (kind === 'suggestion') {
+        await generateSuggestion(currentTeam.id, prompt, archetype)
       } else {
-        await generateSuggestion(currentTeam.id)
+        await generateReport(currentTeam.id, prompt, archetype)
       }
 
       trackSessionEvent({
@@ -350,8 +440,10 @@ export const ChatWindow = () => {
         teamId: currentTeam.id,
         actorUserId: currentUser.id,
         metadata: {
-          insightType: kind,
-          source: 'chat-quick-action',
+          insightType: mappedInsightType,
+          source,
+          hasPromptOverride: Boolean(prompt),
+          promptArchetype: archetype,
         },
       })
     } catch (error) {
@@ -361,8 +453,10 @@ export const ChatWindow = () => {
         teamId: currentTeam.id,
         actorUserId: currentUser.id,
         metadata: {
-          insightType: kind,
-          source: 'chat-quick-action',
+          insightType: mappedInsightType,
+          source,
+          hasPromptOverride: Boolean(prompt),
+          promptArchetype: archetype,
           error: error instanceof Error ? error.message : 'Unknown generation error',
         },
       })
@@ -375,7 +469,21 @@ export const ChatWindow = () => {
   const inferredMode = inferComposerMode(newMessage)
   const effectiveMode: ComposerMode =
     composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
-  const isAutoMode = composerOverrideMode === 'auto'
+
+  const routeConfidencePercent = lastRouteDecision
+    ? Math.round(lastRouteDecision.confidence * 100)
+    : null
+  const routeTooltip = lastRouteDecision
+    ? `Source: ${lastRouteDecision.source}\nRationale: ${lastRouteDecision.rationale}`
+    : undefined
+  const continuationPercent = continuationStatus
+    ? Math.round(continuationStatus.confidence * 100)
+    : null
+  const continuationTooltip = continuationStatus
+    ? `Trigger: ${continuationStatus.trigger}\nThreshold: ${Math.round(continuationStatus.threshold * 100)}%\nReason: ${
+        continuationStatus.reason || 'Confidence gate status from backend'
+      }`
+    : undefined
 
   return (
     <main className="flex-1 min-w-0 flex flex-col h-screen">
@@ -391,67 +499,69 @@ export const ChatWindow = () => {
 
       {/* Fixed Footer - Message Composer */}
       <div className={`flex-shrink-0 ${uiTokens.layout.railFooter} px-4 py-3 border-t border-gray-200 bg-white`}>
-        <div className="mb-2 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <SegmentedControl
-            items={COMPOSER_SEGMENTS}
-            activeKey={composerOverrideMode}
-            onChange={setComposerOverrideMode}
-          />
-          <button
-            type="button"
-            onClick={handleMentionAgent}
-            className={`${uiTokens.controls.button.sm} border-indigo-300 text-indigo-700 hover:bg-indigo-50`}
-            title="Insert @agent mention"
-          >
-            @agent
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDeterministicGenerate('summary')}
-            disabled={isResearchGenerating || quickGeneratingType !== null}
-            className={`${uiTokens.controls.button.sm} border-sky-300 text-sky-700 hover:bg-sky-50`}
-            title="Generate deterministic summary insight"
-          >
-            {quickGeneratingType === 'summary' ? 'Summarizing...' : 'Summary'}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDeterministicGenerate('action')}
-            disabled={isResearchGenerating || quickGeneratingType !== null}
-            className={`${uiTokens.controls.button.sm} border-amber-300 text-amber-700 hover:bg-amber-50`}
-            title="Generate deterministic action items"
-          >
-            {quickGeneratingType === 'action' ? 'Generating...' : 'Actions'}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDeterministicGenerate('suggestion')}
-            disabled={isResearchGenerating || quickGeneratingType !== null}
-            className={`${uiTokens.controls.button.sm} border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50`}
-            title="Generate deterministic suggestions"
-          >
-            {quickGeneratingType === 'suggestion' ? 'Generating...' : 'Suggestions'}
-          </button>
-          <button
-            type="button"
-            onClick={handleSetResearchMode}
-            className={`${uiTokens.controls.button.sm} border-emerald-300 text-emerald-700 hover:bg-emerald-50`}
-            title="Switch composer to research mode"
-          >
-            Research mode
-          </button>
-          <span className={uiTokens.text.meta}>
-            {isAutoMode
-              ? `Auto-routed: ${effectiveMode === 'research' ? 'Research' : 'Ask'}`
-              : `${effectiveMode === 'research' ? 'Research' : 'Ask'} mode`}
-          </span>
-          {effectiveMode === 'research' && (
-            <span className={uiTokens.text.successMeta}>→ long-form insight in Research</span>
-          )}
-          {lastRouteDecision && (
-            <span className="text-xs text-slate-400">
-              Last: {lastRouteDecision.mode === 'research' ? 'Research' : 'Ask'} ({Math.round(lastRouteDecision.confidence * 100)}%)
-            </span>
+        <div className="mb-2 space-y-1.5">
+          <div className="flex items-center flex-wrap gap-1.5">
+            <SegmentedControl
+              items={COMPOSER_SEGMENTS}
+              activeKey={composerOverrideMode}
+              onChange={setComposerOverrideMode}
+            />
+            <button
+              type="button"
+              onClick={handleMentionAgent}
+              className={QUICK_ACTION_CLASS.agent}
+              title="Insert @agent mention and switch to Ask mode"
+            >
+              @agent
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeterministicGenerate('summary')}
+              disabled={isResearchGenerating || quickGeneratingType !== null}
+              className={QUICK_ACTION_CLASS.summary}
+              title="Create a concise recap of discussion highlights and decisions"
+            >
+              {quickGeneratingType === 'summary' ? 'Summarizing...' : 'Summary'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeterministicGenerate('action')}
+              disabled={isResearchGenerating || quickGeneratingType !== null}
+              className={QUICK_ACTION_CLASS.action}
+              title="Extract concrete next steps and owners from the recent discussion"
+            >
+              {quickGeneratingType === 'action' ? 'Extracting...' : 'Actions'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDeterministicGenerate('suggestion')}
+              disabled={isResearchGenerating || quickGeneratingType !== null}
+              className={QUICK_ACTION_CLASS.suggestion}
+              title="Generate practical recommendations to unblock progress"
+            >
+              {quickGeneratingType === 'suggestion' ? 'Advising...' : 'Help'}
+            </button>
+          </div>
+
+          {(lastRouteDecision || continuationStatus) && (
+            <div className="flex items-center flex-wrap gap-1.5">
+              {lastRouteDecision && routeConfidencePercent !== null && (
+                <span
+                  className={getChipClass(getRouteConfidenceVariant(lastRouteDecision.confidence), 'xs')}
+                  title={routeTooltip}
+                >
+                  Route: {getModeLabel(lastRouteDecision.mode)} {routeConfidencePercent}%
+                </span>
+              )}
+              {continuationStatus && continuationPercent !== null && (
+                <span
+                  className={getChipClass(continuationStatus.status === 'active' ? 'success' : 'neutral', 'xs')}
+                  title={continuationTooltip}
+                >
+                  Continuation: {continuationStatus.status === 'active' ? 'Active' : 'Ended'} {continuationPercent}%
+                </span>
+              )}
+            </div>
           )}
         </div>
 

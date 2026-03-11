@@ -52,7 +52,7 @@ export class ChimeRuleController {
   private static readonly VALID_RULE_TYPES = new Set(['pattern', 'semantic', 'intent', 'schedule']);
   private static readonly VALID_EXECUTION_TYPES = new Set(['sync', 'async']);
   private static readonly VALID_ACTION_TYPES = new Set(['chat_message', 'insight']);
-  private static readonly VALID_INSIGHT_TYPES = new Set(['action', 'suggestion', 'analysis', 'summary']);
+  private static readonly VALID_INSIGHT_TYPES = new Set(['action', 'suggestion', 'summary', 'document']);
 
   private static validateRulePayload(payload: Partial<RuleDefinition>, mode: 'create' | 'update'): string[] {
     const errors: string[] = [];
@@ -171,7 +171,7 @@ export class ChimeRuleController {
 
         if (action.type === 'insight') {
           if (typeof action.insightType !== 'string' || !this.VALID_INSIGHT_TYPES.has(action.insightType)) {
-            errors.push('action.insightType must be one of: action, suggestion, analysis, summary when action.type=insight');
+            errors.push('action.insightType must be one of: action, suggestion, summary, document when action.type=insight');
           }
         }
       }

@@ -124,11 +124,11 @@ router.delete('/:id', async (req, res, next) => {
  */
 router.post('/generate/summary', async (req, res, next) => {
   try {
-    const { teamId } = req.body
+    const { teamId, archetype } = req.body
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
     }
-    const insight = await AIInsightController.generateSummary(teamId)
+    const insight = await AIInsightController.generateSummary(teamId, archetype)
     res.status(201).json(insight)
   } catch (error) {
     next(error)
@@ -141,11 +141,11 @@ router.post('/generate/summary', async (req, res, next) => {
  */
 router.post('/generate/report', async (req, res, next) => {
   try {
-    const { teamId, prompt } = req.body
+    const { teamId, prompt, archetype } = req.body
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
     }
-    const insight = await AIInsightController.generateReport(teamId, prompt)
+    const insight = await AIInsightController.generateReport(teamId, prompt, archetype)
     res.status(201).json(insight)
   } catch (error) {
     next(error)
@@ -158,11 +158,11 @@ router.post('/generate/report', async (req, res, next) => {
  */
 router.post('/generate/action', async (req, res, next) => {
   try {
-    const { teamId, prompt } = req.body
+    const { teamId, prompt, archetype } = req.body
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
     }
-    const insight = await AIInsightController.generateAction(teamId, prompt)
+    const insight = await AIInsightController.generateAction(teamId, prompt, archetype)
     res.status(201).json(insight)
   } catch (error) {
     next(error)
@@ -175,11 +175,11 @@ router.post('/generate/action', async (req, res, next) => {
  */
 router.post('/generate/suggestion', async (req, res, next) => {
   try {
-    const { teamId, prompt } = req.body
+    const { teamId, prompt, archetype } = req.body
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
     }
-    const insight = await AIInsightController.generateSuggestion(teamId, prompt)
+    const insight = await AIInsightController.generateSuggestion(teamId, prompt, archetype)
     res.status(201).json(insight)
   } catch (error) {
     next(error)

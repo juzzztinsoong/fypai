@@ -1,6 +1,7 @@
 import type { AIInsightDTO } from '@fypai/types'
 
-export type SegmentedAccent = 'brand' | 'success'
+export type SegmentedAccent = 'brand' | 'success' | 'summary' | 'action' | 'suggestion' | 'neutral'
+export type SegmentedStyle = 'solid' | 'pill'
 export type ChipVariant = 'brand' | 'success' | 'warning' | 'danger' | 'neutral' | 'muted'
 export type ChipSize = 'xs' | 'sm' | 'md'
 
@@ -42,6 +43,27 @@ export const uiTokens = {
     buttonActive: {
       brand: 'bg-indigo-100 text-indigo-700',
       success: 'bg-emerald-100 text-emerald-700',
+      summary: 'bg-sky-100 text-sky-700',
+      action: 'bg-amber-100 text-amber-700',
+      suggestion: 'bg-fuchsia-100 text-fuchsia-700',
+      neutral: 'bg-slate-200 text-slate-700',
+    },
+    pillBase: 'text-xs px-2 py-1 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+    pillInactive: {
+      brand: 'border-indigo-300 text-indigo-700 hover:bg-indigo-50',
+      success: 'border-emerald-300 text-emerald-700 hover:bg-emerald-50',
+      summary: 'border-sky-300 text-sky-700 hover:bg-sky-50',
+      action: 'border-amber-300 text-amber-700 hover:bg-amber-50',
+      suggestion: 'border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50',
+      neutral: 'border-slate-300 text-slate-700 hover:bg-slate-50',
+    },
+    pillActive: {
+      brand: 'border-indigo-400 bg-indigo-100 text-indigo-800',
+      success: 'border-emerald-400 bg-emerald-100 text-emerald-800',
+      summary: 'border-sky-400 bg-sky-100 text-sky-800',
+      action: 'border-amber-400 bg-amber-100 text-amber-800',
+      suggestion: 'border-fuchsia-400 bg-fuchsia-100 text-fuchsia-800',
+      neutral: 'border-slate-400 bg-slate-100 text-slate-800',
     },
     count: 'opacity-80',
   },
@@ -88,7 +110,29 @@ export const uiTokens = {
   },
 } as const
 
-export function getSegmentedActiveClass(accent: SegmentedAccent = 'brand'): string {
+export function getSegmentedBaseClass(style: SegmentedStyle = 'solid'): string {
+  return style === 'pill' ? uiTokens.segmented.pillBase : uiTokens.segmented.buttonBase
+}
+
+export function getSegmentedInactiveClass(
+  accent: SegmentedAccent = 'brand',
+  style: SegmentedStyle = 'solid',
+): string {
+  if (style === 'pill') {
+    return uiTokens.segmented.pillInactive[accent]
+  }
+
+  return uiTokens.segmented.buttonInactive
+}
+
+export function getSegmentedActiveClass(
+  accent: SegmentedAccent = 'brand',
+  style: SegmentedStyle = 'solid',
+): string {
+  if (style === 'pill') {
+    return uiTokens.segmented.pillActive[accent]
+  }
+
   return uiTokens.segmented.buttonActive[accent]
 }
 

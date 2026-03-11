@@ -43,6 +43,7 @@ export type {
   TeamMemberDTO,
   MessageDTO,
   MessageMetadata,
+  AgentPromptArchetype,
   TeamWithMembersDTO,
   AIInsightDTO,
   AIInsightMetadata,

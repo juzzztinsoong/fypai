@@ -20,6 +20,15 @@ const EMPTY_RESEARCH_JOBS: readonly ResearchRun[] = Object.freeze([])
 
 export type ResearchRunStatus = 'queued' | 'running' | 'done' | 'failed'
 
+export interface AIContinuationStatus {
+  status: 'active' | 'ended'
+  confidence: number
+  threshold: number
+  trigger: 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command'
+  reason?: string
+  updatedAt: string
+}
+
 export interface ResearchRun {
   id: string
   teamId: string
@@ -60,6 +69,7 @@ interface SessionState {
     onlineUsers: string[]  // userId array (for HMR compatibility)
     typingUsers: Record<string, string[]>  // teamId -> userId[]
     aiProcessing: Record<string, 'thinking' | 'searching-memory' | 'analyzing' | 'idle'> // teamId -> stage
+    aiContinuation: Record<string, AIContinuationStatus | undefined> // teamId -> continuation status
   }
   
   // API Status (per guide section 2.1)
@@ -102,6 +112,8 @@ interface SessionActions {
   getTypingUsers: (teamId: string) => string[]
   setAIProcessingStage: (teamId: string, stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle') => void
   getAIProcessingStage: (teamId: string) => 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
+  setAIContinuation: (teamId: string, status: AIContinuationStatus) => void
+  getAIContinuation: (teamId: string) => AIContinuationStatus | null
   
   // API status methods
   addInFlightRequest: (requestId: string, metadata: any) => void
@@ -142,6 +154,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     onlineUsers: [],
     typingUsers: {},
     aiProcessing: {},
+    aiContinuation: {},
   },
   
   apiStatus: {
@@ -173,6 +186,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       onlineUsers: [],
       typingUsers: {},
       aiProcessing: {},
+      aiContinuation: {},
     },
     apiStatus: {
       inFlightRequests: {},
@@ -346,6 +360,20 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   getAIProcessingStage: (teamId) => {
     return get().presence.aiProcessing[teamId] || 'idle'
+  },
+
+  setAIContinuation: (teamId, status) => set((state) => ({
+    presence: {
+      ...state.presence,
+      aiContinuation: {
+        ...state.presence.aiContinuation,
+        [teamId]: status,
+      },
+    },
+  })),
+
+  getAIContinuation: (teamId) => {
+    return get().presence.aiContinuation[teamId] || null
   },
   
   // ============================================================================

@@ -84,6 +84,7 @@ export type {
   PresenceState,
   AgentPreferencesDTO,
   UpdateAgentPreferencesRequest,
+  AgentPromptArchetype,
   AgentPersonality,
   AgentProactivity,
   AgentResponseLength,

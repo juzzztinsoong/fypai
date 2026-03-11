@@ -154,6 +154,32 @@ export async function initializeRealtime(userId: string): Promise<void> {
         useSessionStore.getState().setAIProcessingStage(data.teamId, data.stage)
       })
 
+      socket.on('ai:continuation', (data: {
+        teamId: string
+        status: 'active' | 'ended'
+        confidence: number
+        threshold: number
+        trigger: 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command'
+        reason?: string
+        updatedAt: string
+      }) => {
+        console.log(
+          '[RealtimeInit] 🧷 Socket: ai:continuation ->',
+          data.status,
+          `${Math.round((data.confidence || 0) * 100)}%`,
+          'in',
+          data.teamId,
+        )
+        useSessionStore.getState().setAIContinuation(data.teamId, {
+          status: data.status,
+          confidence: Math.min(1, Math.max(0, Number(data.confidence) || 0)),
+          threshold: Math.min(1, Math.max(0, Number(data.threshold) || 0.6)),
+          trigger: data.trigger,
+          reason: data.reason,
+          updatedAt: data.updatedAt || new Date().toISOString(),
+        })
+      })
+
       socket.on('research:job:updated', (job: ResearchRun) => {
         console.log('[RealtimeInit] 🔬 Socket: research:job:updated ->', job.id, job.status)
         useSessionStore.getState().upsertResearchRun(job)

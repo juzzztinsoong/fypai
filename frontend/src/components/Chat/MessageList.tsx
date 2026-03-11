@@ -28,6 +28,8 @@ import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
 const AXIS_HOVER_VERTICAL_PAD = 4
+const CHAT_ANCHOR_SYNC_EMIT_INTERVAL_MS = 80
+const CHAT_BOTTOM_SYNC_EMIT_INTERVAL_MS = 150
 
 export const MessageList = () => {
   // Get current team from UIStore
@@ -696,7 +698,7 @@ export const MessageList = () => {
 
             if (enableTimelineSync) {
               const now = Date.now()
-              if (now - lastBottomSyncEmitAtRef.current > 220) {
+              if (now - lastBottomSyncEmitAtRef.current > CHAT_BOTTOM_SYNC_EMIT_INTERVAL_MS) {
                 lastBottomSyncEmitAtRef.current = now
                 window.dispatchEvent(
                   new CustomEvent('fypai:anchor-sync', {
@@ -718,7 +720,7 @@ export const MessageList = () => {
           if (Date.now() < suppressAnchorEmitUntilRef.current) return
 
           const now = Date.now()
-          if (now - lastChatSyncEmitAtRef.current < 120) return
+          if (now - lastChatSyncEmitAtRef.current < CHAT_ANCHOR_SYNC_EMIT_INTERVAL_MS) return
           lastChatSyncEmitAtRef.current = now
 
           const middleIndex = Math.floor((startIndex + endIndex) / 2)
