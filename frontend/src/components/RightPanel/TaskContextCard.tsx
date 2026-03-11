@@ -213,7 +213,7 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', openInEditToken 
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Describe your project goals, current sprint tasks, tech stack, or anything the AI should know about your team's work..."
+              placeholder="Describe your team goals, current tasks, constraints, timeline, or anything the AI should know about your work..."
               className={textareaClassName}
               autoFocus
             />

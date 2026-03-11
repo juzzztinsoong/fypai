@@ -21,6 +21,7 @@ export {
   removeMemberFromTeam,
   getTaskContext,
   updateTaskContext,
+  setTeamAIEnabled,
 } from './teamService'
 
 export { default as teamService } from './teamService'

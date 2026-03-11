@@ -17,7 +17,7 @@ import { InsightsList } from './InsightsList';
 import { AIControlsDrawer } from './AIControlsDrawer';
 import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
-import { getTaskContext } from '@/services/teamService';
+import { getTaskContext, setTeamAIEnabled } from '@/services/teamService';
 import { trackSessionEvent } from '@/services/analyticsService';
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl';
 import { type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
@@ -289,11 +289,26 @@ export const RightPanel = () => {
     });
   }, [allCount, summaryCount, researchCount, actionCount, suggestionCount]);
 
-  const handleToggleAI = () => {
+  const handleToggleAI = async () => {
     if (!currentTeamId) return;
     const newState = !isTeamAIEnabled;
+
+    // Optimistic UI update for immediate feedback.
     useEntityStore.getState().updateTeam(currentTeamId, { isChimeEnabled: newState });
-    socketService.toggleTeamAI(currentTeamId, newState);
+
+    try {
+      await setTeamAIEnabled(currentTeamId, newState);
+
+      // Best effort realtime sync for other connected clients.
+      if (socketService.isConnected()) {
+        socketService.toggleTeamAI(currentTeamId, newState);
+      }
+    } catch (error) {
+      // Roll back local optimistic state when persistence fails.
+      useEntityStore.getState().updateTeam(currentTeamId, { isChimeEnabled: !newState });
+      console.error('[RightPanel] Failed to toggle team AI state:', error);
+      return;
+    }
 
     trackSessionEvent({
       eventType: 'navigation',

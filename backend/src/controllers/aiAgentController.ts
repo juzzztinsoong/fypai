@@ -116,6 +116,22 @@ export class AIAgentController {
     return this.teamAIEnabled.get(teamId) ?? true;
   }
 
+  /**
+   * Resolve AI enabled state using DB team settings as source of truth.
+   * Falls back to in-memory cache, then defaults to enabled.
+   */
+  private static resolveTeamAIEnabled(
+    teamId: string,
+    team?: { isChimeEnabled?: boolean | null },
+  ): boolean {
+    if (typeof team?.isChimeEnabled === 'boolean') {
+      this.teamAIEnabled.set(teamId, team.isChimeEnabled);
+      return team.isChimeEnabled;
+    }
+
+    return this.isAIEnabled(teamId);
+  }
+
   private static countSentences(content: string): number {
     return content
       .split(/[.!?]+/)
@@ -184,7 +200,7 @@ export class AIAgentController {
     }
 
     const normalizedContent = triggerMessage.content.toLowerCase();
-    if (normalizedContent.includes('code') || normalizedContent.includes('implement')) {
+    if (normalizedContent.includes('code')) {
       return {
         archetype: 'implementation-partner',
         source: 'default',
@@ -297,6 +313,21 @@ export class AIAgentController {
 
       if (!team) {
         console.log('[AI Agent] Team not found');
+        return;
+      }
+
+      // 1.5 Global AI gate: if disabled, skip both reactive and autonomous paths.
+      const isTeamAIEnabled = this.resolveTeamAIEnabled(message.teamId, team);
+      if (!isTeamAIEnabled) {
+        this.emitContinuationStatus(message.teamId, {
+          status: 'ended',
+          confidence: 0,
+          trigger: 'confidence-gate',
+          reason: 'AI is disabled for this team.',
+        });
+        console.log(
+          `[AI Agent] 🚫 AI disabled for team ${message.teamId}, skipping reactive/autonomous processing`
+        );
         return;
       }
 
@@ -623,8 +654,7 @@ export class AIAgentController {
     if (triggerMessage.content.toLowerCase().includes('summarize') || 
         triggerMessage.content.toLowerCase().includes('summary')) {
       systemPrompt = SYSTEM_PROMPTS.summarizer;
-    } else if (triggerMessage.content.toLowerCase().includes('code') ||
-               triggerMessage.content.toLowerCase().includes('implement')) {
+    } else if (triggerMessage.content.toLowerCase().includes('code')) {
       systemPrompt = SYSTEM_PROMPTS.codeGenerator;
     }
 

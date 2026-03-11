@@ -160,6 +160,20 @@ export async function updateTaskContext(
   }
 }
 
+/**
+ * Persist team AI enabled state.
+ * PATCH /teams/:id/ai
+ */
+export async function setTeamAIEnabled(teamId: string, enabled: boolean): Promise<void> {
+  try {
+    await api.patch(`/teams/${teamId}/ai`, { enabled })
+    console.log('[TeamService] Team AI state updated:', teamId, enabled)
+  } catch (error) {
+    console.error(`[TeamService] Failed to update AI state for team ${teamId}:`, getErrorMessage(error))
+    throw error
+  }
+}
+
 export default {
   getTeamsForUser,
   getTeamById,
@@ -168,4 +182,5 @@ export default {
   removeMemberFromTeam,
   getTaskContext,
   updateTaskContext,
+  setTeamAIEnabled,
 }

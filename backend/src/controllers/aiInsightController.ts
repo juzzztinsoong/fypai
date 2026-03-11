@@ -737,7 +737,15 @@ export class AIInsightController {
         console.warn('[AIInsightController] Failed to load task context for research:', error);
       }
 
-      const defaultPrompt = 'Generate a comprehensive research brief from the team discussion with context, key topics, decisions, rationale, risks, and open questions. Do not include task lists, assignees, or deadlines.';
+      const defaultPrompt = `Generate a comprehensive research brief from the team discussion.
+
+    Requirements:
+    - Cover context, key topics, decisions, rationale, risks, and open questions.
+    - Keep analysis domain-neutral unless conversation or team task context explicitly defines a domain.
+    - Do not assume software/engineering workflows or suggest tools/frameworks unless explicitly requested.
+    - If context is limited, state neutral assumptions briefly instead of inventing technical details.
+
+    Do not include task lists, assignees, or deadlines.`;
       const reportPrompt = prompt || defaultPrompt;
 
       console.log(`[AIInsightController] Generating research brief for team ${teamId}`);
@@ -933,7 +941,9 @@ Rules:
 - Max 5 recommendations
 - Be specific and low-friction
 - Highlight major tradeoffs when relevant
-- Do not produce task checklists, owners, or deadlines`;
+    - Keep guidance domain-neutral unless conversation or team task context explicitly defines a domain
+    - Do not assume software/engineering workflows or suggest tools/frameworks unless explicitly requested
+    - Do not produce task checklists, owners, or deadlines`;
 
       const suggestionPrompt = prompt || defaultPrompt;
 

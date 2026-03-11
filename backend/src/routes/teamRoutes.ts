@@ -21,6 +21,7 @@
 
 import { Router } from 'express'
 import { TeamController } from '../controllers/teamController.js'
+import { AIAgentController } from '../controllers/aiAgentController.js'
 import { Request, Response, NextFunction } from 'express'
 
 const router = Router()
@@ -81,6 +82,28 @@ router.patch('/:id', async (req, res, next) => {
     const { id } = req.params
     const team = await TeamController.updateTeam(id, req.body)
     res.json(team)
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * PATCH /api/teams/:id/ai
+ * Update team AI enabled state (REST fallback for socket toggles)
+ */
+router.patch('/:id/ai', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const { enabled } = req.body
+
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' })
+    }
+
+    await TeamController.updateTeamAIEnabled(id, enabled)
+    AIAgentController.setAIEnabled(id, enabled)
+
+    res.json({ teamId: id, enabled })
   } catch (error) {
     next(error)
   }
