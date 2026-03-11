@@ -76,6 +76,9 @@ const COMPOSER_SEGMENTS: SegmentedControlItem<ComposerOverrideMode>[] = [
   { key: 'research', label: 'Research', accent: 'success' },
 ]
 
+const COMPOSER_MIN_HEIGHT_PX = 40
+const COMPOSER_MAX_HEIGHT_PX = 144
+
 const QUICK_ACTION_BASE_CLASS = getSegmentedBaseClass('pill')
 
 const QUICK_ACTION_CLASS: Record<'agent' | 'summary' | 'action' | 'suggestion', string> = {
@@ -118,6 +121,7 @@ export const ChatWindow = () => {
     source: 'manual-override' | 'server-classifier' | 'frontend-fallback'
   } | null>(null)
   const composerRef = useRef<HTMLTextAreaElement | null>(null)
+  const footerRef = useRef<HTMLDivElement | null>(null)
   
   // Get current team from UIStore
   const currentTeamId = useUIStore((state) => state.currentTeamId)
@@ -485,6 +489,39 @@ export const ChatWindow = () => {
       }`
     : undefined
 
+  useEffect(() => {
+    const textarea = composerRef.current
+    if (!textarea) return
+
+    textarea.style.height = '0px'
+    const nextHeight = Math.min(
+      COMPOSER_MAX_HEIGHT_PX,
+      Math.max(COMPOSER_MIN_HEIGHT_PX, textarea.scrollHeight),
+    )
+    textarea.style.height = `${nextHeight}px`
+    textarea.style.overflowY = textarea.scrollHeight > COMPOSER_MAX_HEIGHT_PX ? 'auto' : 'hidden'
+  }, [newMessage])
+
+  useEffect(() => {
+    const footer = footerRef.current
+    if (!footer) return
+
+    const syncFooterHeight = () => {
+      const nextHeight = Math.ceil(footer.getBoundingClientRect().height)
+      document.documentElement.style.setProperty('--fypai-chat-footer-height', `${nextHeight}px`)
+    }
+
+    syncFooterHeight()
+    const observer = new ResizeObserver(() => {
+      syncFooterHeight()
+    })
+    observer.observe(footer)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
   return (
     <main className="flex-1 min-w-0 flex flex-col h-screen">
       {/* Fixed Header */}
@@ -498,9 +535,9 @@ export const ChatWindow = () => {
       </div>
 
       {/* Fixed Footer - Message Composer */}
-      <div className={`flex-shrink-0 ${uiTokens.layout.railFooter} px-4 py-3 border-t border-gray-200 bg-white`}>
+      <div ref={footerRef} className="flex-shrink-0 min-h-[136px] px-4 py-3 border-t border-gray-200 bg-white">
         <div className="mb-2 space-y-1.5">
-          <div className="flex items-center flex-wrap gap-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <SegmentedControl
               items={COMPOSER_SEGMENTS}
               activeKey={composerOverrideMode}
@@ -544,7 +581,7 @@ export const ChatWindow = () => {
           </div>
 
           {(lastRouteDecision || continuationStatus) && (
-            <div className="flex items-center flex-wrap gap-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {lastRouteDecision && routeConfidencePercent !== null && (
                 <span
                   className={getChipClass(getRouteConfidenceVariant(lastRouteDecision.confidence), 'xs')}
@@ -578,7 +615,7 @@ export const ChatWindow = () => {
               }
             }}
             placeholder={effectiveMode === 'research' ? 'Ask a research question...' : 'Type a message...'}
-            className="flex-1 min-h-[40px] max-h-32 px-3 py-2 text-sm leading-5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+            className="flex-1 min-h-[40px] px-3 py-2 text-sm leading-5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
             rows={1}
           />
           <button

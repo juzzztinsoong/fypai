@@ -28,12 +28,13 @@ import {
   type ChipVariant,
 } from '@/styles/uiTokens'
 
-// Mock users for testing typing indicators
-const TEST_USERS = [
-  { id: 'user1', name: 'Alice', role: 'admin' as const },
-  { id: 'user2', name: 'Bob', role: 'member' as const },
-  { id: 'user3', name: 'Charlie', role: 'member' as const },
-]
+interface SwitchableUser {
+  id: string
+  name: string
+  email: string | null
+  avatar: string | null
+  role: 'admin' | 'member'
+}
 
 let sidebarRenderCount = 0
 
@@ -185,6 +186,43 @@ export const Sidebar = () => {
   const visibleTeams = allTeams.filter(team =>
     team.members.some(m => m.userId === currentUser?.id)
   )
+
+  // Build dynamic switchable users from currently visible team members.
+  const switchableUsers = useMemo<SwitchableUser[]>(() => {
+    const byId = new Map<string, SwitchableUser>()
+
+    for (const team of visibleTeams) {
+      for (const member of team.members) {
+        if (member.role === 'agent') {
+          continue
+        }
+
+        if (!byId.has(member.userId)) {
+          byId.set(member.userId, {
+            id: member.userId,
+            name: member.name,
+            email: member.email,
+            avatar: member.avatar,
+            role: member.role === 'admin' ? 'admin' : 'member',
+          })
+        }
+      }
+    }
+
+    const priorityOrder = ['user1', 'user2', 'user3']
+    return Array.from(byId.values()).sort((a, b) => {
+      const aIndex = priorityOrder.indexOf(a.id)
+      const bIndex = priorityOrder.indexOf(b.id)
+
+      if (aIndex !== -1 || bIndex !== -1) {
+        if (aIndex === -1) return 1
+        if (bIndex === -1) return -1
+        return aIndex - bIndex
+      }
+
+      return a.name.localeCompare(b.name)
+    })
+  }, [visibleTeams])
 
   // Get avatar color for current user
   const userAvatarColor = allTeams.length > 0 && currentUser
@@ -483,16 +521,16 @@ export const Sidebar = () => {
 
               {showUserMenu && (
                 <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                  {TEST_USERS.map((testUser) => (
+                  {switchableUsers.map((switchUser) => (
                     <button
-                      key={testUser.id}
+                      key={switchUser.id}
                       onClick={async () => {
                         setCurrentUser({
-                          id: testUser.id,
-                          name: testUser.name,
-                          email: null,
-                          avatar: null,
-                          role: testUser.role,
+                          id: switchUser.id,
+                          name: switchUser.name,
+                          email: switchUser.email,
+                          avatar: switchUser.avatar,
+                          role: switchUser.role,
                           createdAt: new Date().toISOString(),
                         })
 
@@ -503,18 +541,21 @@ export const Sidebar = () => {
                           actorUserId: currentUser?.id,
                           metadata: {
                             fromUserId: currentUser?.id,
-                            toUserId: testUser.id,
-                            toUserName: testUser.name,
+                            toUserId: switchUser.id,
+                            toUserName: switchUser.name,
                           },
                         })
 
-                        console.log('[Sidebar] 🔄 Refetching teams for new user:', testUser.id)
+                        console.log('[Sidebar] 🔄 Refetching teams for new user:', switchUser.id)
                         try {
-                          await getTeamsForUser(testUser.id)
+                          const teams = await getTeamsForUser(switchUser.id)
 
-                          const teams = useEntityStore.getState().entities.teams
-                          const firstTeamId = Object.keys(teams)[0]
-                          if (firstTeamId) {
+                          const shouldKeepCurrent = currentTeamId
+                            ? teams.some((team) => team.id === currentTeamId)
+                            : false
+
+                          if (!shouldKeepCurrent) {
+                            const firstTeamId = teams[0]?.id ?? null
                             setCurrentTeamId(firstTeamId)
                             console.log('[Sidebar] Set current team:', firstTeamId)
                           }
@@ -523,8 +564,8 @@ export const Sidebar = () => {
                         }
 
                         if (socketService.isConnected()) {
-                          console.log('[Sidebar] 📤 Sending presence:online for new user:', testUser.id)
-                          socketService.getSocket()?.emit('presence:online', { userId: testUser.id })
+                          console.log('[Sidebar] 📤 Sending presence:online for new user:', switchUser.id)
+                          socketService.getSocket()?.emit('presence:online', { userId: switchUser.id })
 
                           console.log('[Sidebar] 📋 Requesting current online users list')
                           socketService.getOnlineUsers()
@@ -533,23 +574,26 @@ export const Sidebar = () => {
                         setShowUserMenu(false)
                       }}
                       className={`w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 ${
-                        currentUser?.id === testUser.id ? 'bg-indigo-50' : ''
+                        currentUser?.id === switchUser.id ? 'bg-indigo-50' : ''
                       }`}
                     >
-                      <div className={`w-7 h-7 rounded-full ${getAvatarBackgroundColor(testUser.id, allTeams[0]?.members || [])} flex items-center justify-center text-white font-semibold text-xs`}>
-                        {getUserInitials(testUser.name)}
+                      <div className={`w-7 h-7 rounded-full ${getAvatarBackgroundColor(switchUser.id, visibleTeams[0]?.members || [])} flex items-center justify-center text-white font-semibold text-xs`}>
+                        {getUserInitials(switchUser.name)}
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-gray-900">{testUser.name}</p>
-                        <p className="text-[11px] text-gray-500">{testUser.id}</p>
+                        <p className="text-xs font-medium text-gray-900">{switchUser.name}</p>
+                        <p className="text-[11px] text-gray-500">{switchUser.id}</p>
                       </div>
-                      {currentUser?.id === testUser.id && (
+                      {currentUser?.id === switchUser.id && (
                         <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
                     </button>
                   ))}
+                  {switchableUsers.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-gray-500">No users available for switching.</div>
+                  )}
                 </div>
               )}
             </div>

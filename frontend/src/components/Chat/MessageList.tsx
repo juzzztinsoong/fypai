@@ -13,7 +13,7 @@ import { useEffect, useRef, useMemo, useState } from 'react'
 import { useEntityStore } from '@/stores/entityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore } from '@/stores/sessionStore'
-import type { MessageDTO } from '@/types'
+import type { AIInsightDTO, MessageDTO } from '@/types'
 import { getMessages } from '@/services/messageService'
 import { trackSessionEvent } from '@/services/analyticsService'
 import { TypingIndicator } from './TypingIndicator'
@@ -30,6 +30,137 @@ const EMPTY_ARRAY: readonly string[] = Object.freeze([])
 const AXIS_HOVER_VERTICAL_PAD = 4
 const CHAT_ANCHOR_SYNC_EMIT_INTERVAL_MS = 80
 const CHAT_BOTTOM_SYNC_EMIT_INTERVAL_MS = 150
+const GENERIC_MARKER_TITLES = new Set([
+  'conversation summary',
+  'summary',
+  'research brief',
+  'brief',
+  'action item',
+  'action items',
+  'help',
+  'help recommendations',
+  'recommendations',
+  'analysis',
+  'insight',
+  'decision made',
+])
+
+const sanitizeMarkerTitle = (raw: string): string => {
+  return raw
+    .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+    .replace(/^[-*]\s*(?:\[[ xX]\]\s*)?/, '')
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/`/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[\s:;.,-]+$/, '')
+}
+
+const normalizeMarkerTitle = (raw: string): string => {
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+const truncateMarkerTitle = (title: string, maxLength = 96): string => {
+  if (title.length <= maxLength) return title
+  const slice = title.slice(0, maxLength + 1)
+  const lastSpace = slice.lastIndexOf(' ')
+  const cutoff = lastSpace > Math.floor(maxLength * 0.6) ? lastSpace : maxLength
+  return `${slice.slice(0, cutoff).trimEnd()}...`
+}
+
+const isGenericMarkerTitle = (title: string): boolean => {
+  const normalized = normalizeMarkerTitle(title)
+  if (!normalized) return true
+  if (GENERIC_MARKER_TITLES.has(normalized)) return true
+
+  const wordCount = normalized.split(' ').filter(Boolean).length
+  if (
+    wordCount <= 3 &&
+    /summary|brief|help|action|item|analysis|insight|recommendation|decision/.test(normalized)
+  ) {
+    return true
+  }
+
+  return false
+}
+
+const extractMarkerTitleFromInsightContent = (content?: string): string | null => {
+  if (!content) return null
+
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+
+  const choose = (raw: string): string | null => {
+    const candidate = sanitizeMarkerTitle(raw)
+    if (!candidate || candidate.length < 8 || isGenericMarkerTitle(candidate)) return null
+    return truncateMarkerTitle(candidate)
+  }
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^#{1,6}\s+(.+)$/)
+    if (headingMatch) {
+      const candidate = choose(headingMatch[1])
+      if (candidate) return candidate
+    }
+  }
+
+  for (const line of lines) {
+    const bulletMatch = line.match(/^[-*]\s+(?:\[[ xX]\]\s*)?(.+)$/)
+    const numberedMatch = line.match(/^\d+\.\s+(.+)$/)
+    const candidate = choose((bulletMatch || numberedMatch)?.[1] || '')
+    if (candidate) return candidate
+  }
+
+  for (const line of lines) {
+    if (/^#{1,6}\s+/.test(line)) continue
+    if (/^[-*]\s+/.test(line)) continue
+    if (/^\d+\.\s+/.test(line)) continue
+    const firstSentence = line.split(/[.!?]/)[0] || line
+    const candidate = choose(firstSentence)
+    if (candidate) return candidate
+  }
+
+  return null
+}
+
+const resolveMarkerInsightTitle = (
+  linkedInsight: AIInsightDTO | undefined,
+  sourceActionTitle: string | undefined,
+  markerContent: string,
+): string => {
+  const linkedTitle = sanitizeMarkerTitle(linkedInsight?.title || '')
+  if (linkedTitle && !isGenericMarkerTitle(linkedTitle)) {
+    return truncateMarkerTitle(linkedTitle)
+  }
+
+  const fromInsightContent = extractMarkerTitleFromInsightContent(linkedInsight?.content)
+  if (fromInsightContent) {
+    return fromInsightContent
+  }
+
+  const sourceTitle = sanitizeMarkerTitle(sourceActionTitle || '')
+  if (sourceTitle && !isGenericMarkerTitle(sourceTitle)) {
+    return truncateMarkerTitle(sourceTitle)
+  }
+
+  if (linkedTitle) {
+    return truncateMarkerTitle(linkedTitle)
+  }
+
+  if (sourceTitle) {
+    return truncateMarkerTitle(sourceTitle)
+  }
+
+  const fromMarkerContent = extractMarkerTitleFromInsightContent(markerContent)
+  return fromMarkerContent || markerContent
+}
 
 export const MessageList = () => {
   // Get current team from UIStore
@@ -42,6 +173,7 @@ export const MessageList = () => {
   )
   const messagesById = useEntityStore((state) => state.entities.messages)
   const usersById = useEntityStore((state) => state.entities.users)
+  const insightsById = useEntityStore((state) => state.entities.insights)
   
   // Map to data in useMemo to prevent re-renders
   const messages = useMemo(() => {
@@ -488,6 +620,9 @@ export const MessageList = () => {
           if (isInsightLinkMarker) {
             const insightId = message.metadata?.linkedInsightId
             const markerLabel = message.metadata?.markerLabel?.toLowerCase() || ''
+            const linkedInsight = insightId ? insightsById[insightId] : undefined
+            const isHiddenInsightMarker =
+              linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived'
             const inferredInsightType =
               message.metadata?.linkedInsightType ||
               (markerLabel.includes('action')
@@ -503,6 +638,15 @@ export const MessageList = () => {
               insightId,
               insightType: inferredInsightType,
             })
+            const displayMarkerLabel = (message.metadata?.markerLabel || 'Insight').replace(
+              /\b\w/g,
+              (character) => character.toUpperCase()
+            )
+            const markerTitle = resolveMarkerInsightTitle(
+              linkedInsight,
+              message.metadata?.sourceActionTitle,
+              message.content,
+            )
             return (
               <div
                 id={`marker-${message.id}`}
@@ -541,17 +685,24 @@ export const MessageList = () => {
                       },
                     }))
                   }}
-                  className={`max-w-[85%] rounded-md border px-4 py-2.5 text-left text-xs leading-5 ${visuals.marker}`}
+                  className={`max-w-[85%] rounded-md border px-4 py-2.5 text-left text-xs leading-5 ${
+                    isHiddenInsightMarker
+                      ? 'border-slate-300 bg-slate-100 text-slate-500 hover:bg-slate-100'
+                      : visuals.marker
+                  }`}
                 >
                   <span className="flex items-center gap-2">
-                    <span className={`inline-flex shrink-0 items-center gap-1 font-semibold leading-5 ${visuals.icon}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${visuals.dot}`} />
-                      <span>🔗 {message.metadata?.markerLabel || 'Insight'} Marker</span>
+                    <span
+                      className={`inline-flex shrink-0 items-center gap-1 font-semibold leading-5 ${
+                        isHiddenInsightMarker ? 'text-slate-600' : visuals.icon
+                      }`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${isHiddenInsightMarker ? 'bg-slate-400' : visuals.dot}`} />
+                      <span>🔗 {displayMarkerLabel} Marker</span>
                     </span>
                     <span className="min-w-0 flex-1 truncate text-current leading-5">
-                      {message.metadata?.sourceActionTitle || message.content}
+                      {markerTitle}
                     </span>
-                    <span className="shrink-0 text-[11px] opacity-80 leading-5">(open insight)</span>
                   </span>
                 </button>
               </div>

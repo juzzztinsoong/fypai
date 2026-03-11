@@ -17,6 +17,7 @@ import { InsightsList } from './InsightsList';
 import { AIControlsDrawer } from './AIControlsDrawer';
 import { TaskContextCard } from './TaskContextCard';
 import { getInsights } from '@/services/insightService';
+import { getTaskContext } from '@/services/teamService';
 import { trackSessionEvent } from '@/services/analyticsService';
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl';
 import { type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
@@ -54,8 +55,12 @@ export const RightPanel = () => {
   const currentTeam = useEntityStore((state) => 
     currentTeamId ? state.getTeam(currentTeamId) : null
   );
-  const currentUserId = useSessionStore((state) => state.currentUser?.id);
+  const currentUser = useSessionStore((state) => state.currentUser);
+  const currentUserId = currentUser?.id;
   const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync);
+  const storedTaskContext = useEntityStore((state) =>
+    currentTeamId ? state.taskContexts[currentTeamId] || null : null
+  );
   
   // Get insight IDs (stable array reference)
   const insightIds = useEntityStore((state) => state.getTeamInsights(currentTeamId || ''));
@@ -78,6 +83,7 @@ export const RightPanel = () => {
   const [showArchivedSuggestions, setShowArchivedSuggestions] = useState(false);
   const [showCompletedActions, setShowCompletedActions] = useState(false);
   const [showTaskContext, setShowTaskContext] = useState(false);
+  const [contextEditToken, setContextEditToken] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const applyingExternalSyncRef = useRef(false);
   const suppressAnchorEmitUntilRef = useRef(0);
@@ -92,10 +98,37 @@ export const RightPanel = () => {
 
   // Fetch insights when team changes
   useEffect(() => {
-    if (currentTeamId) {
-      getInsights(currentTeamId);
-    }
+    if (!currentTeamId) return;
+
+    let isCancelled = false;
+    getInsights(currentTeamId);
+
+    getTaskContext(currentTeamId)
+      .then((context) => {
+        if (isCancelled) return;
+        useEntityStore.getState().setTaskContext(currentTeamId, context);
+      })
+      .catch((error) => {
+        console.error('[RightPanel] Failed to load task context:', error);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentTeamId]);
+
+  const hasProjectContext = Boolean(storedTaskContext?.content?.trim());
+  const projectContextPreview = useMemo(() => {
+    const content = storedTaskContext?.content?.trim();
+    if (!content) return '';
+
+    const normalized = content
+      .replace(/^#+\s*/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return normalized.length > 180 ? `${normalized.slice(0, 177)}...` : normalized;
+  }, [storedTaskContext?.content]);
 
   // Sort insights by date (oldest first, newest at bottom like chat)
   const insights = useMemo(() => {
@@ -273,9 +306,9 @@ export const RightPanel = () => {
     });
   };
 
-  const handleToggleTaskContext = () => {
-    const nextVisible = !showTaskContext;
-    setShowTaskContext(nextVisible);
+  const handleOpenTaskContextEditor = useCallback(() => {
+    setShowTaskContext(true);
+    setContextEditToken((token) => token + 1);
 
     trackSessionEvent({
       eventType: 'navigation',
@@ -283,10 +316,27 @@ export const RightPanel = () => {
       teamId: currentTeamId || undefined,
       actorUserId: currentUserId,
       metadata: {
-        visible: nextVisible,
+        visible: true,
+        source: 'header-edit-button',
+        editMode: true,
       },
     });
-  };
+  }, [currentTeamId, currentUserId]);
+
+  const handleCloseTaskContext = useCallback(() => {
+    setShowTaskContext(false);
+
+    trackSessionEvent({
+      eventType: 'navigation',
+      eventName: 'task_context_panel_toggled',
+      teamId: currentTeamId || undefined,
+      actorUserId: currentUserId,
+      metadata: {
+        visible: false,
+        source: 'popover-close',
+      },
+    });
+  }, [currentTeamId, currentUserId]);
 
   const handleContentFilterChange = (nextFilter: ContentFilter) => {
     if (nextFilter === contentFilter) return;
@@ -517,12 +567,15 @@ export const RightPanel = () => {
       <div className="flex-shrink-0">
         <RightPanelHeader
           isContextVisible={showTaskContext}
-          onToggleContext={handleToggleTaskContext}
+          hasProjectContext={hasProjectContext}
+          projectContextPreview={projectContextPreview}
+          onEditContext={handleOpenTaskContextEditor}
+          onCloseContext={handleCloseTaskContext}
         >
           <TaskContextCard
             teamId={currentTeamId}
             mode="embedded"
-            onClose={() => setShowTaskContext(false)}
+            openInEditToken={contextEditToken}
           />
         </RightPanelHeader>
       </div>
@@ -693,7 +746,13 @@ export const RightPanel = () => {
         )}
       </div>
 
-      <div className={`relative flex-shrink-0 ${uiTokens.layout.railFooter} bg-white`}>
+      <div
+        className={`relative flex-shrink-0 ${uiTokens.layout.railFooter} bg-white`}
+        style={{
+          height: 'var(--fypai-chat-footer-height, 136px)',
+          minHeight: 'var(--fypai-chat-footer-height, 136px)',
+        }}
+      >
         {/* Bottom Insight Tabs */}
         <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center border-t border-gray-200`}>
           <SegmentedControl

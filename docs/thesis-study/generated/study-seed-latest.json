@@ -1,0 +1,115 @@
+{
+  "templateId": "trio-abba-6",
+  "generatedAt": "2026-03-11T17:27:48.568Z",
+  "teams": [
+    {
+      "id": "study-team-01",
+      "name": "Study Team 01",
+      "participantIds": [
+        "study-user-01-01",
+        "study-user-01-02",
+        "study-user-01-03"
+      ],
+      "runOrder": "AB",
+      "scenarioVariant": "A",
+      "runOneCondition": "AI_ON",
+      "runTwoCondition": "AI_LIGHT"
+    },
+    {
+      "id": "study-team-02",
+      "name": "Study Team 02",
+      "participantIds": [
+        "study-user-02-01",
+        "study-user-02-02",
+        "study-user-02-03"
+      ],
+      "runOrder": "BA",
+      "scenarioVariant": "B",
+      "runOneCondition": "AI_LIGHT",
+      "runTwoCondition": "AI_ON"
+    },
+    {
+      "id": "study-team-03",
+      "name": "Study Team 03",
+      "participantIds": [
+        "study-user-03-01",
+        "study-user-03-02",
+        "study-user-03-03"
+      ],
+      "runOrder": "AB",
+      "scenarioVariant": "B",
+      "runOneCondition": "AI_ON",
+      "runTwoCondition": "AI_LIGHT"
+    },
+    {
+      "id": "study-team-04",
+      "name": "Study Team 04",
+      "participantIds": [
+        "study-user-04-01",
+        "study-user-04-02",
+        "study-user-04-03"
+      ],
+      "runOrder": "BA",
+      "scenarioVariant": "A",
+      "runOneCondition": "AI_LIGHT",
+      "runTwoCondition": "AI_ON"
+    },
+    {
+      "id": "study-team-05",
+      "name": "Study Team 05",
+      "participantIds": [
+        "study-user-05-01",
+        "study-user-05-02",
+        "study-user-05-03"
+      ],
+      "runOrder": "AB",
+      "scenarioVariant": "A",
+      "runOneCondition": "AI_ON",
+      "runTwoCondition": "AI_LIGHT"
+    },
+    {
+      "id": "study-team-06",
+      "name": "Study Team 06",
+      "participantIds": [
+        "study-user-06-01",
+        "study-user-06-02",
+        "study-user-06-03"
+      ],
+      "runOrder": "BA",
+      "scenarioVariant": "B",
+      "runOneCondition": "AI_LIGHT",
+      "runTwoCondition": "AI_ON"
+    }
+  ],
+  "profiles": {
+    "AI_ON": {
+      "label": "AI-on",
+      "isChimeEnabled": true,
+      "presetId": "balanced",
+      "preferences": {
+        "personality": "balanced",
+        "proactivity": "helpful",
+        "responseLength": "balanced",
+        "modelTierOverride": "auto"
+      },
+      "facilitatorNote": "Autonomous support enabled; use as full-assist condition."
+    },
+    "AI_LIGHT": {
+      "label": "AI-light",
+      "isChimeEnabled": false,
+      "presetId": "conservative",
+      "preferences": {
+        "personality": "balanced",
+        "proactivity": "silent",
+        "responseLength": "concise",
+        "modelTierOverride": "tier1"
+      },
+      "facilitatorNote": "Reduced autonomy and concise responses; use as baseline condition."
+    }
+  },
+  "instructions": [
+    "Run 2 conditions per team using assigned AB/BA order.",
+    "Collect Full JSON, Timeline JSON, and Metrics CSV after each condition.",
+    "Administer post-task survey immediately after each condition."
+  ]
+}

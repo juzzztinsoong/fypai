@@ -45,6 +45,152 @@ export class AIInsightController {
   private static llm = new GitHubModelsClient();
   private static io: SocketIOServer | null = null;
   private static readonly ACTIVE_INSIGHT_TYPES = new Set(['summary', 'document', 'action', 'suggestion']);
+  private static readonly GENERIC_TITLE_SET = new Set([
+    'conversation summary',
+    'summary',
+    'research brief',
+    'brief',
+    'report',
+    'action item',
+    'action items',
+    'help',
+    'help recommendations',
+    'recommendations',
+    'analysis',
+    'insight',
+    'ai insight',
+    'decision made',
+  ]);
+
+  private static sanitizeTitleCandidate(raw: string): string {
+    return raw
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/^[-*]\s*(?:\[[ xX]\]\s*)?/, '')
+      .replace(/^#{1,6}\s+/, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/`/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[\s:;.,-]+$/, '');
+  }
+
+  private static normalizeTitleForComparison(raw: string): string {
+    return raw
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  private static truncateTitle(title: string, maxLength = 96): string {
+    if (title.length <= maxLength) return title;
+
+    const slice = title.slice(0, maxLength + 1);
+    const lastSpace = slice.lastIndexOf(' ');
+    const cutoff = lastSpace > Math.floor(maxLength * 0.6) ? lastSpace : maxLength;
+    return `${slice.slice(0, cutoff).trimEnd()}...`;
+  }
+
+  private static isTitleGeneric(rawTitle: string): boolean {
+    const normalized = this.normalizeTitleForComparison(rawTitle);
+    if (!normalized) return true;
+
+    if (this.GENERIC_TITLE_SET.has(normalized)) return true;
+
+    const wordCount = normalized.split(' ').filter(Boolean).length;
+    if (
+      wordCount <= 3 &&
+      /summary|brief|help|action|item|analysis|insight|report|recommendation|decision/.test(normalized)
+    ) {
+      return true;
+    }
+
+    if (/^ai\s+/.test(normalized) && wordCount <= 4) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private static extractDescriptiveTitleFromContent(
+    type: CreateAIInsightRequest['type'],
+    content: string,
+  ): string | null {
+    const lines = content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const chooseCandidate = (candidateRaw: string): string | null => {
+      const candidate = this.sanitizeTitleCandidate(candidateRaw);
+      if (!candidate) return null;
+      if (candidate.length < 8) return null;
+      if (this.isTitleGeneric(candidate)) return null;
+      return candidate;
+    };
+
+    for (const line of lines) {
+      const headingMatch = line.match(/^#{1,6}\s+(.+)$/);
+      if (!headingMatch) continue;
+
+      const candidate = chooseCandidate(headingMatch[1]);
+      if (candidate) return candidate;
+    }
+
+    if (type === 'action' || type === 'suggestion') {
+      for (const line of lines) {
+        const bulletMatch = line.match(/^[-*]\s+(?:\[[ xX]\]\s*)?(.+)$/);
+        const numberedMatch = line.match(/^\d+\.\s+(.+)$/);
+        const candidate = chooseCandidate((bulletMatch || numberedMatch)?.[1] || '');
+        if (candidate) return candidate;
+      }
+    }
+
+    for (const line of lines) {
+      if (/^#{1,6}\s+/.test(line)) continue;
+      if (/^[-*]\s+/.test(line)) continue;
+      if (/^\d+\.\s+/.test(line)) continue;
+
+      const firstSentence = line.split(/[.!?]/)[0] || line;
+      const candidate = chooseCandidate(firstSentence);
+      if (candidate) return candidate;
+    }
+
+    const plainText = this.sanitizeTitleCandidate(content.replace(/\s+/g, ' '));
+    if (!plainText) return null;
+
+    const words = plainText.split(' ').filter(Boolean);
+    if (words.length === 0) return null;
+
+    const condensed = words.slice(0, 12).join(' ');
+    return chooseCandidate(condensed);
+  }
+
+  private static getDefaultTitleByType(type: CreateAIInsightRequest['type']): string {
+    if (type === 'summary') return 'Summary Insight';
+    if (type === 'document') return 'Research Insight';
+    if (type === 'action') return 'Action Insight';
+    if (type === 'suggestion') return 'Help Insight';
+    return 'Insight';
+  }
+
+  private static resolveInsightTitle(data: Pick<CreateAIInsightRequest, 'type' | 'title' | 'content'>): string {
+    const providedTitle = this.sanitizeTitleCandidate(data.title || '');
+    if (providedTitle && !this.isTitleGeneric(providedTitle)) {
+      return this.truncateTitle(providedTitle);
+    }
+
+    const fromContent = this.extractDescriptiveTitleFromContent(data.type, data.content || '');
+    if (fromContent) {
+      return this.truncateTitle(fromContent);
+    }
+
+    if (providedTitle) {
+      return this.truncateTitle(providedTitle);
+    }
+
+    return this.getDefaultTitleByType(data.type);
+  }
 
   private static emitProcessingStage(
     teamId: string,
@@ -140,12 +286,12 @@ export class AIInsightController {
     }
 
     const markerLabelByType: Record<string, string> = {
-      action: 'Action item',
+      action: 'Action Item',
       summary: 'Summary',
-      document: 'Research brief',
+      document: 'Research Brief',
       suggestion: 'Help',
       analysis: 'Analysis',
-      code: 'Code output',
+      code: 'Code Output',
     }
 
     const markerLabel = markerLabelByType[insight.type] || 'Insight'
@@ -293,6 +439,15 @@ export class AIInsightController {
     }
 
     const sanitizedMetadata = this.sanitizeInsightMetadata(data.metadata);
+    const resolvedTitle = this.resolveInsightTitle({
+      type: data.type,
+      title: data.title,
+      content: data.content,
+    });
+
+    if (resolvedTitle !== data.title) {
+      console.log(`[AIInsightController] 🏷️ Refined insight title "${data.title}" -> "${resolvedTitle}"`);
+    }
 
     await this.assertNoDuplicatePromotedAction(data.teamId, data.type, sanitizedMetadata);
 
@@ -300,7 +455,7 @@ export class AIInsightController {
       data: {
         teamId: data.teamId,
         type: data.type,
-        title: data.title,
+        title: resolvedTitle,
         content: data.content,
         priority: data.priority || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
@@ -515,8 +670,6 @@ export class AIInsightController {
       });
 
       console.log(`[AIInsightController] 📝 LLM generated summary content (${response.content.length} chars)`);
-
-      await this.archiveSupersededLongForm(teamId, 'summary');
 
       const insightDTO = await this.createInsight({
         teamId,

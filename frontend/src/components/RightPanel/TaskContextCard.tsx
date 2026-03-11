@@ -17,10 +17,10 @@ import ReactMarkdown from 'react-markdown';
 interface TaskContextCardProps {
   teamId: string;
   mode?: 'collapsible' | 'embedded';
-  onClose?: () => void;
+  openInEditToken?: number;
 }
 
-export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskContextCardProps) => {
+export const TaskContextCard = ({ teamId, mode = 'collapsible', openInEditToken }: TaskContextCardProps) => {
   const isEmbedded = mode === 'embedded';
   const storedContext = useEntityStore((state) => state.taskContexts[teamId]);
   const currentUser = useSessionStore((state) => state.currentUser);
@@ -69,6 +69,11 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskC
     setIsEditing(true);
     setIsExpanded(true);
   }, [content]);
+
+  useEffect(() => {
+    if (typeof openInEditToken !== 'number') return;
+    handleStartEdit();
+  }, [openInEditToken, handleStartEdit]);
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
@@ -155,9 +160,7 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskC
     ? 'rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5'
     : 'bg-indigo-50/80 border-b border-indigo-100';
 
-  const headerClassName = isEmbedded
-    ? 'px-4 py-3 border-b border-slate-100 flex items-center justify-between'
-    : 'px-5 py-2 flex items-center justify-between';
+  const headerClassName = 'px-5 py-2 flex items-center justify-between';
 
   const bodyClassName = isEmbedded ? 'px-4 py-3' : 'px-5 pb-3';
 
@@ -170,56 +173,38 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskC
   // ── Expanded view ──
   return (
     <div className={wrapperClassName}>
-      {/* Expanded header */}
-      <div className={headerClassName}>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm">📋</span>
-          <h3 className={`text-[11px] font-semibold uppercase tracking-wide ${isEmbedded ? 'text-slate-700' : 'text-indigo-800'}`}>
-            Project Context
-          </h3>
-          <span className={`text-xs ${isEmbedded ? 'text-slate-400' : 'text-indigo-400'}`}>(grounding AI)</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          {!isEditing && (
-            <button
-              type="button"
-              onClick={handleStartEdit}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                isEmbedded
-                  ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-                  : 'text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700'
-              }`}
-            >
-              Edit
-            </button>
-          )}
+      {!isEmbedded && (
+        <div className={headerClassName}>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">📋</span>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-indigo-800">
+              Project Context
+            </h3>
+            <span className="text-xs text-indigo-400">(grounding AI)</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={handleStartEdit}
+                className="text-xs px-2 py-0.5 rounded transition-colors text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
+              >
+                Edit
+              </button>
+            )}
 
-          {isEmbedded && onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-              aria-label="Close project context"
-              title="Close project context"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6L6 18" />
-                <path d="M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-
-          {!isEmbedded && !isEditing && (
-            <button
-              type="button"
-              onClick={() => setIsExpanded(false)}
-              className="text-xs px-1 py-0.5 rounded text-indigo-400 hover:text-indigo-600 transition-colors"
-            >
-              ▴
-            </button>
-          )}
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(false)}
+                className="text-xs px-1 py-0.5 rounded text-indigo-400 hover:text-indigo-600 transition-colors"
+              >
+                ▴
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content / Editor */}
       <div className={bodyClassName}>
@@ -232,10 +217,7 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskC
               className={textareaClassName}
               autoFocus
             />
-            <div className="flex items-center justify-between">
-              <span className={`text-xs ${isEmbedded ? 'text-slate-400' : 'text-indigo-400'}`}>
-                Markdown supported
-              </span>
+            <div className="flex items-center justify-end">
               <div className="flex space-x-2">
                 <button
                   type="button"
@@ -270,7 +252,7 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', onClose }: TaskC
           </div>
         ) : (
           <p className={`text-sm italic ${isEmbedded ? 'text-slate-500' : 'text-indigo-400'}`}>
-            No context set yet. Click <strong>Edit</strong> to describe your project — the AI will use this to give more relevant responses.
+            No context set yet. Use <strong>Edit Context</strong> to describe your project — the AI will use this to give more relevant responses.
           </p>
         )}
       </div>
