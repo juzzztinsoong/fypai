@@ -253,7 +253,7 @@ export const Sidebar = () => {
 
   if (isLoading) {
     return (
-      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
+      <aside className="w-60 h-screen bg-white border-r border-gray-200 flex flex-col fixed overflow-y-auto overflow-x-hidden">
         <div className="px-5 py-4">
           <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
           <div className="mt-6 text-gray-500">Loading teams...</div>
@@ -264,7 +264,7 @@ export const Sidebar = () => {
 
   if (error) {
     return (
-      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
+      <aside className="w-60 h-screen bg-white border-r border-gray-200 flex flex-col fixed overflow-y-auto overflow-x-hidden">
         <div className="px-5 py-4">
           <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
           <div className="mt-6 text-red-500">Error: {error}</div>
@@ -274,7 +274,7 @@ export const Sidebar = () => {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
+    <aside className="w-60 h-screen bg-white border-r border-gray-200 flex flex-col fixed overflow-y-auto overflow-x-hidden">
       {/* Teams Section */}
       <div className="px-5 py-4">
         <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
