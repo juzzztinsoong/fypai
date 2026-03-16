@@ -13,6 +13,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { getTaskContext, updateTaskContext } from '@/services/teamService';
 import { trackSessionEvent } from '@/services/analyticsService';
 import ReactMarkdown from 'react-markdown';
+import { getElevationClass } from '@/styles/uiTokens';
 
 interface TaskContextCardProps {
   teamId: string;
@@ -111,7 +112,7 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', openInEditToken 
   if (isLoading) {
     if (isEmbedded) {
       return (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5 p-4">
+        <div className={`rounded-xl border border-slate-200 bg-white p-4 ${getElevationClass('raised')}`}>
           <div className="h-3 bg-slate-200 rounded w-1/3 animate-pulse" />
         </div>
       );
@@ -157,7 +158,7 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', openInEditToken 
   }
 
   const wrapperClassName = isEmbedded
-    ? 'rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5'
+    ? `rounded-xl border border-slate-200 bg-white ${getElevationClass('raised')}`
     : 'bg-indigo-50/80 border-b border-indigo-100';
 
   const headerClassName = 'px-5 py-2 flex items-center justify-between';

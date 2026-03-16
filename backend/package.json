@@ -17,7 +17,8 @@
     "db:reset": "tsx src/reset.ts",
     "db:seed": "tsx src/seed.ts",
     "seed": "tsx src/seed.ts",
-    "seed:study": "tsx src/seedStudy.ts"
+    "seed:study": "tsx src/seedStudy.ts",
+    "test:agent-pipeline": "node tests/test-agent-ingestion-embedding.js"
   },
   "keywords": [],
   "author": "",

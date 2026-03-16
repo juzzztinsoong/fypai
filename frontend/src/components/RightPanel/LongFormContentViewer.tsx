@@ -11,6 +11,7 @@ import { CodeOutputCard } from './CodeOutputCard';
 import { ReportCard } from './ReportCard';
 import { InsightFrame } from './InsightFrame';
 import ReactMarkdown from 'react-markdown';
+import { getElevationClass } from '@/styles/uiTokens';
 import { sanitizeInsightContent } from '@/utils/insightContent';
 import { getInsightTypeTheme } from './insightUtils';
 
@@ -109,7 +110,7 @@ export const LongFormContentViewer = ({ insights, onJumpToSource, onJumpToChatMa
           <InsightFrame
             key={insight.id}
             insight={insight}
-            title={insight.type === 'document' ? 'Research Brief' : 'Document'}
+            title={insight.type === 'document' ? 'Research' : 'Document'}
             icon={
               <svg
                 className={`w-5 h-5 ${theme.icon}`}
@@ -125,7 +126,7 @@ export const LongFormContentViewer = ({ insights, onJumpToSource, onJumpToChatMa
                 />
               </svg>
             }
-            containerClassName={`rounded-lg shadow-sm border p-5 ${theme.card}`}
+            containerClassName={`rounded-lg border p-5 ${getElevationClass('surface')} ${theme.card}`}
             titleClassName={`font-semibold ${theme.title}`}
             content={content}
             onJumpToSource={onJumpToSource}

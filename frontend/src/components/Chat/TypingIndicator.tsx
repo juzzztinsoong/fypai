@@ -13,6 +13,8 @@
  * - Users: Left-aligned with gray bubble and avatar placeholder
  */
 
+import { getElevationClass } from '@/styles/uiTokens'
+
 interface TypingIndicatorProps {
   userNames: string[]
   isAgentTyping?: boolean
@@ -57,7 +59,7 @@ export const TypingIndicator = ({ userNames, isAgentTyping, aiStage = 'idle' }: 
         </div>
         <div className="flex flex-col items-start">
           <span className="text-xs text-gray-500 mb-1">{userNames.length > 1 ? 'Multiple users' : userNames[0]}</span>
-          <div className="border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
+          <div className={`border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-3 py-2 ${getElevationClass('surface')} flex items-center gap-2`}>
             <span className="text-sm">{getUserMessage()}</span>
             <AnimatedDots />
           </div>

@@ -8,6 +8,7 @@
 import type { AIInsightDTO } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import { InsightFrame } from './InsightFrame';
+import { getElevationClass } from '@/styles/uiTokens';
 import { sanitizeInsightContent } from '@/utils/insightContent';
 
 interface SummaryCardProps {
@@ -58,7 +59,7 @@ export const SummaryCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Sum
           />
         </svg>
       }
-      containerClassName="bg-white rounded-lg shadow-sm border border-slate-200 p-5"
+      containerClassName={`bg-white rounded-lg border border-slate-200 p-5 transition-shadow duration-200 ${getElevationClass('raised')}`}
       titleClassName="font-semibold text-sky-950"
       content={content}
       onJumpToSource={onJumpToSource}

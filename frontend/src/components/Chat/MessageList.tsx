@@ -9,10 +9,10 @@
  *
  * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
  */
-import { useEffect, useRef, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { useEntityStore } from '@/stores/entityStore'
 import { useUIStore } from '@/stores/uiStore'
-import { useSessionStore } from '@/stores/sessionStore'
+import { useSessionStore, type AIProcessingTargetType } from '@/stores/sessionStore'
 import type { AIInsightDTO, MessageDTO } from '@/types'
 import { getMessages } from '@/services/messageService'
 import { trackSessionEvent } from '@/services/analyticsService'
@@ -22,7 +22,9 @@ import { RAGContextPanel } from './RAGContextPanel'
 import { FeedbackButtons } from './FeedbackButtons'
 import { getAvatarBackgroundColor, getMessageSurfaceTheme, getUserInitials } from '../../utils/avatarUtils'
 import { getLinkVisuals } from '@/utils/linkVisuals'
-import { getChipClass } from '@/styles/uiTokens'
+import { emitDraftPromotion, extractDraftExcerpt } from '@/utils/draftComposer'
+import { getMarkerProvenance } from '@/utils/provenance'
+import { getChipClass, getElevationClass } from '@/styles/uiTokens'
 import ReactMarkdown from 'react-markdown'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 
@@ -30,10 +32,11 @@ const EMPTY_ARRAY: readonly string[] = Object.freeze([])
 const AXIS_HOVER_VERTICAL_PAD = 4
 const CHAT_ANCHOR_SYNC_EMIT_INTERVAL_MS = 80
 const CHAT_BOTTOM_SYNC_EMIT_INTERVAL_MS = 150
+const REPLY_PREVIEW_MAX_CHARS = 160
 const GENERIC_MARKER_TITLES = new Set([
   'conversation summary',
   'summary',
-  'research brief',
+  'research',
   'brief',
   'action item',
   'action items',
@@ -162,6 +165,35 @@ const resolveMarkerInsightTitle = (
   return fromMarkerContent || markerContent
 }
 
+const truncateReplyPreview = (raw: string): string => {
+  const normalized = raw.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= REPLY_PREVIEW_MAX_CHARS) return normalized
+
+  const slice = normalized.slice(0, REPLY_PREVIEW_MAX_CHARS + 1)
+  const lastSpace = slice.lastIndexOf(' ')
+  const cutoff = lastSpace > Math.floor(REPLY_PREVIEW_MAX_CHARS * 0.65) ? lastSpace : REPLY_PREVIEW_MAX_CHARS
+  return `${slice.slice(0, cutoff).trimEnd()}...`
+}
+
+const formatProcessingTargetLabel = (targetType?: AIProcessingTargetType): string | null => {
+  if (!targetType) return null
+  if (targetType === 'summary') return 'Summary'
+  if (targetType === 'document') return 'Research'
+  if (targetType === 'action') return 'Action Items'
+  if (targetType === 'suggestion') return 'Help'
+  if (targetType === 'chat') return 'Response'
+  return null
+}
+
+type ReplyPreviewTarget = {
+  kind: 'message' | 'insight'
+  id: string
+  label: string
+  excerpt: string
+}
+
+type MessageFocusSource = 'reply-preview' | 'draft-context' | 'external'
+
 export const MessageList = () => {
   // Get current team from UIStore
   const currentTeamId = useUIStore((state) => state.currentTeamId)
@@ -195,6 +227,9 @@ export const MessageList = () => {
   const currentUser = useSessionStore((state) => state.currentUser)
   const aiProcessingStage = useSessionStore((state) =>
     state.getAIProcessingStage(currentTeamId || '')
+  )
+  const aiProcessingDetail = useSessionStore((state) =>
+    state.getAIProcessingDetail(currentTeamId || '')
   )
   
   // Get loading/error states from UIStore
@@ -233,25 +268,67 @@ export const MessageList = () => {
     
     return typingUserIds
       .filter((id) => id !== currentUser.id && id !== 'agent')
-      .map((id) => {
-        const user = useEntityStore.getState().getUser(id)
-        return user?.name || null
-      })
+      .map((id) => usersById[id]?.name?.trim() || null)
       .filter((name): name is string => name !== null)
-  }, [typingUserIds, currentUser])
+  }, [typingUserIds, currentUser, usersById])
 
-  const pendingMarkerLabel = useMemo(() => {
-    if (aiProcessingStage === 'searching-memory') return 'Research marker'
-    if (aiProcessingStage === 'analyzing') return 'Insight marker'
-    if (isInsightGenerationLoading) return 'Insight marker'
-    return 'Summary marker'
-  }, [aiProcessingStage, isInsightGenerationLoading])
+  const effectiveProcessingStage =
+    aiProcessingStage !== 'idle' ? aiProcessingStage : isInsightGenerationLoading ? 'thinking' : 'idle'
+
+  const pendingTargetLabel = useMemo(
+    () => formatProcessingTargetLabel(aiProcessingDetail?.targetType),
+    [aiProcessingDetail?.targetType],
+  )
+
+  const pendingMarkerTag = useMemo(() => {
+    if (!pendingTargetLabel || pendingTargetLabel === 'Response') return null
+    return pendingTargetLabel
+  }, [pendingTargetLabel])
+
+  const pendingMarkerStatus = useMemo(() => {
+    const explicitLabel = aiProcessingDetail?.label?.trim()
+    if (explicitLabel) return explicitLabel
+
+    if (effectiveProcessingStage === 'thinking') {
+      return pendingTargetLabel
+        ? `Thinking through ${pendingTargetLabel.toLowerCase()} request`
+        : 'Thinking through request'
+    }
+
+    if (effectiveProcessingStage === 'searching-memory') {
+      return 'Searching team memory'
+    }
+
+    if (effectiveProcessingStage === 'analyzing') {
+      return pendingTargetLabel
+        ? `Generating ${pendingTargetLabel.toLowerCase()}`
+        : 'Generating insight'
+    }
+
+    return 'Preparing generation'
+  }, [aiProcessingDetail?.label, effectiveProcessingStage, pendingTargetLabel])
 
   const showPendingInsightMarker =
-    aiProcessingStage !== 'idle' || isInsightGenerationLoading
+    effectiveProcessingStage !== 'idle'
 
   const hasFooterActivity =
     showPendingInsightMarker || typingUserNames.length > 0
+
+  const handlePromoteMessageToDraft = useCallback((message: MessageDTO, sourceLabel: string) => {
+    if (!currentTeamId) return
+
+    const excerpt = extractDraftExcerpt(message.content)
+    if (!excerpt) return
+
+    emitDraftPromotion({
+      sourceType: 'message',
+      sourceId: message.id,
+      sourceLabel,
+      excerpt,
+      parentMessageId: message.id,
+      teamId: currentTeamId,
+    })
+  }, [currentTeamId])
 
   // Fetch messages when team changes
   useEffect(() => {
@@ -291,6 +368,225 @@ export const MessageList = () => {
     })
     return indexMap
   }, [messages])
+
+  const messageIndexById = useMemo(() => {
+    const indexMap: Record<string, number> = {}
+    messages.forEach((message, index) => {
+      indexMap[message.id] = index
+    })
+    return indexMap
+  }, [messages])
+
+  const focusMessageById = useCallback(
+    (messageId: string, source: MessageFocusSource = 'external') => {
+      if (!messageId) return
+
+      const messageIndex = messageIndexById[messageId]
+      if (typeof messageIndex !== 'number') return
+
+      trackSessionEvent({
+        eventType: 'navigation',
+        eventName: 'focus_chat_message',
+        teamId: currentTeamId || undefined,
+        actorUserId: currentUser?.id,
+        messageId,
+        metadata: {
+          source,
+        },
+      })
+
+      virtuosoRef.current?.scrollToIndex({ index: messageIndex, align: 'center', behavior: 'smooth' })
+
+      const escapedMessageId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(messageId) : messageId
+      setTimeout(() => {
+        const target = document.querySelector<HTMLElement>(`[data-message-id="${escapedMessageId}"]`)
+        if (!target) return
+
+        target.classList.add('fypai-link-highlight')
+        setTimeout(() => {
+          target.classList.remove('fypai-link-highlight')
+        }, 1800)
+      }, 220)
+    },
+    [messageIndexById, currentTeamId, currentUser?.id],
+  )
+
+  const focusInsightFromReplyPreview = useCallback(
+    (insightId: string) => {
+      if (!insightId) return
+
+      trackSessionEvent({
+        eventType: 'navigation',
+        eventName: 'focus_insight_from_reply_preview',
+        teamId: currentTeamId || undefined,
+        actorUserId: currentUser?.id,
+        insightId,
+      })
+
+      window.dispatchEvent(
+        new CustomEvent('fypai:focus-insight', {
+          detail: {
+            insightId,
+            preferredTab: 'all',
+            source: 'reply-preview',
+          },
+        }),
+      )
+    },
+    [currentTeamId, currentUser?.id],
+  )
+
+  const resolveReplyPreviewTargets = useCallback(
+    (message: MessageDTO): ReplyPreviewTarget[] => {
+      const targets: ReplyPreviewTarget[] = []
+      const seenTargetKeys = new Set<string>()
+
+      const pushTarget = (target: ReplyPreviewTarget | null) => {
+        if (!target) return
+        const key = `${target.kind}:${target.id}`
+        if (seenTargetKeys.has(key)) return
+        seenTargetKeys.add(key)
+        targets.push(target)
+      }
+
+      const buildMessageTarget = (messageId?: string): ReplyPreviewTarget | null => {
+        if (!messageId) return null
+
+        const referencedMessage = messagesById[messageId]
+        if (!referencedMessage?.content?.trim()) return null
+
+        const authorLabel =
+          referencedMessage.authorId === 'agent'
+            ? 'AI'
+            : referencedMessage.authorId === currentUser?.id
+            ? 'You'
+            : usersById[referencedMessage.authorId]?.name || 'Teammate'
+
+        return {
+          kind: 'message',
+          id: referencedMessage.id,
+          label: `Replying to ${authorLabel}`,
+          excerpt: truncateReplyPreview(referencedMessage.content),
+        }
+      }
+
+      const buildInsightTarget = (insightId?: string, labelHint?: string): ReplyPreviewTarget | null => {
+        if (!insightId) return null
+
+        const sourceInsight = insightsById[insightId]
+        const sourceLabel =
+          sourceInsight?.title?.trim() || labelHint?.trim() || 'Insight'
+        const sourceExcerpt =
+          extractDraftExcerpt(sourceInsight?.content || sourceLabel, REPLY_PREVIEW_MAX_CHARS) || sourceLabel
+
+        return {
+          kind: 'insight',
+          id: insightId,
+          label: `Replying to ${truncateReplyPreview(sourceLabel)}`,
+          excerpt: sourceExcerpt,
+        }
+      }
+
+      pushTarget(buildMessageTarget(message.metadata?.parentMessageId))
+
+      const draftSourceMessageIds = Array.isArray(message.metadata?.draftSourceMessageIds)
+        ? message.metadata.draftSourceMessageIds
+        : []
+      draftSourceMessageIds.forEach((messageId) => {
+        pushTarget(buildMessageTarget(messageId))
+      })
+
+      const draftSourceInsightIds = Array.isArray(message.metadata?.draftSourceInsightIds)
+        ? message.metadata.draftSourceInsightIds
+        : []
+      const draftContextLabels = Array.isArray(message.metadata?.draftContextLabels)
+        ? message.metadata.draftContextLabels
+        : []
+
+      draftSourceInsightIds.forEach((insightId, index) => {
+        pushTarget(buildInsightTarget(insightId, draftContextLabels[index]))
+      })
+
+      return targets
+    },
+    [messagesById, insightsById, currentUser?.id, usersById],
+  )
+
+  const renderReplyPreview = useCallback(
+    (message: MessageDTO, align: 'left' | 'center' | 'right') => {
+      const targets = resolveReplyPreviewTargets(message)
+      if (targets.length === 0) return null
+
+      const wrapperClass =
+        align === 'right'
+          ? 'mb-2 w-full rounded-md border border-indigo-200/90 bg-indigo-50/80 px-2 py-1 text-left text-[11px] leading-4 text-indigo-900 transition hover:border-indigo-300 hover:bg-indigo-100/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300'
+          : align === 'center'
+          ? 'mb-2 w-full rounded-md border border-slate-300/80 bg-white/80 px-2 py-1 text-left text-[11px] leading-4 text-slate-700 transition hover:border-slate-400 hover:bg-slate-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300'
+          : 'mb-2 w-full rounded-md border border-slate-300/80 bg-slate-50/80 px-2 py-1 text-left text-[11px] leading-4 text-slate-700 transition hover:border-slate-400 hover:bg-slate-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300'
+
+      const jumpClass = align === 'right' ? 'text-indigo-700' : 'text-slate-600'
+      const rowClass =
+        align === 'right'
+          ? 'w-full rounded px-1.5 py-1 text-left transition hover:bg-indigo-100/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300'
+          : 'w-full rounded px-1.5 py-1 text-left transition hover:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300'
+      const targetTagClass =
+        align === 'right'
+          ? 'inline-flex items-center rounded border border-indigo-200 bg-indigo-100/80 px-1 py-0 text-[10px] font-semibold text-indigo-700'
+          : 'inline-flex items-center rounded border border-slate-300 bg-slate-100 px-1 py-0 text-[10px] font-semibold text-slate-600'
+
+      const summaryLabel =
+        targets.length > 1 ? `Replying to ${targets.length} sources` : targets[0].label
+
+      return (
+        <div className={wrapperClass} role="group" aria-label={summaryLabel}>
+          {targets.length > 1 && (
+            <div className="mb-1 px-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
+              {summaryLabel}
+            </div>
+          )}
+          <div className="space-y-1">
+            {targets.map((target) => {
+              const jumpLabel = target.kind === 'message' ? 'Jump to message' : 'Jump to insight'
+              const targetKindLabel = target.kind === 'message' ? 'Message' : 'Insight'
+              const targetDisplayLabel =
+                targets.length > 1 ? target.label.replace(/^Replying to\s+/i, '') : target.label
+
+              const handleClick = () => {
+                if (target.kind === 'message') {
+                  focusMessageById(target.id, 'reply-preview')
+                  return
+                }
+
+                focusInsightFromReplyPreview(target.id)
+              }
+
+              return (
+                <button
+                  key={`${target.kind}:${target.id}`}
+                  type="button"
+                  onClick={handleClick}
+                  className={rowClass}
+                  title={`${target.label}: ${target.excerpt}`}
+                >
+                  <div className="mb-0.5 flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate font-medium">{targetDisplayLabel}</span>
+                    <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide ${jumpClass}`}>
+                      {jumpLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={targetTagClass}>{targetKindLabel}</span>
+                    <span className="min-w-0 truncate">{target.excerpt}</span>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )
+    },
+    [resolveReplyPreviewTargets, focusMessageById, focusInsightFromReplyPreview],
+  )
 
   useEffect(() => {
     if (!currentTeamId || messages.length === 0) return
@@ -364,6 +660,28 @@ export const MessageList = () => {
       window.clearTimeout(timeoutId)
     }
   }, [hasFooterActivity, messages.length, aiProcessingStage])
+
+  useEffect(() => {
+    const handleFocusChatMessage = (event: Event) => {
+      const customEvent = event as CustomEvent<{ messageId?: string; source?: MessageFocusSource }>
+      const messageId = customEvent.detail?.messageId
+      if (!messageId) return
+
+      const source =
+        customEvent.detail?.source === 'draft-context'
+          ? 'draft-context'
+          : customEvent.detail?.source === 'reply-preview'
+          ? 'reply-preview'
+          : 'external'
+
+      focusMessageById(messageId, source)
+    }
+
+    window.addEventListener('fypai:focus-chat-message', handleFocusChatMessage as EventListener)
+    return () => {
+      window.removeEventListener('fypai:focus-chat-message', handleFocusChatMessage as EventListener)
+    }
+  }, [focusMessageById])
 
   useEffect(() => {
     const handleFocusChatMarker = (event: Event) => {
@@ -597,13 +915,21 @@ export const MessageList = () => {
           const userTheme = getMessageSurfaceTheme(currentUser.id, members)
           const userAvatarBgColor = getAvatarBackgroundColor(currentUser.id, members)
           return (
-            <div className="flex justify-end">
+            <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-end">
               <div className="group flex items-center space-x-2">
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-500 mb-1">You</span>
-                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 shadow-sm w-fit min-w-[4rem] max-w-[70%}`}>
+                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 ${getElevationClass('surface')} w-fit min-w-[4rem] max-w-[70%}`}>
+                    {renderReplyPreview(message, 'right')}
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handlePromoteMessageToDraft(message, 'You')}
+                    className="mt-1 text-[11px] text-slate-500 opacity-0 transition-opacity hover:text-slate-700 group-hover:opacity-100"
+                  >
+                    Reply
+                  </button>
                 </div>
                 <div className="relative">
                   <div className={`w-8 h-8 rounded-full ${userAvatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
@@ -647,9 +973,41 @@ export const MessageList = () => {
               message.metadata?.sourceActionTitle,
               message.content,
             )
+            const markerPreview =
+              typeof message.metadata?.markerPreview === 'string'
+                ? truncateReplyPreview(message.metadata.markerPreview)
+                : ''
+            const markerProvenance = getMarkerProvenance(message.metadata, linkedInsight?.metadata)
+            const markerSourceToken =
+              typeof message.metadata?.markerSource === 'string'
+                ? message.metadata.markerSource.toLowerCase()
+                : ''
+            const markerIsAutonomous = markerSourceToken.includes('autonomous')
+            const markerCardTheme = isHiddenInsightMarker
+              ? 'border-slate-300 bg-slate-100 text-slate-500'
+              : markerIsAutonomous
+              ? 'border-amber-300/80 bg-amber-50/90 text-amber-950'
+              : 'border-violet-200/80 bg-white/95 text-violet-950'
+            const markerAccentRail = isHiddenInsightMarker
+              ? 'bg-slate-300'
+              : markerIsAutonomous
+              ? 'bg-amber-400'
+              : 'bg-violet-400'
+            const markerAvatarTheme = isHiddenInsightMarker
+              ? 'bg-slate-500 border-slate-400'
+              : markerIsAutonomous
+              ? 'bg-amber-700 border-amber-600'
+              : 'bg-violet-700 border-violet-500'
+            const markerTypeChipClass = isHiddenInsightMarker
+              ? 'inline-flex items-center rounded border border-slate-300 bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600'
+              : `inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${visuals.pill}`
+            const markerMetaChipClass = isHiddenInsightMarker
+              ? 'inline-flex items-center rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600'
+              : 'inline-flex items-center rounded border border-slate-300/80 bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-600'
             return (
               <div
                 id={`marker-${message.id}`}
+                data-message-id={message.id}
                 className="flex justify-center"
               >
                 <button
@@ -685,25 +1043,53 @@ export const MessageList = () => {
                       },
                     }))
                   }}
-                  className={`max-w-[85%] rounded-md border px-4 py-2.5 text-left text-xs leading-5 ${
+                  className={`relative max-w-[85%] rounded-2xl border px-4 py-3 text-left text-xs leading-5 transition ${
                     isHiddenInsightMarker
-                      ? 'border-slate-300 bg-slate-100 text-slate-500 hover:bg-slate-100'
-                      : visuals.marker
+                      ? markerCardTheme
+                      : `${markerCardTheme} ${getElevationClass('raised')}`
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex shrink-0 items-center gap-1 font-semibold leading-5 ${
-                        isHiddenInsightMarker ? 'text-slate-600' : visuals.icon
-                      }`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${isHiddenInsightMarker ? 'bg-slate-400' : visuals.dot}`} />
-                      <span>🔗 {displayMarkerLabel} Marker</span>
+                  <span
+                    className={`absolute left-0 top-3 h-8 w-1 rounded-r-full ${markerAccentRail}`}
+                    aria-hidden="true"
+                  />
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <span className={`relative inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold text-white ${markerAvatarTheme}`}>
+                        AI
+                        <span className="absolute -bottom-0.5 -right-0.5 block h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white" />
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">AI Marker</span>
+                      <span className={markerTypeChipClass}>{displayMarkerLabel}</span>
                     </span>
+                  </span>
+                  <span className="mt-1.5 flex items-center gap-2">
+                    <span className={`h-1.5 w-1.5 rounded-full ${isHiddenInsightMarker ? 'bg-slate-400' : visuals.dot}`} />
                     <span className="min-w-0 flex-1 truncate text-current leading-5">
                       {markerTitle}
                     </span>
                   </span>
+                  {markerPreview && (
+                    <span className={`mt-1 block text-[11px] leading-4 ${isHiddenInsightMarker ? 'text-slate-500' : 'text-slate-600'}`}>
+                      {markerPreview}
+                    </span>
+                  )}
+                  {(markerProvenance.source || markerProvenance.trigger || markerProvenance.createdBy || markerProvenance.detail) && (
+                    <span className="mt-2 flex flex-wrap items-center gap-1.5 leading-4">
+                      {markerProvenance.source && (
+                        <span className={markerMetaChipClass}>Source: {markerProvenance.source}</span>
+                      )}
+                      {markerProvenance.trigger && (
+                        <span className={markerMetaChipClass}>Trigger: {markerProvenance.trigger}</span>
+                      )}
+                      {markerProvenance.createdBy && (
+                        <span className={markerMetaChipClass}>By: {markerProvenance.createdBy}</span>
+                      )}
+                      {markerProvenance.detail && (
+                        <span className={markerMetaChipClass}>Detail: {markerProvenance.detail}</span>
+                      )}
+                    </span>
+                  )}
                 </button>
               </div>
             )
@@ -712,15 +1098,25 @@ export const MessageList = () => {
           // Agent: center, brand accent
           const tier = message.agentMetadata?.tier;
           const isAutonomous = Boolean(message.metadata?.chimeRuleName);
-          const agentBubbleTheme = isAutonomous
-            ? 'bg-amber-50 border-amber-300 text-amber-950'
-            : 'bg-violet-100 border-violet-500 text-violet-950';
+          const agentCardTheme = isAutonomous
+            ? 'border-amber-300/80 bg-amber-50/90 text-amber-950'
+            : 'border-violet-200/80 bg-white/95 text-violet-950';
+          const agentAccentRail = isAutonomous ? 'bg-amber-400' : 'bg-violet-400';
+          const agentAvatarTheme = isAutonomous
+            ? 'bg-amber-700 border-amber-600'
+            : 'bg-violet-700 border-violet-500';
 
           return (
-            <div className="flex justify-center">
-              <div className="flex flex-col items-center max-w-[80%]">
+            <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-center px-2 py-2">
+              <div
+                className={`relative flex max-w-[80%] flex-col items-center rounded-2xl border p-3 ${getElevationClass('raised')} ${agentCardTheme}`}
+              >
+                <span
+                  className={`absolute left-0 top-3 h-8 w-1 rounded-r-full ${agentAccentRail}`}
+                  aria-hidden="true"
+                />
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="relative w-6 h-6 rounded-full bg-violet-700 flex items-center justify-center text-white text-[10px] font-semibold border border-violet-500">
+                  <div className={`relative w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold border ${agentAvatarTheme}`}>
                     AI
                     <span className="absolute -bottom-0.5 -right-0.5 block h-2 w-2 rounded-full bg-emerald-600 ring-1 ring-white"></span>
                   </div>
@@ -728,7 +1124,7 @@ export const MessageList = () => {
                     <span
                       className={
                         tier === 'tier1'
-                          ? 'inline-flex items-center rounded-md border border-emerald-700 bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm'
+                          ? `inline-flex items-center rounded-md border border-emerald-700 bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white ${getElevationClass('surface')}`
                           : getChipClass('brand', 'xs')
                       }
                     >
@@ -741,7 +1137,8 @@ export const MessageList = () => {
                     </span>
                   )}
                 </div>
-                <div className={`rounded-xl p-3 shadow-sm w-full border ${agentBubbleTheme}`}>
+                <div className="w-full rounded-xl p-2.5">
+                  {renderReplyPreview(message, 'center')}
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="whitespace-pre-wrap break-words font-medium mb-2 last:mb-0">{children}</p>,
@@ -782,6 +1179,13 @@ export const MessageList = () => {
                   userId={currentUser?.id}
                   chimeRuleId={message.metadata?.chimeRuleId}
                 />
+                <button
+                  type="button"
+                  onClick={() => handlePromoteMessageToDraft(message, 'AI Reply')}
+                  className="mt-2 inline-flex items-center rounded-md border border-indigo-600 bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-indigo-700"
+                >
+                  Reply
+                </button>
               </div>
             </div>
           )
@@ -791,7 +1195,7 @@ export const MessageList = () => {
           const userTheme = getMessageSurfaceTheme(message.authorId, members)
           const avatarBgColor = getAvatarBackgroundColor(message.authorId, members)
           return (
-            <div className="flex justify-start">
+            <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-start">
               <div className="group flex items-center space-x-2">
                 <div className="relative">
                   <div className={`w-8 h-8 rounded-full ${avatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
@@ -803,9 +1207,17 @@ export const MessageList = () => {
                 </div>
                 <div className="flex flex-col items-start">
                   <span className={`text-xs mb-1 ${userTheme.bubbleMutedText}`}>{member?.name || 'User'}</span>
-                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] shadow-sm ${userTheme.bubbleBg} ${userTheme.bubbleText}`}> 
+                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] ${getElevationClass('surface')} ${userTheme.bubbleBg} ${userTheme.bubbleText}`}> 
+                    {renderReplyPreview(message, 'left')}
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handlePromoteMessageToDraft(message, member?.name || 'Teammate')}
+                    className="mt-1 text-[11px] text-slate-500 opacity-0 transition-opacity hover:text-slate-700 group-hover:opacity-100"
+                  >
+                    Reply
+                  </button>
                 </div>
               </div>
             </div>
@@ -912,18 +1324,30 @@ export const MessageList = () => {
               <div className="px-4 py-2">
                 {showPendingInsightMarker && (
                   <div className="mb-2 flex justify-center">
-                    <div className="max-w-[85%] rounded-md border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-xs text-indigo-700">
-                      <div className="flex items-center gap-2 leading-5">
-                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-300 border-t-indigo-600" />
-                        <span className="font-semibold">🔗 {pendingMarkerLabel}</span>
-                        <span className="opacity-90">Generating...</span>
+                    <div className={`relative max-w-[80%] rounded-2xl border border-violet-200/80 bg-white/95 px-4 py-3 text-xs text-violet-950 ${getElevationClass('raised')}`}>
+                      <span className="absolute left-0 top-3 h-8 w-1 rounded-r-full bg-violet-400" aria-hidden="true" />
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-violet-500 bg-violet-700 text-[9px] font-semibold text-white">
+                          AI
+                          <span className="absolute -bottom-0.5 -right-0.5 block h-1.5 w-1.5 rounded-full bg-emerald-500 ring-1 ring-white" />
+                        </span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">AI</span>
+                        {pendingMarkerTag && (
+                          <span className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
+                            {pendingMarkerTag}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 leading-5 text-slate-700">
+                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-violet-300 border-t-violet-600" />
+                        <span className="font-semibold">{pendingMarkerStatus}</span>
                       </div>
                     </div>
                   </div>
                 )}
                 <TypingIndicator
                   userNames={typingUserNames}
-                  aiStage={aiProcessingStage}
+                  aiStage={effectiveProcessingStage}
                 />
               </div>
             ) : null,
@@ -935,7 +1359,7 @@ export const MessageList = () => {
           <button
             type="button"
             onClick={handleJumpToLatest}
-            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md transition hover:border-slate-400 hover:bg-white"
+            className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-700 ${getElevationClass('raised')} transition hover:border-slate-400 hover:bg-white`}
           >
             <span>Jump to latest</span>
             {unseenMessageCount > 0 && (

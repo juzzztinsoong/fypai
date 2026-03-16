@@ -4,6 +4,7 @@ export type SegmentedAccent = 'brand' | 'success' | 'summary' | 'action' | 'sugg
 export type SegmentedStyle = 'solid' | 'pill'
 export type ChipVariant = 'brand' | 'success' | 'warning' | 'danger' | 'neutral' | 'muted'
 export type ChipSize = 'xs' | 'sm' | 'md'
+export type ElevationLevel = 'surface' | 'raised' | 'floating' | 'overlay'
 
 type InsightType = AIInsightDTO['type']
 
@@ -26,6 +27,12 @@ const markerIconByType: Record<InsightType, string> = {
 }
 
 export const uiTokens = {
+  elevation: {
+    surface: 'shadow-[0_1px_3px_rgba(15,23,42,0.08),0_1px_2px_rgba(15,23,42,0.06)]',
+    raised: 'shadow-[0_8px_22px_-10px_rgba(15,23,42,0.28),0_3px_8px_rgba(15,23,42,0.12)]',
+    floating: 'shadow-[0_18px_42px_-20px_rgba(15,23,42,0.46),0_8px_18px_-10px_rgba(15,23,42,0.2)]',
+    overlay: 'shadow-[0_30px_64px_-30px_rgba(15,23,42,0.58),0_14px_28px_-14px_rgba(15,23,42,0.28)]',
+  },
   layout: {
     railHeader: 'h-[72px]',
     railFooter: 'h-[112px]',
@@ -159,4 +166,8 @@ export function getSwitchTrackClass(isEnabled: boolean): string {
 
 export function getSwitchThumbClass(isEnabled: boolean): string {
   return isEnabled ? uiTokens.controls.switch.thumbOn : uiTokens.controls.switch.thumbOff
+}
+
+export function getElevationClass(level: ElevationLevel = 'surface'): string {
+  return uiTokens.elevation[level]
 }

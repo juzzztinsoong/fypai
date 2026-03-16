@@ -26,6 +26,26 @@ export interface SyncClassification {
   confidence: number;
 }
 
+export interface ReplyNeedContext {
+  previousMessage?: MessageDTO;
+  previousAgentMessage?: MessageDTO;
+  routeConfidence?: number;
+}
+
+export interface ReplyNeedAssessment {
+  requiresResponse: boolean;
+  isContinuation: boolean;
+  intent: IntentType;
+  urgency: UrgencyLevel;
+  confidence: number;
+  reason: string;
+}
+
+const ACK_ONLY_PATTERN = /^(ok(?:ay)?|k|kk|thanks|thank you|thx|got it|noted|sounds good|cool|great|understood|makes sense|roger|yep|yeah|nope|nah|lol|haha|all good)[.!\s]*$/i;
+const CONTINUATION_CUE_PATTERN = /^(also|and|but|so|then|because|actually|about that|for that|on that|regarding that|what about|can you|could you|should we|do we)\b/i;
+const FOLLOW_UP_INVITE_PATTERN = /(let me know|which (one|area|part)|where (to|you) (want|wanna)|want to dive deeper|what should we explore|pick one|choose one)/i;
+const TOPIC_PHRASE_PATTERN = /^[a-z0-9][a-z0-9\s\-_/+.#]{1,60}$/i;
+
 export class IntentClassifier {
   private static instance: IntentClassifier;
   private llm: GitHubModelsClient;
@@ -101,6 +121,13 @@ export class IntentClassifier {
 
 Message: "${message.content}"
 
+Strict intent rules:
+- Label action_commitment ONLY when the speaker explicitly commits to doing a concrete task.
+- action_commitment usually includes a clear owner signal (e.g., "I'll", "I will", "we will", "let me") and a concrete action.
+- Do NOT label action_commitment for acknowledgements, gratitude, social closure, or vague discussion (e.g., "thanks", "sounds good", "what do you think", "we should discuss this").
+- If uncertain between casual_chat and action_commitment, choose casual_chat.
+- Prefer conservative classification over false positives.
+
 Respond in this exact JSON format (no markdown, just JSON):
 {
   "intent": "one of: decision_detected, action_commitment, blocker, confusion, question, code_request, casual_chat, none",
@@ -163,6 +190,196 @@ Respond in this exact JSON format (no markdown, just JSON):
         urgency: 'low',
         topics: [],
         confidence: sync.confidence * 0.5 // Lower confidence for fallback
+      };
+    }
+  }
+
+  /**
+   * Lightweight Tier 1 gate: should the assistant reply now?
+   * Uses short context windows and strict JSON output to keep latency/cost low.
+   */
+  async assessReplyNeed(
+    message: MessageDTO,
+    context: ReplyNeedContext = {},
+  ): Promise<ReplyNeedAssessment> {
+    const trimmedContent = message.content.trim();
+
+    if (!trimmedContent) {
+      return {
+        requiresResponse: false,
+        isContinuation: false,
+        intent: 'none',
+        urgency: 'low',
+        confidence: 0,
+        reason: 'empty-message',
+      };
+    }
+
+    if (trimmedContent.toLowerCase().includes('@agent')) {
+      return {
+        requiresResponse: true,
+        isContinuation: true,
+        intent: 'direct_mention',
+        urgency: 'low',
+        confidence: 1,
+        reason: 'direct-mention',
+      };
+    }
+
+    if (ACK_ONLY_PATTERN.test(trimmedContent) && !trimmedContent.includes('?')) {
+      return {
+        requiresResponse: false,
+        isContinuation: false,
+        intent: 'casual_chat',
+        urgency: 'low',
+        confidence: 0.93,
+        reason: 'acknowledgement-only',
+      };
+    }
+
+    const sync = this.classifySync(message);
+    const previousMessageContent = context.previousMessage?.content || '';
+    const previousAgentContent = context.previousAgentMessage?.content || '';
+    const previousAgentAskedQuestion = /\?/.test(previousAgentContent);
+    const previousAgentInvitedFollowup =
+      previousAgentAskedQuestion || FOLLOW_UP_INVITE_PATTERN.test(previousAgentContent.toLowerCase());
+    const hasContinuationCue = CONTINUATION_CUE_PATTERN.test(trimmedContent);
+    const wordCount = trimmedContent.split(/\s+/).filter(Boolean).length;
+    const isShortTopicReply =
+      wordCount >= 1 &&
+      wordCount <= 5 &&
+      !trimmedContent.includes('?') &&
+      !ACK_ONLY_PATTERN.test(trimmedContent) &&
+      TOPIC_PHRASE_PATTERN.test(trimmedContent);
+    const lowSignalNoQuestion =
+      sync.intent === 'none' &&
+      trimmedContent.length < 28 &&
+      !trimmedContent.includes('?') &&
+      !hasContinuationCue;
+
+    if (isShortTopicReply && previousAgentInvitedFollowup) {
+      return {
+        requiresResponse: true,
+        isContinuation: true,
+        intent: 'question',
+        urgency: 'low',
+        confidence: 0.9,
+        reason: 'short-topic-followup-to-agent-prompt',
+      };
+    }
+
+    if (lowSignalNoQuestion && previousAgentAskedQuestion !== true && (context.routeConfidence || 0) < 0.55) {
+      return {
+        requiresResponse: false,
+        isContinuation: false,
+        intent: 'none',
+        urgency: 'low',
+        confidence: 0.72,
+        reason: 'low-signal-short-message',
+      };
+    }
+
+    const compactLatest = trimmedContent.slice(0, 320);
+    const compactPrevious = previousMessageContent.slice(0, 220) || '[none]';
+    const compactPreviousAgent = previousAgentContent.slice(0, 220) || '[none]';
+    const compactRouteConfidence = (context.routeConfidence ?? 0).toFixed(2);
+
+    const prompt = `Decide if the assistant should reply to the latest team message now.
+
+Latest message:
+"${compactLatest}"
+
+Previous team message:
+"${compactPrevious}"
+
+Most recent assistant message:
+"${compactPreviousAgent}"
+
+Hints:
+- routeConfidence=${compactRouteConfidence}
+- previousAssistantAskedQuestion=${previousAgentAskedQuestion}
+
+Rules:
+- requiresResponse=true when there is a clear ask, blocker, confusion, or meaningful continuation.
+- requiresResponse=false for pure acknowledgements/closures without a new ask.
+- isContinuation=true if latest message logically continues the prior thread even without @agent.
+- Keep reason short (max 12 words).
+
+Return JSON only:
+{
+  "requiresResponse": true,
+  "isContinuation": true,
+  "intent": "one of: direct_mention, question, code_request, summary_request, casual_chat, decision_detected, confusion, action_commitment, blocker, none",
+  "urgency": "one of: low, medium, high, critical",
+  "confidence": 0.0,
+  "reason": "short reason"
+}`;
+
+    try {
+      const response = await this.llm.generate({
+        messages: [
+          {
+            role: 'system' as const,
+            content: 'You are a strict routing classifier. Output ONLY valid JSON, no markdown.',
+          },
+          { role: 'user' as const, content: prompt },
+        ],
+        model: process.env.LLM_MODEL_TIER_1,
+        temperature: 0.1,
+        maxTokens: 130,
+      });
+
+      const cleanedContent = response.content.trim().replace(/```json\n?|\n?```/g, '');
+      const parsed = JSON.parse(cleanedContent) as Partial<ReplyNeedAssessment>;
+
+      if (!parsed.requiresResponse && isShortTopicReply && previousAgentInvitedFollowup) {
+        return {
+          requiresResponse: true,
+          isContinuation: true,
+          intent: 'question',
+          urgency: 'low',
+          confidence: Math.min(1, Math.max(0.82, Number(parsed.confidence ?? 0.82))),
+          reason: 'topic-followup-overrode-llm-no-reply',
+        };
+      }
+
+      return {
+        requiresResponse: Boolean(parsed.requiresResponse),
+        isContinuation: Boolean(parsed.isContinuation),
+        intent: this.validateIntent(String(parsed.intent || 'none')),
+        urgency: this.validateUrgency(String(parsed.urgency || 'low')),
+        confidence: Math.min(1, Math.max(0, Number(parsed.confidence ?? sync.confidence ?? 0.5))),
+        reason: typeof parsed.reason === 'string' && parsed.reason.trim()
+          ? parsed.reason.trim().slice(0, 120)
+          : 'tier1-reply-need-analysis',
+      };
+    } catch (error) {
+      console.warn('[IntentClassifier] Reply-need analysis failed, using heuristic fallback:', error);
+
+      const fallbackRequiresResponse =
+        (sync.intent !== 'none' &&
+          (sync.intent === 'question' ||
+            sync.intent === 'code_request' ||
+            sync.intent === 'summary_request' ||
+            sync.intent === 'confusion' ||
+            sync.intent === 'blocker' ||
+            hasContinuationCue)) ||
+        (previousAgentInvitedFollowup && !ACK_ONLY_PATTERN.test(trimmedContent)) ||
+        (isShortTopicReply && previousAgentInvitedFollowup);
+
+      const fallbackContinuation =
+        hasContinuationCue ||
+        previousAgentInvitedFollowup ||
+        (isShortTopicReply && previousAgentInvitedFollowup) ||
+        Boolean(context.previousMessage && context.previousMessage.authorId === 'agent');
+
+      return {
+        requiresResponse: fallbackRequiresResponse,
+        isContinuation: fallbackContinuation,
+        intent: sync.intent,
+        urgency: sync.intent === 'blocker' ? 'medium' : 'low',
+        confidence: Math.min(1, Math.max(0.4, sync.confidence)),
+        reason: 'heuristic-fallback',
       };
     }
   }

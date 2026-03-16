@@ -67,12 +67,12 @@ async function testExplicitCommands(): Promise<void> {
   assert(explicitMention.explicit, '@agent summary request is explicit');
 
   const shortExplicitMention = await IntentController.decideAgentRoute('@agent summarize sprint recap');
-  assertEqual(shortExplicitMention.channel, 'chat_message', 'Short explicit @agent request stays in chat');
-  assert(shortExplicitMention.clarify, 'Short explicit @agent request asks for clarification');
+  assertEqual(shortExplicitMention.channel, 'insight', 'Short explicit @agent request routes to insight');
+  assert(!shortExplicitMention.clarify, 'Short explicit @agent request does not force clarification');
   assertEqual(
-    shortExplicitMention.suggestedInsightType,
+    shortExplicitMention.insightType,
     'summary',
-    'Short explicit @agent request still suggests summary type',
+    'Short explicit @agent request remains summary category',
   );
 
   assert(IntentController.hasExplicitInsightCommand('/summary now'), 'hasExplicitInsightCommand identifies slash command');
@@ -103,6 +103,21 @@ async function testConfidenceBands(): Promise<void> {
   assertEqual(highDocument.channel, 'insight', 'High-confidence research routes to insight');
   assertEqual(highDocument.insightType, 'document', 'High-confidence research maps to document');
   assert(!highDocument.clarify, 'High-confidence research does not request clarification');
+
+  const conversationalResearchMention = await IntentController.decideAgentRoute(
+    'do you think we need some research before we continue?',
+  );
+  assertEqual(
+    conversationalResearchMention.channel,
+    'chat_message',
+    'Generic research mention remains conversational',
+  );
+  assert(!conversationalResearchMention.clarify, 'Generic research mention does not request clarification');
+
+  const conversationalResearchMode = await IntentController.classify(
+    'do you think we need some research before we continue?',
+  );
+  assertEqual(conversationalResearchMode.mode, 'ask', 'Generic research mention stays in ask mode');
 
   const mediumSuggestion = await IntentController.decideAgentRoute('suggest options for this');
   assertEqual(mediumSuggestion.channel, 'chat_message', 'Medium-confidence suggestion stays in chat channel');
@@ -147,8 +162,32 @@ async function testCategoryBoundaries(): Promise<void> {
   assertEqual(explicitOverride.insightType, 'summary', 'Explicit command overrides mixed lexical signals');
 }
 
+async function testSingleWordGuardrails(): Promise<void> {
+  console.log('\n📋 TEST 4: Single-Word Guardrails');
+  console.log('─'.repeat(60));
+
+  const nonExplicitSingles = ['research', 'compare', 'summary', 'help', 'suggest', 'brief'];
+
+  for (const input of nonExplicitSingles) {
+    const route = await IntentController.decideAgentRoute(input);
+    assertEqual(route.channel, 'chat_message', `Single-word "${input}" stays in chat channel`);
+    assert(!route.clarify, `Single-word "${input}" does not force clarification`);
+
+    const mode = await IntentController.classify(input);
+    assertEqual(mode.mode, 'ask', `Single-word "${input}" stays in ask mode`);
+  }
+
+  const slashResearch = await IntentController.decideAgentRoute('/research');
+  assertEqual(slashResearch.channel, 'insight', 'Slash /research remains deterministic');
+  assertEqual(slashResearch.insightType, 'document', 'Slash /research still maps to document');
+
+  const slashSummary = await IntentController.decideAgentRoute('/summary');
+  assertEqual(slashSummary.channel, 'insight', 'Slash /summary remains deterministic');
+  assertEqual(slashSummary.insightType, 'summary', 'Slash /summary still maps to summary');
+}
+
 async function testDisabledInsightTypes(): Promise<void> {
-  console.log('\n📋 TEST 4: Disabled Insight Type Rejection');
+  console.log('\n📋 TEST 5: Disabled Insight Type Rejection');
   console.log('─'.repeat(60));
 
   let analysisRejected = false;
@@ -190,6 +229,7 @@ async function run(): Promise<void> {
   await testExplicitCommands();
   await testConfidenceBands();
   await testCategoryBoundaries();
+  await testSingleWordGuardrails();
   await testDisabledInsightTypes();
 
   console.log('\n=== Results ===');

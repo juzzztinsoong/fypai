@@ -80,32 +80,72 @@ const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
   {
     type: 'summary',
     title: 'Demo: Conversation Snapshot',
-    content:
-      'This is a demo summary insight. Use it to learn how chat and the right panel stay linked while your team plans.',
+    content: [
+      '## What This Card Is For',
+      '- Quick recap of what your team discussed so far.',
+      '- Fast way to align before making a decision.',
+      '',
+      '## How To Use It',
+      '1. Read this summary after a few chat messages.',
+      '2. Check whether the summary matches what the team actually meant.',
+      '3. If needed, ask follow-up questions in chat to close gaps.',
+      '',
+      '## Marker Flow',
+      '- Jump to chat marker from this card to verify traceability.',
+      '- Jump back from marker to this card to confirm context continuity.',
+    ].join('\n'),
     markerLabel: 'Summary',
     priority: 'medium',
   },
   {
     type: 'document',
-    title: 'Demo: Research Brief',
-    content:
-      'This is a demo research brief. In real runs, use Research mode or focused prompts to gather evidence and options.',
-    markerLabel: 'Research Brief',
+    title: 'Demo: Research',
+    content: [
+      '## What This Card Is For',
+      '- Longer-form reasoning, options, and trade-offs.',
+      '- A place to compare alternatives before committing.',
+      '',
+      '## How To Use It',
+      '1. Use Research flow when the team needs evidence or comparison.',
+      '2. Validate assumptions with the team in chat.',
+      '3. Promote only the strongest points into action planning.',
+      '',
+      '## Marker Flow',
+      '- Use marker links to keep the research source connected to decisions.',
+    ].join('\n'),
+    markerLabel: 'Research',
     priority: 'medium',
   },
   {
     type: 'action',
     title: 'Demo: Action Item',
-    content:
-      '- Owner: choose one teammate\n- Task: assign next concrete step\n- Deadline: set a realistic due date\n\nUse status controls to accept, dismiss, or complete.',
+    content: [
+      '## Action Template',
+      '- [ ] **Owner**: choose one teammate',
+      '- [ ] **Task**: define the next concrete step',
+      '- [ ] **Target Date**: set a realistic deadline',
+      '',
+      '## Lifecycle',
+      '1. Accept or dismiss.',
+      '2. Refine details if needed.',
+      '3. Mark complete when actually done.',
+    ].join('\n'),
     markerLabel: 'Action Item',
     priority: 'high',
   },
   {
     type: 'suggestion',
     title: 'Demo: Help Card',
-    content:
-      'This is a demo help suggestion. Use it when the team is stuck and needs practical next-step guidance.',
+    content: [
+      '## What This Card Is For',
+      '- Lightweight guidance when the team gets stuck.',
+      '- Practical options to unblock progress quickly.',
+      '',
+      '## Good Use Cases',
+      '- You are debating too long without converging.',
+      '- You need a simple next step now, not a full report.',
+      '- You need alternatives with clear trade-offs.',
+    ].join('\n'),
     markerLabel: 'Help',
     priority: 'low',
   },
@@ -232,26 +272,36 @@ async function applyRulePreset(teamId: string, presetId: RulePresetId): Promise<
 
 function buildTeamInstructionMessage(input: TeamInstructionMessageInput): string {
   const lines: string[] = []
-  lines.push('Welcome to your team workspace.')
-  lines.push('This app helps your team collaborate in chat while AI keeps structured insights in the right panel.')
+  lines.push('# Welcome to Your Team Workspace')
   lines.push('')
-  lines.push('Quick onboarding:')
-  lines.push('- Before your first planning message, click Set Context in the top-right panel and add your project goal, constraints, timeline, and success criteria.')
-  lines.push('- Use the center chat to discuss and make decisions together.')
-  lines.push('- Use Ask/Research mode and quick actions: @agent, Summary, Actions, Help.')
-  lines.push('- Open the right panel tabs to review generated insights by type.')
-  lines.push('- Click "View marker in chat ->" on an insight card to jump to its linked marker.')
-  lines.push('- Click the chat marker to jump back to the linked insight card.')
+  lines.push('This space is designed for **discussion in chat** plus **structured outputs in Insights**.')
+  lines.push('Use this quick setup before your first planning message.')
   lines.push('')
-  lines.push('Demo content loaded for onboarding:')
-  lines.push('- One linked Summary marker')
-  lines.push('- One linked Research brief marker')
-  lines.push('- One linked Action item marker')
-  lines.push('- One linked Help marker')
-  lines.push('- Project Context starts blank by design and should be set by the team at kickoff.')
+  lines.push('## Start Here (about 90 seconds)')
+  lines.push('1. Open **Edit Context** in the right header and set project goal, constraints, timeline, and success criteria.')
+  lines.push('2. Use center chat to align on plan direction and decisions.')
+  lines.push('3. Use top composer toggles to choose **Auto / Ask / Research** intentionally.')
+  lines.push('4. Use slash commands when needed: `/summary`, `/research`, `/actions`, `/help`.')
   lines.push('')
-  lines.push(`Team: ${input.teamName}`)
-  lines.push(`Scenario variant: ${input.scenarioVariant}`)
+  lines.push('## Marker Flow (Traceability)')
+  lines.push('- From an insight card: **View marker in chat ->**')
+  lines.push('- From a chat marker: jump back to the linked insight card')
+  lines.push('- Treat marker jumps as evidence links between conversation and outputs')
+  lines.push('')
+  lines.push('## Demo Cards Loaded For Onboarding')
+  lines.push('- Summary marker linked')
+  lines.push('- Research marker linked')
+  lines.push('- Action Item marker linked')
+  lines.push('- Help marker linked')
+  lines.push('- Project Context starts blank by design and should be set at kickoff')
+  lines.push('')
+  lines.push('## Session Details')
+  lines.push(`- Team: ${input.teamName}`)
+  lines.push(`- Scenario Variant: ${input.scenarioVariant}`)
+  lines.push(`- Run Order: ${input.runOrder}`)
+  lines.push(`- Run 1 Condition: ${input.runOneCondition}`)
+  lines.push(`- Run 2 Condition: ${input.runTwoCondition}`)
+  lines.push('')
   lines.push('Follow facilitator timing for official Run 1 and Run 2 start/end.')
   lines.push('')
   lines.push('You are ready to begin.')
@@ -273,6 +323,10 @@ async function seedOnboardingInsightMarkers(teamId: string, templateId: string, 
           onboardingDemo: true,
           seedTemplateId: templateId,
           scenarioVariant,
+          provenanceSource: 'seed-onboarding',
+          provenanceTrigger: 'seed-bootstrap',
+          provenanceCreatedBy: 'system',
+          provenanceDetail: 'study-template',
         }),
       },
     })
@@ -293,6 +347,10 @@ async function seedOnboardingInsightMarkers(teamId: string, templateId: string, 
           onboardingDemo: true,
           seedTemplateId: templateId,
           scenarioVariant,
+          markerSource: 'seed-onboarding',
+          markerTrigger: 'seed-bootstrap',
+          markerCreatedBy: 'system',
+          markerTriggerDetail: 'study-template',
         }),
       },
     })
@@ -393,6 +451,10 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
           scenarioVariant: teamTemplate.scenarioVariant,
           runOneCondition,
           runTwoCondition,
+          markerSource: 'seed-onboarding',
+          markerTrigger: 'seed-bootstrap',
+          markerCreatedBy: 'system',
+          markerTriggerDetail: 'participant-onboarding',
         }),
       },
     })

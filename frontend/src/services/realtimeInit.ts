@@ -43,7 +43,7 @@ export async function initializeRealtime(userId: string): Promise<void> {
       const sessionStore = useSessionStore.getState()
       sessionStore.setCurrentUser({
         id: userId,
-        name: userId === 'user1' ? 'Alice' : 'User',
+        name: userId,
         email: `${userId}@example.com`,
         avatar: null,
         role: 'member',
@@ -148,10 +148,15 @@ export async function initializeRealtime(userId: string): Promise<void> {
         teamId: string
         userId: string
         stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
+        detail?: string
+        targetType?: 'chat' | 'summary' | 'document' | 'action' | 'suggestion'
       }) => {
         if (data.userId !== 'agent') return
-        console.log('[RealtimeInit] 🧭 Socket: ai:processing ->', data.stage, 'in', data.teamId)
-        useSessionStore.getState().setAIProcessingStage(data.teamId, data.stage)
+        console.log('[RealtimeInit] 🧭 Socket: ai:processing ->', data.stage, data.detail || '', 'in', data.teamId)
+        useSessionStore.getState().setAIProcessingStage(data.teamId, data.stage, {
+          label: data.detail,
+          targetType: data.targetType,
+        })
       })
 
       socket.on('ai:continuation', (data: {
@@ -159,7 +164,7 @@ export async function initializeRealtime(userId: string): Promise<void> {
         status: 'active' | 'ended'
         confidence: number
         threshold: number
-        trigger: 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command'
+        trigger: 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command' | 'passive-observation'
         reason?: string
         updatedAt: string
       }) => {

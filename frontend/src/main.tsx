@@ -5,6 +5,7 @@ import App from './App';
 import { RealtimeProvider } from './providers/RealtimeProvider';
 import { resetRealtime } from './services/realtimeInit';
 import { socketService } from './services/socketService';
+import { getSelectedUserIdFromCookie } from './utils/userCookie';
 
 console.log('[main.tsx] 🎬 Module executing')
 
@@ -37,8 +38,10 @@ window.addEventListener('beforeunload', () => {
 
 console.log('[main.tsx] 🎨 Creating root and rendering')
 
+const bootstrapUserId = getSelectedUserIdFromCookie()
+
 createRoot(document.getElementById('root')!).render(
-  <RealtimeProvider userId="user1">
+  <RealtimeProvider userId={bootstrapUserId}>
     <App />
   </RealtimeProvider>
 );

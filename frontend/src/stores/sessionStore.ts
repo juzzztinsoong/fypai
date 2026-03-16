@@ -19,12 +19,20 @@ const EMPTY_ARRAY: readonly string[] = Object.freeze([])
 const EMPTY_RESEARCH_JOBS: readonly ResearchRun[] = Object.freeze([])
 
 export type ResearchRunStatus = 'queued' | 'running' | 'done' | 'failed'
+export type AIProcessingStage = 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
+export type AIProcessingTargetType = 'chat' | 'summary' | 'document' | 'action' | 'suggestion'
+
+export interface AIProcessingState {
+  stage: AIProcessingStage
+  label?: string
+  targetType?: AIProcessingTargetType
+}
 
 export interface AIContinuationStatus {
   status: 'active' | 'ended'
   confidence: number
   threshold: number
-  trigger: 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command'
+  trigger: 'confidence-gate' | 'explicit-mention' | 'explicit-reply' | 'explicit-command' | 'passive-observation'
   reason?: string
   updatedAt: string
 }
@@ -68,7 +76,7 @@ interface SessionState {
   presence: {
     onlineUsers: string[]  // userId array (for HMR compatibility)
     typingUsers: Record<string, string[]>  // teamId -> userId[]
-    aiProcessing: Record<string, 'thinking' | 'searching-memory' | 'analyzing' | 'idle'> // teamId -> stage
+    aiProcessing: Record<string, AIProcessingState> // teamId -> stage + detail
     aiContinuation: Record<string, AIContinuationStatus | undefined> // teamId -> continuation status
   }
   
@@ -110,8 +118,9 @@ interface SessionActions {
   addTypingUser: (teamId: string, userId: string) => void
   removeTypingUser: (teamId: string, userId: string) => void
   getTypingUsers: (teamId: string) => string[]
-  setAIProcessingStage: (teamId: string, stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle') => void
-  getAIProcessingStage: (teamId: string) => 'thinking' | 'searching-memory' | 'analyzing' | 'idle'
+  setAIProcessingStage: (teamId: string, stage: AIProcessingStage, detail?: { label?: string; targetType?: AIProcessingTargetType }) => void
+  getAIProcessingStage: (teamId: string) => AIProcessingStage
+  getAIProcessingDetail: (teamId: string) => AIProcessingState | null
   setAIContinuation: (teamId: string, status: AIContinuationStatus) => void
   getAIContinuation: (teamId: string) => AIContinuationStatus | null
   
@@ -348,18 +357,26 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     return typingUsers || EMPTY_ARRAY
   },
 
-  setAIProcessingStage: (teamId, stage) => set((state) => ({
+  setAIProcessingStage: (teamId, stage, detail) => set((state) => ({
     presence: {
       ...state.presence,
       aiProcessing: {
         ...state.presence.aiProcessing,
-        [teamId]: stage,
+        [teamId]: {
+          stage,
+          ...(detail?.label ? { label: detail.label } : {}),
+          ...(detail?.targetType ? { targetType: detail.targetType } : {}),
+        },
       },
     },
   })),
 
   getAIProcessingStage: (teamId) => {
-    return get().presence.aiProcessing[teamId] || 'idle'
+    return get().presence.aiProcessing[teamId]?.stage || 'idle'
+  },
+
+  getAIProcessingDetail: (teamId) => {
+    return get().presence.aiProcessing[teamId] || null
   },
 
   setAIContinuation: (teamId, status) => set((state) => ({

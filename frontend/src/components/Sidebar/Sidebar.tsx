@@ -20,7 +20,9 @@ import { exportSession, type SessionExportFormat } from '@/services/exportServic
 import { resetTeamSession } from '@/services/messageService'
 import { resetTeamInsights } from '@/services/insightService'
 import { analyticsService, trackSessionEvent } from '@/services/analyticsService'
+import { setSelectedUserIdCookie } from '@/utils/userCookie'
 import {
+  getElevationClass,
   getChipClass,
   getSwitchThumbClass,
   getSwitchTrackClass,
@@ -253,8 +255,8 @@ export const Sidebar = () => {
 
   if (isLoading) {
     return (
-      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
-        <div className="px-5 py-4">
+      <aside className="w-60 h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20">
+        <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
           <div className="mt-6 text-gray-500">Loading teams...</div>
         </div>
@@ -264,8 +266,8 @@ export const Sidebar = () => {
 
   if (error) {
     return (
-      <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
-        <div className="px-5 py-4">
+      <aside className="w-60 h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20">
+        <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
           <div className="mt-6 text-red-500">Error: {error}</div>
         </div>
@@ -274,13 +276,13 @@ export const Sidebar = () => {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col fixed">
+    <aside className="w-60 h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20">
       {/* Teams Section */}
-      <div className="px-5 py-4">
+      <div className="px-5 py-4 border-b border-slate-100">
         <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
       </div>
 
-      <div className="px-5 py-4 flex-1">
+      <div className="px-5 py-4 flex-1 min-h-0 overflow-y-auto bg-slate-50/30">
 
         <nav className="mt-2">
           <ul className="space-y-2">
@@ -325,7 +327,7 @@ export const Sidebar = () => {
       </div>
 
       {/* User Profile Section */}
-      <div className="px-5 py-3 border-t border-gray-200 bg-gray-50">
+      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 shrink-0">
         <div className="flex items-center space-x-3">
           <div className="relative">
             <div className={`w-10 h-10 rounded-full ${userAvatarColor} flex items-center justify-center text-white font-semibold`}>
@@ -343,7 +345,7 @@ export const Sidebar = () => {
       </div>
 
       {/* Research Tools (collapsible) */}
-      <div className="px-5 py-3 border-t border-gray-200 space-y-3">
+      <div className="px-5 py-3 border-t border-slate-200 bg-white space-y-3 shrink-0">
         <button
           onClick={() => setShowResearchTools(prev => !prev)}
           className="w-full flex items-center justify-between text-left"
@@ -520,7 +522,7 @@ export const Sidebar = () => {
               </button>
 
               {showUserMenu && (
-                <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <div className={`mt-2 bg-white border border-gray-200 rounded-lg ${getElevationClass('raised')} overflow-hidden`}>
                   {switchableUsers.map((switchUser) => (
                     <button
                       key={switchUser.id}
@@ -533,6 +535,7 @@ export const Sidebar = () => {
                           role: switchUser.role,
                           createdAt: new Date().toISOString(),
                         })
+                        setSelectedUserIdCookie(switchUser.id)
 
                         trackSessionEvent({
                           eventType: 'navigation',
@@ -564,11 +567,8 @@ export const Sidebar = () => {
                         }
 
                         if (socketService.isConnected()) {
-                          console.log('[Sidebar] 📤 Sending presence:online for new user:', switchUser.id)
-                          socketService.getSocket()?.emit('presence:online', { userId: switchUser.id })
-
-                          console.log('[Sidebar] 📋 Requesting current online users list')
-                          socketService.getOnlineUsers()
+                          console.log('[Sidebar] 📤 Switching socket presence user to:', switchUser.id)
+                          socketService.setCurrentUserId(switchUser.id)
                         }
 
                         setShowUserMenu(false)

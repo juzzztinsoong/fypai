@@ -4,8 +4,10 @@ import { InsightStatusBadge } from './InsightStatusBadge';
 import { InsightActions } from './InsightActions';
 import { getInsightTypeTheme } from './insightUtils';
 import ReactMarkdown from 'react-markdown';
-import { getChipClass } from '@/styles/uiTokens';
+import { getChipClass, getElevationClass } from '@/styles/uiTokens';
 import { sanitizeInsightContent } from '@/utils/insightContent';
+import { getInsightProvenance } from '@/utils/provenance';
+import { emitDraftPromotion, extractDraftExcerpt } from '@/utils/draftComposer';
 
 interface InsightCardProps {
   insight: AIInsightDTO;
@@ -17,12 +19,27 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
   const isDismissed = insight.status === 'dismissed' || insight.status === 'archived';
   const theme = getInsightTypeTheme(insight.type);
   const displayContent = sanitizeInsightContent(insight.content);
+  const provenance = getInsightProvenance(insight.metadata);
   const lineageMetadata = insight.metadata as
     | (typeof insight.metadata & {
         sourceInsightId?: string;
         sourceExcerpt?: string;
       })
     | undefined;
+
+  const handleReplyFromInsight = () => {
+    const excerpt = extractDraftExcerpt(displayContent || insight.title)
+    if (!excerpt) return
+
+    emitDraftPromotion({
+      sourceType: 'insight',
+      sourceId: insight.id,
+      sourceLabel: insight.title,
+      excerpt,
+      parentMessageId: insight.relatedMessageIds?.[0],
+      teamId: insight.teamId,
+    })
+  }
 
   return (
     <div
@@ -31,7 +48,7 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
       data-insight-type={insight.type}
       onMouseEnter={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: true } }))}
       onMouseLeave={() => window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: insight.id, active: false } }))}
-      className={`border rounded-lg p-5 shadow-sm ${theme.card} ${
+      className={`border rounded-lg p-5 transition-shadow duration-200 ${getElevationClass('raised')} ${theme.card} ${
         isDismissed ? 'opacity-60' : ''
       }`}
     >
@@ -51,6 +68,31 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
           <InsightStatusBadge status={insight.status} />
         </div>
       </div>
+
+      {(provenance.source || provenance.trigger || provenance.createdBy || provenance.detail) && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {provenance.source && (
+            <span className={getChipClass('neutral', 'xs')}>
+              Source: {provenance.source}
+            </span>
+          )}
+          {provenance.trigger && (
+            <span className={getChipClass('warning', 'xs')}>
+              Trigger: {provenance.trigger}
+            </span>
+          )}
+          {provenance.createdBy && (
+            <span className={getChipClass('muted', 'xs')}>
+              By: {provenance.createdBy}
+            </span>
+          )}
+          {provenance.detail && (
+            <span className={getChipClass('muted', 'xs')}>
+              Detail: {provenance.detail}
+            </span>
+          )}
+        </div>
+      )}
 
       {insight.metadata?.chimeRuleName && (
         <div className="mb-4">
@@ -115,15 +157,24 @@ export const InsightCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Ins
 
       {/* Actions */}
       <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-        {onJumpToChatMarker ? (
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => onJumpToChatMarker(insight.id)}
-            className={`text-xs font-medium ${theme.link}`}
+            onClick={handleReplyFromInsight}
+            className="inline-flex items-center rounded-md border border-indigo-600 bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
           >
-            View marker in chat →
+            Reply
           </button>
-        ) : <span />}
+          {onJumpToChatMarker && (
+            <button
+              type="button"
+              onClick={() => onJumpToChatMarker(insight.id)}
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              View marker in chat →
+            </button>
+          )}
+        </div>
         <InsightActions insight={insight} />
       </div>
     </div>

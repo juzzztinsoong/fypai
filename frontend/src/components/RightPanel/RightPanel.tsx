@@ -565,7 +565,7 @@ export const RightPanel = () => {
   // Show empty state when no team selected (AFTER all hooks)
   if (!currentTeamId) {
     return (
-      <aside className="flex-1 min-w-0 h-screen bg-gray-50 flex flex-col">
+      <aside className="flex-1 min-w-0 h-screen bg-slate-50/35 flex flex-col">
         <div className="p-6 flex-1">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">AI Insights</h2>
           <p className="text-gray-500">
@@ -577,7 +577,7 @@ export const RightPanel = () => {
   }
 
   return (
-    <aside className="flex-1 min-w-0 h-screen bg-gray-50 flex flex-col">
+    <aside className="flex-1 min-w-0 h-screen bg-slate-50/35 flex flex-col">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
         <RightPanelHeader
@@ -644,7 +644,7 @@ export const RightPanel = () => {
             {researchInsights.length > 0 ? (
               <InsightsList insights={researchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
-              <p className="text-xs text-gray-500">No research briefs yet</p>
+              <p className="text-xs text-gray-500">No research yet</p>
             )}
 
             {archivedResearchInsights.length > 0 && (
@@ -762,14 +762,14 @@ export const RightPanel = () => {
       </div>
 
       <div
-        className={`relative flex-shrink-0 ${uiTokens.layout.railFooter} bg-white`}
+        className={`relative flex-shrink-0 ${uiTokens.layout.railFooter} bg-white border-t border-slate-200 shadow-[0_-10px_20px_-18px_rgba(15,23,42,0.35)]`}
         style={{
           height: 'var(--fypai-chat-footer-height, 136px)',
           minHeight: 'var(--fypai-chat-footer-height, 136px)',
         }}
       >
         {/* Bottom Insight Tabs */}
-        <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center border-t border-gray-200`}>
+        <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center border-b border-slate-100`}>
           <SegmentedControl
             items={bottomTabItems}
             activeKey={contentFilter}

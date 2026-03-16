@@ -174,22 +174,57 @@ export const useEntityStore = create<EntityStore>((set, get) => ({
   // TEAM METHODS
   // ============================================================================
   
-  addTeam: (team) => set((state) => ({
-    entities: {
-      ...state.entities,
-      teams: {
-        ...state.entities.teams,
-        [team.id]: team,
-      },
-    },
-  })),
-  
-  setTeams: (teams) => set((state) => {
-    const teamsById: Record<string, TeamWithMembersDTO> = {}
-    teams.forEach(team => { teamsById[team.id] = team })
+  addTeam: (team) => set((state) => {
+    const nextUsers = { ...state.entities.users }
+
+    team.members.forEach((member) => {
+      const existing = nextUsers[member.userId]
+      nextUsers[member.userId] = {
+        id: member.userId,
+        name: member.name,
+        email: member.email,
+        avatar: member.avatar,
+        role: member.role,
+        createdAt: existing?.createdAt || member.joinedAt || new Date().toISOString(),
+      }
+    })
+
     return {
       entities: {
         ...state.entities,
+        users: nextUsers,
+        teams: {
+          ...state.entities.teams,
+          [team.id]: team,
+        },
+      },
+    }
+  }),
+  
+  setTeams: (teams) => set((state) => {
+    const teamsById: Record<string, TeamWithMembersDTO> = {}
+    const nextUsers: Record<string, UserDTO> = { ...state.entities.users }
+
+    teams.forEach((team) => {
+      teamsById[team.id] = team
+
+      team.members.forEach((member) => {
+        const existing = nextUsers[member.userId]
+        nextUsers[member.userId] = {
+          id: member.userId,
+          name: member.name,
+          email: member.email,
+          avatar: member.avatar,
+          role: member.role,
+          createdAt: existing?.createdAt || member.joinedAt || new Date().toISOString(),
+        }
+      })
+    })
+
+    return {
+      entities: {
+        ...state.entities,
+        users: nextUsers,
         teams: teamsById,
       },
     }

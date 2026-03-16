@@ -14,10 +14,12 @@ import { ChatWindow } from './components/Chat/ChatWindow'
 import { RightPanel } from './components/RightPanel/RightPanel'
 import { useEntityStore } from './stores/entityStore'
 import { useUIStore } from './stores/uiStore'
+import { useSessionStore } from './stores/sessionStore'
 import { getUserById } from './services/userService'
 import { getTeamsForUser } from './services/teamService'
 import { socketService } from './services'
 import { trackSessionEvent } from './services/analyticsService'
+import { getSelectedUserIdFromCookie, setSelectedUserIdCookie } from './utils/userCookie'
 
 // Expose diagnostic tools to window for debugging
 if (typeof window !== 'undefined') {
@@ -62,8 +64,9 @@ function App() {
     console.log('[App] 🔄 useEffect triggered - initializing app')
     // Initialize the application by fetching user and teams
     const initializeApp = async () => {
-      // Use hardcoded user ID for now (in real app, would come from auth)
-      const userId = 'user1'
+      const sessionUserId = useSessionStore.getState().currentUser?.id
+      const userId = sessionUserId || getSelectedUserIdFromCookie()
+      setSelectedUserIdCookie(userId)
       
       try {
         console.log('[App] Initializing with userId:', userId)

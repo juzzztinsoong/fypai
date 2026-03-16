@@ -92,6 +92,28 @@ export type AgentPromptArchetype =
   | 'pragmatic-advisor'
   | 'implementation-partner'
 
+export type MarkerProvenanceSource =
+  | 'seed-onboarding'
+  | 'ai-generation'
+  | 'reactive-chat'
+  | 'autonomous-rule'
+  | 'promoted-content'
+  | 'user-request'
+  | 'direct-insight-create'
+  | 'system'
+  | string
+
+export type MarkerProvenanceTrigger =
+  | 'seed-bootstrap'
+  | 'manual-generation'
+  | 'auto-escalation'
+  | 'chime-rule'
+  | 'promote-iterate'
+  | 'explicit-request'
+  | 'api-request'
+  | 'unknown'
+  | string
+
 export interface MessageMetadata {
   suggestions?: string[]
   parentMessageId?: string  // Link to original message for long-form content
@@ -120,6 +142,14 @@ export interface MessageMetadata {
   linkedInsightType?: 'summary' | 'document' | 'action' | 'suggestion' | 'analysis' | 'code'
   sourceActionTitle?: string
   markerLabel?: string
+  markerPreview?: string
+  markerSource?: MarkerProvenanceSource
+  markerTrigger?: MarkerProvenanceTrigger
+  markerCreatedBy?: string
+  markerTriggerDetail?: string
+  draftSourceInsightIds?: string[]
+  draftSourceMessageIds?: string[]
+  draftContextLabels?: string[]
 }
 
 /**
@@ -200,6 +230,10 @@ export interface AIInsightMetadata {
   chimeRuleName?: string  // Name of the rule that triggered this insight
   chimeRuleId?: string  // ID of the rule that triggered this insight
   confidence?: number  // Confidence score (0-1) for the chime trigger
+  provenanceSource?: MarkerProvenanceSource
+  provenanceTrigger?: MarkerProvenanceTrigger
+  provenanceCreatedBy?: string
+  provenanceDetail?: string
 }
 
 /**

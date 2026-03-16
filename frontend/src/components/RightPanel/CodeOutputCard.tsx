@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import type { AIInsightDTO } from '../../types';
+import { getElevationClass } from '@/styles/uiTokens';
 
 interface CodeOutputCardProps {
   insight: AIInsightDTO;
@@ -36,7 +37,7 @@ export const CodeOutputCard = ({ insight, onJumpToChatMarker }: CodeOutputCardPr
   const cleanedCode = cleanCode(insight.content);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+    <div className={`bg-white rounded-lg border border-slate-200 p-5 transition-shadow duration-200 ${getElevationClass('raised')}`}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center space-x-2">
           <svg
