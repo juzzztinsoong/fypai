@@ -46,7 +46,10 @@ export const RightPanelHeader = ({
   }, [isContextVisible, onCloseContext]);
 
   return (
-    <div ref={headerRef} className={`relative ${uiTokens.layout.railHeader} border-b border-gray-200 bg-white`}>
+    <div
+      ref={headerRef}
+      className={`relative ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white z-10`}
+    >
       <div className="h-full px-5 flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

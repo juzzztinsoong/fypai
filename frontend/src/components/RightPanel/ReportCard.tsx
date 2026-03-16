@@ -1,12 +1,13 @@
 /**
  * ReportCard Component
  * 
- * Displays AI-generated research briefs with an emerald theme and rich markdown formatting.
+ * Displays AI-generated research with an emerald theme and rich markdown formatting.
  */
 
 import type { AIInsightDTO } from '../../types';
 import ReactMarkdown from 'react-markdown';
 import { InsightFrame } from './InsightFrame';
+import { getElevationClass } from '@/styles/uiTokens';
 import { sanitizeInsightContent } from '@/utils/insightContent';
 
 interface ReportCardProps {
@@ -43,9 +44,9 @@ export const ReportCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Repo
   return (
     <InsightFrame
       insight={insight}
-      title="🔎 Research Brief"
+      title="🔎 Research"
       icon={<span className="text-2xl">🔎</span>}
-      containerClassName="bg-white rounded-lg shadow-sm border border-slate-200 p-5"
+      containerClassName={`bg-white rounded-lg border border-slate-200 p-5 transition-shadow duration-200 ${getElevationClass('raised')}`}
       titleClassName="font-semibold text-emerald-950"
       content={content}
       onJumpToSource={onJumpToSource}

@@ -613,6 +613,20 @@ class SocketService {
   }
 
   /**
+   * Update the active user identity for this socket session
+   */
+  setCurrentUserId(userId: string): void {
+    if (!userId || userId === this.currentUserId) return
+
+    this.currentUserId = userId
+
+    if (!this.socket?.connected) return
+
+    this.registerPresence(userId)
+    this.getOnlineUsers()
+  }
+
+  /**
    * Get current user ID
    */
   getCurrentUserId(): string | null {

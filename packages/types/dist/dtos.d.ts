@@ -69,6 +69,8 @@ export interface TeamWithMembersDTO {
  * Parsed metadata object for messages
  */
 export type AgentPromptArchetype = 'decision-brief' | 'research-analyst' | 'execution-coach' | 'pragmatic-advisor' | 'implementation-partner';
+export type MarkerProvenanceSource = 'seed-onboarding' | 'ai-generation' | 'reactive-chat' | 'autonomous-rule' | 'promoted-content' | 'user-request' | 'direct-insight-create' | 'system' | string;
+export type MarkerProvenanceTrigger = 'seed-bootstrap' | 'manual-generation' | 'auto-escalation' | 'chime-rule' | 'promote-iterate' | 'explicit-request' | 'api-request' | 'unknown' | string;
 export interface MessageMetadata {
     suggestions?: string[];
     parentMessageId?: string;
@@ -93,6 +95,14 @@ export interface MessageMetadata {
     linkedInsightType?: 'summary' | 'document' | 'action' | 'suggestion' | 'analysis' | 'code';
     sourceActionTitle?: string;
     markerLabel?: string;
+    markerPreview?: string;
+    markerSource?: MarkerProvenanceSource;
+    markerTrigger?: MarkerProvenanceTrigger;
+    markerCreatedBy?: string;
+    markerTriggerDetail?: string;
+    draftSourceInsightIds?: string[];
+    draftSourceMessageIds?: string[];
+    draftContextLabels?: string[];
 }
 /**
  * RAG Context Item
@@ -167,6 +177,10 @@ export interface AIInsightMetadata {
     chimeRuleName?: string;
     chimeRuleId?: string;
     confidence?: number;
+    provenanceSource?: MarkerProvenanceSource;
+    provenanceTrigger?: MarkerProvenanceTrigger;
+    provenanceCreatedBy?: string;
+    provenanceDetail?: string;
 }
 /**
  * Insight Lifecycle Status (Sprint D)

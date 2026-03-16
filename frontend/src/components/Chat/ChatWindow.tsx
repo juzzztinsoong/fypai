@@ -23,17 +23,27 @@ import { ChatHeader } from './ChatHeader'
 import { socketService } from '@/services/socketService'
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl'
 import {
+  getElevationClass,
   getChipClass,
-  getSegmentedBaseClass,
-  getSegmentedInactiveClass,
   type ChipVariant,
   uiTokens,
 } from '@/styles/uiTokens'
 import type { AgentPromptArchetype, MessageMetadata } from '@/types'
+import { subscribeToDraftPromotion, type DraftPromotionPayload } from '@/utils/draftComposer'
 
 type ComposerMode = 'ask' | 'research'
-type ComposerOverrideMode = 'auto' | ComposerMode
+type DeterministicComposerMode = 'summary' | 'action' | 'suggestion'
+type ComposerOverrideMode = 'auto' | ComposerMode | DeterministicComposerMode
 type DeterministicInsightKind = 'summary' | 'action' | 'suggestion' | 'research'
+
+interface DraftContextItem {
+  key: string
+  sourceType: DraftPromotionPayload['sourceType']
+  sourceId: string
+  sourceLabel: string
+  excerpt: string
+  parentMessageId?: string
+}
 
 function parseSlashInsightCommand(input: string): { kind: DeterministicInsightKind; prompt?: string } | null {
   const match = input.trim().match(/^\/(summary|research|actions?|suggest|help)\b\s*(.*)$/i)
@@ -50,12 +60,14 @@ function parseSlashInsightCommand(input: string): { kind: DeterministicInsightKi
 }
 
 const RESEARCH_PATTERNS = [
-  /\bresearch\b/i,
+  /\bresearch\s+(brief|plan|report|analysis|summary)\b/i,
+  /\bresearch\s+(on|about)\b/i,
+  /\bresearch\s+this\b/i,
+  /\b(?:do|run|perform|conduct)\s+(?:some\s+)?research\b/i,
   /\bcompare\b/i,
   /\btrade[-\s]?off(s)?\b/i,
   /\bpros?\s+and\s+cons?\b/i,
   /\bdeep\s+dive\b/i,
-  /\bbrief\b/i,
   /\banaly[sz]e\b/i,
   /\boptions?\b/i,
   /\brecommend\b/i,
@@ -66,6 +78,9 @@ function inferComposerMode(input: string): ComposerMode {
   const normalized = input.trim()
   if (!normalized) return 'ask'
 
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length
+  if (wordCount <= 1) return 'ask'
+
   const hasResearchSignal = RESEARCH_PATTERNS.some((pattern) => pattern.test(normalized))
   return hasResearchSignal ? 'research' : 'ask'
 }
@@ -74,19 +89,13 @@ const COMPOSER_SEGMENTS: SegmentedControlItem<ComposerOverrideMode>[] = [
   { key: 'auto', label: 'Auto', accent: 'brand' },
   { key: 'ask', label: 'Ask Assistant', accent: 'brand' },
   { key: 'research', label: 'Research', accent: 'success' },
+  { key: 'summary', label: 'Summary', accent: 'summary' },
+  { key: 'action', label: 'Actions', accent: 'action' },
+  { key: 'suggestion', label: 'Help', accent: 'suggestion' },
 ]
 
 const COMPOSER_MIN_HEIGHT_PX = 40
 const COMPOSER_MAX_HEIGHT_PX = 144
-
-const QUICK_ACTION_BASE_CLASS = getSegmentedBaseClass('pill')
-
-const QUICK_ACTION_CLASS: Record<'agent' | 'summary' | 'action' | 'suggestion', string> = {
-  agent: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('brand', 'pill')}`,
-  summary: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('summary', 'pill')}`,
-  action: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('action', 'pill')}`,
-  suggestion: `${QUICK_ACTION_BASE_CLASS} ${getSegmentedInactiveClass('suggestion', 'pill')}`,
-}
 
 function getModeLabel(mode: ComposerMode): 'Ask' | 'Research' {
   return mode === 'research' ? 'Research' : 'Ask'
@@ -109,9 +118,19 @@ function getArchetypeForDeterministicKind(kind: DeterministicInsightKind): Agent
   return 'research-analyst'
 }
 
+function getDeterministicKindFromOverride(
+  mode: ComposerOverrideMode,
+): Exclude<DeterministicInsightKind, 'research'> | null {
+  if (mode === 'summary') return 'summary'
+  if (mode === 'action') return 'action'
+  if (mode === 'suggestion') return 'suggestion'
+  return null
+}
+
 export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
   const [composerOverrideMode, setComposerOverrideMode] = useState<ComposerOverrideMode>('auto')
+  const [draftContexts, setDraftContexts] = useState<DraftContextItem[]>([])
   const [isResearchGenerating, setIsResearchGenerating] = useState(false)
   const [quickGeneratingType, setQuickGeneratingType] = useState<DeterministicInsightKind | null>(null)
   const [lastRouteDecision, setLastRouteDecision] = useState<{
@@ -158,6 +177,109 @@ export const ChatWindow = () => {
   const isTypingRef = useRef(false)
   const typingTimeoutRef = useRef<number | null>(null) // Auto-stop after 3s
   const debounceTimeoutRef = useRef<number | null>(null) // 500ms delay before emit
+
+  const removeDraftContext = useCallback((key: string) => {
+    setDraftContexts((prev) => prev.filter((item) => item.key !== key))
+  }, [])
+
+  const clearDraftContexts = useCallback(() => {
+    setDraftContexts([])
+  }, [])
+
+  const focusDraftContextSource = useCallback(
+    (context: DraftContextItem) => {
+      if (!currentTeamId) return
+
+      trackSessionEvent({
+        eventType: 'navigation',
+        eventName: 'focus_reply_context_source',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+        metadata: {
+          sourceType: context.sourceType,
+          sourceId: context.sourceId,
+          sourceLabel: context.sourceLabel,
+        },
+      })
+
+      if (context.sourceType === 'insight') {
+        window.dispatchEvent(
+          new CustomEvent('fypai:focus-insight', {
+            detail: {
+              insightId: context.sourceId,
+              preferredTab: 'all',
+              source: 'composer-reply-context',
+            },
+          }),
+        )
+        return
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('fypai:focus-chat-message', {
+          detail: {
+            messageId: context.parentMessageId || context.sourceId,
+            source: 'draft-context',
+          },
+        }),
+      )
+    },
+    [currentTeamId, currentUser?.id],
+  )
+
+  useEffect(() => {
+    const unsubscribe = subscribeToDraftPromotion((payload) => {
+      if (!currentTeamId) return
+      if (payload.teamId && payload.teamId !== currentTeamId) return
+
+      const excerpt = payload.excerpt.trim()
+      if (!excerpt) return
+
+      const key = `${payload.sourceType}:${payload.sourceId}`
+
+      setDraftContexts((prev) => {
+        if (prev.some((item) => item.key === key)) {
+          return prev
+        }
+
+        const next: DraftContextItem = {
+          key,
+          sourceType: payload.sourceType,
+          sourceId: payload.sourceId,
+          sourceLabel: payload.sourceLabel,
+          excerpt,
+          parentMessageId:
+            payload.parentMessageId ||
+            (payload.sourceType === 'message' ? payload.sourceId : undefined),
+        }
+
+        return [...prev, next].slice(-4)
+      })
+
+      setComposerOverrideMode('ask')
+      setLastRouteDecision(null)
+
+      requestAnimationFrame(() => {
+        composerRef.current?.focus()
+      })
+
+      trackSessionEvent({
+        eventType: 'insight',
+        eventName: 'draft_context_promoted',
+        teamId: currentTeamId,
+        actorUserId: currentUser?.id,
+        metadata: {
+          sourceType: payload.sourceType,
+          sourceId: payload.sourceId,
+          sourceLabel: payload.sourceLabel,
+        },
+      })
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [currentTeamId, currentUser?.id])
 
   // Phase 2.3: Send typing:start (only called after debounce)
   const emitTypingStart = useCallback(() => {
@@ -221,10 +343,20 @@ export const ChatWindow = () => {
 
   // handleSend(): sends message via messageService
   const handleSend = async () => {
-    if (!newMessage.trim() || !currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
+    if (!currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
 
     const submittedMessage = newMessage.trim()
-    const slashInsightCommand = parseSlashInsightCommand(submittedMessage)
+    if (!submittedMessage) return
+
+    const selectedDeterministicKind = getDeterministicKindFromOverride(composerOverrideMode)
+
+    const shouldForceAgentInvoke = draftContexts.length > 0
+    const invokingMessage =
+      shouldForceAgentInvoke && !/^@agent\b/i.test(submittedMessage)
+        ? `@agent ${submittedMessage}`
+        : submittedMessage
+
+    const slashInsightCommand = invokingMessage ? parseSlashInsightCommand(invokingMessage) : null
 
     if (slashInsightCommand) {
       if (debounceTimeoutRef.current) {
@@ -239,6 +371,7 @@ export const ChatWindow = () => {
 
       setNewMessage('')
       setLastRouteDecision(null)
+      clearDraftContexts()
 
       await handleDeterministicGenerate(
         slashInsightCommand.kind,
@@ -248,9 +381,102 @@ export const ChatWindow = () => {
       return
     }
 
-    const inferredMode = inferComposerMode(submittedMessage)
+    if (selectedDeterministicKind) {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+        debounceTimeoutRef.current = null
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+        typingTimeoutRef.current = null
+      }
+      emitTypingStop()
 
-    let effectiveMode: ComposerMode = composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
+      const draftSourceInsightIds = draftContexts
+        .filter((context) => context.sourceType === 'insight')
+        .map((context) => context.sourceId)
+      const draftSourceMessageIds = draftContexts
+        .filter((context) => context.sourceType === 'message')
+        .map((context) => context.sourceId)
+      const draftContextLabels = draftContexts.map((context) => context.sourceLabel)
+      const parentDraftContext = [...draftContexts]
+        .reverse()
+        .find((context) => typeof context.parentMessageId === 'string')
+
+      const messageMetadata: MessageMetadata = {
+        routeMode: 'ask',
+        routeConfidence: 1,
+        routeRationale: `Deterministic ${selectedDeterministicKind} category selected.`,
+        routeSource: 'manual-override',
+        routeOverrideUsed: true,
+        routeArchetype: getArchetypeForDeterministicKind(selectedDeterministicKind),
+        parentMessageId: parentDraftContext?.parentMessageId,
+        draftSourceInsightIds: draftSourceInsightIds.length > 0 ? draftSourceInsightIds : undefined,
+        draftSourceMessageIds: draftSourceMessageIds.length > 0 ? draftSourceMessageIds : undefined,
+        draftContextLabels: draftContextLabels.length > 0 ? draftContextLabels : undefined,
+      }
+
+      try {
+        const createdMessage = await createMessage({
+          teamId: currentTeam.id,
+          authorId: currentUser.id,
+          content: submittedMessage,
+          contentType: 'text',
+          metadata: messageMetadata,
+        })
+
+        trackSessionEvent({
+          eventType: 'chat',
+          eventName: 'message_route_decision',
+          teamId: currentTeam.id,
+          actorUserId: currentUser.id,
+          messageId: createdMessage.id,
+          metadata: {
+            routeMode: messageMetadata.routeMode,
+            routeConfidence: messageMetadata.routeConfidence,
+            routeSource: messageMetadata.routeSource,
+            routeRationale: messageMetadata.routeRationale,
+            routeOverrideUsed: true,
+            routeArchetype: messageMetadata.routeArchetype,
+          },
+        })
+
+        trackSessionEvent({
+          eventType: 'chat',
+          eventName: 'message_sent',
+          teamId: currentTeam.id,
+          actorUserId: currentUser.id,
+          messageId: createdMessage.id,
+          content: submittedMessage,
+          metadata: {
+            routeMode: messageMetadata.routeMode,
+            routeConfidence: messageMetadata.routeConfidence,
+            routeSource: messageMetadata.routeSource,
+            overrideMode: composerOverrideMode,
+            routeArchetype: messageMetadata.routeArchetype,
+            selectedCategory: selectedDeterministicKind,
+          },
+        })
+      } catch (error) {
+        console.error('[ChatWindow] Failed to send category-selected message:', error)
+        return
+      }
+
+      setNewMessage('')
+      setLastRouteDecision(null)
+      clearDraftContexts()
+
+      await handleDeterministicGenerate(selectedDeterministicKind, submittedMessage, 'mode-selection')
+      return
+    }
+
+    const inferredMode = inferComposerMode(invokingMessage)
+    const routeOverrideMode: ComposerMode | null =
+      composerOverrideMode === 'ask' || composerOverrideMode === 'research'
+        ? composerOverrideMode
+        : null
+
+    let effectiveMode: ComposerMode = routeOverrideMode || inferredMode
     let routeDecision: {
       mode: ComposerMode
       confidence: number
@@ -258,16 +484,16 @@ export const ChatWindow = () => {
       source: 'manual-override' | 'server-classifier' | 'frontend-fallback'
     }
 
-    if (composerOverrideMode !== 'auto') {
+    if (routeOverrideMode) {
       routeDecision = {
-        mode: composerOverrideMode,
+        mode: routeOverrideMode,
         confidence: 1,
         rationale: 'Manual override selected by user.',
         source: 'manual-override',
       }
     } else {
       try {
-        const serverClassification = await classifyIntent(submittedMessage, currentTeam.id)
+        const serverClassification = await classifyIntent(invokingMessage, currentTeam.id)
         effectiveMode = serverClassification.mode
         routeDecision = {
           mode: serverClassification.mode,
@@ -296,6 +522,17 @@ export const ChatWindow = () => {
     }
     emitTypingStop()
 
+    const draftSourceInsightIds = draftContexts
+      .filter((context) => context.sourceType === 'insight')
+      .map((context) => context.sourceId)
+    const draftSourceMessageIds = draftContexts
+      .filter((context) => context.sourceType === 'message')
+      .map((context) => context.sourceId)
+    const draftContextLabels = draftContexts.map((context) => context.sourceLabel)
+    const parentDraftContext = [...draftContexts]
+      .reverse()
+      .find((context) => typeof context.parentMessageId === 'string')
+
     const messageMetadata: MessageMetadata = {
       routeMode: routeDecision.mode,
       routeConfidence: routeDecision.confidence,
@@ -303,13 +540,17 @@ export const ChatWindow = () => {
       routeSource: routeDecision.source,
       routeOverrideUsed: composerOverrideMode !== 'auto',
       routeArchetype: getArchetypeForRouteMode(routeDecision.mode),
+      parentMessageId: parentDraftContext?.parentMessageId,
+      draftSourceInsightIds: draftSourceInsightIds.length > 0 ? draftSourceInsightIds : undefined,
+      draftSourceMessageIds: draftSourceMessageIds.length > 0 ? draftSourceMessageIds : undefined,
+      draftContextLabels: draftContextLabels.length > 0 ? draftContextLabels : undefined,
     }
 
     try {
       const createdMessage = await createMessage({
         teamId: currentTeam.id,
         authorId: currentUser.id,
-        content: submittedMessage,
+        content: invokingMessage,
         contentType: 'text',
         metadata: messageMetadata,
       })
@@ -336,7 +577,7 @@ export const ChatWindow = () => {
         teamId: currentTeam.id,
         actorUserId: currentUser.id,
         messageId: createdMessage.id,
-        content: submittedMessage,
+        content: invokingMessage,
         metadata: {
           routeMode: routeDecision.mode,
           routeConfidence: routeDecision.confidence,
@@ -347,6 +588,7 @@ export const ChatWindow = () => {
       })
 
       setNewMessage('')
+      clearDraftContexts()
       setLastRouteDecision(routeDecision)
 
       if (effectiveMode === 'research') {
@@ -367,7 +609,7 @@ export const ChatWindow = () => {
         try {
           await createResearchJob({
             teamId: currentTeam.id,
-            query: submittedMessage,
+            query: invokingMessage,
           })
         } catch (researchError) {
           console.error('[ChatWindow] Failed to generate research insight:', researchError)
@@ -381,31 +623,10 @@ export const ChatWindow = () => {
     }
   }
 
-  const handleMentionAgent = () => {
-    const withMention = newMessage.trimStart().startsWith('@agent')
-      ? newMessage
-      : newMessage.length > 0
-      ? `@agent ${newMessage}`
-      : '@agent '
-
-    setNewMessage(withMention)
-    setComposerOverrideMode('ask')
-    composerRef.current?.focus()
-
-    if (currentTeam && currentUser) {
-      trackSessionEvent({
-        eventType: 'chat',
-        eventName: 'invoke_agent_quick_action',
-        teamId: currentTeam.id,
-        actorUserId: currentUser.id,
-      })
-    }
-  }
-
   const handleDeterministicGenerate = async (
     kind: DeterministicInsightKind,
     prompt?: string,
-    source: 'chat-quick-action' | 'slash-command' = 'chat-quick-action',
+    source: 'composer-shortcut' | 'slash-command' | 'mode-selection' = 'composer-shortcut',
   ) => {
     if (!currentTeam || !currentUser || isResearchGenerating || quickGeneratingType !== null) return
 
@@ -472,7 +693,11 @@ export const ChatWindow = () => {
 
   const inferredMode = inferComposerMode(newMessage)
   const effectiveMode: ComposerMode =
-    composerOverrideMode === 'auto' ? inferredMode : composerOverrideMode
+    composerOverrideMode === 'auto'
+      ? inferredMode
+      : composerOverrideMode === 'research'
+      ? 'research'
+      : 'ask'
 
   const routeConfidencePercent = lastRouteDecision
     ? Math.round(lastRouteDecision.confidence * 100)
@@ -483,11 +708,23 @@ export const ChatWindow = () => {
   const continuationPercent = continuationStatus
     ? Math.round(continuationStatus.confidence * 100)
     : null
+  const isPassiveObservation =
+    continuationStatus?.status === 'ended' && continuationStatus.trigger === 'passive-observation'
   const continuationTooltip = continuationStatus
     ? `Trigger: ${continuationStatus.trigger}\nThreshold: ${Math.round(continuationStatus.threshold * 100)}%\nReason: ${
         continuationStatus.reason || 'Confidence gate status from backend'
       }`
     : undefined
+  const composerPlaceholder =
+    composerOverrideMode === 'summary'
+      ? 'Describe what to summarize...'
+      : composerOverrideMode === 'action'
+      ? 'Describe which actions to extract...'
+      : composerOverrideMode === 'suggestion'
+      ? 'Describe what help you need...'
+      : effectiveMode === 'research'
+      ? 'Ask a research question...'
+      : 'Type a message...'
 
   useEffect(() => {
     const textarea = composerRef.current
@@ -523,7 +760,7 @@ export const ChatWindow = () => {
   }, [])
 
   return (
-    <main className="flex-1 min-w-0 flex flex-col h-screen">
+    <main className="flex-1 min-w-0 flex flex-col h-screen bg-slate-50/35">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
         <ChatHeader />
@@ -535,7 +772,10 @@ export const ChatWindow = () => {
       </div>
 
       {/* Fixed Footer - Message Composer */}
-      <div ref={footerRef} className="flex-shrink-0 min-h-[136px] px-4 py-3 border-t border-gray-200 bg-white">
+      <div
+        ref={footerRef}
+        className={`flex-shrink-0 min-h-[136px] px-4 py-3 border-t border-slate-200 bg-white ${getElevationClass('raised')} shadow-[0_-10px_20px_-18px_rgba(15,23,42,0.4)]`}
+      >
         <div className="mb-2 space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <SegmentedControl
@@ -543,42 +783,45 @@ export const ChatWindow = () => {
               activeKey={composerOverrideMode}
               onChange={setComposerOverrideMode}
             />
-            <button
-              type="button"
-              onClick={handleMentionAgent}
-              className={QUICK_ACTION_CLASS.agent}
-              title="Insert @agent mention and switch to Ask mode"
-            >
-              @agent
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeterministicGenerate('summary')}
-              disabled={isResearchGenerating || quickGeneratingType !== null}
-              className={QUICK_ACTION_CLASS.summary}
-              title="Create a concise recap of discussion highlights and decisions"
-            >
-              {quickGeneratingType === 'summary' ? 'Summarizing...' : 'Summary'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeterministicGenerate('action')}
-              disabled={isResearchGenerating || quickGeneratingType !== null}
-              className={QUICK_ACTION_CLASS.action}
-              title="Extract concrete next steps and owners from the recent discussion"
-            >
-              {quickGeneratingType === 'action' ? 'Extracting...' : 'Actions'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeterministicGenerate('suggestion')}
-              disabled={isResearchGenerating || quickGeneratingType !== null}
-              className={QUICK_ACTION_CLASS.suggestion}
-              title="Generate practical recommendations to unblock progress"
-            >
-              {quickGeneratingType === 'suggestion' ? 'Advising...' : 'Help'}
-            </button>
           </div>
+
+          {draftContexts.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={getChipClass('neutral', 'xs')}>Reply Context</span>
+              {draftContexts.map((context) => (
+                <span
+                  key={context.key}
+                  className="inline-flex items-center rounded border border-indigo-200 bg-indigo-50 text-[11px] text-indigo-700"
+                  title={context.excerpt}
+                >
+                  <button
+                    type="button"
+                    onClick={() => focusDraftContextSource(context)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 transition hover:bg-indigo-100"
+                    title={`Jump to ${context.sourceLabel}`}
+                  >
+                    <span className="max-w-[13rem] truncate text-left">{context.sourceLabel}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">Jump</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeDraftContext(context.key)}
+                    className="px-1.5 text-indigo-500 hover:text-indigo-700"
+                    aria-label={`Remove ${context.sourceLabel} context`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={clearDraftContexts}
+                className="text-[11px] font-medium text-slate-500 hover:text-slate-700"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
 
           {(lastRouteDecision || continuationStatus) && (
             <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -592,10 +835,26 @@ export const ChatWindow = () => {
               )}
               {continuationStatus && continuationPercent !== null && (
                 <span
-                  className={getChipClass(continuationStatus.status === 'active' ? 'success' : 'neutral', 'xs')}
+                  className={getChipClass(
+                    isPassiveObservation
+                      ? 'muted'
+                      : continuationStatus.status === 'active'
+                      ? 'success'
+                      : 'neutral',
+                    'xs',
+                  )}
                   title={continuationTooltip}
                 >
-                  Continuation: {continuationStatus.status === 'active' ? 'Active' : 'Ended'} {continuationPercent}%
+                  {isPassiveObservation ? (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-pulse" />
+                      Agent observing {continuationPercent}%
+                    </span>
+                  ) : (
+                    <span>
+                      Continuation: {continuationStatus.status === 'active' ? 'Active' : 'Ended'} {continuationPercent}%
+                    </span>
+                  )}
                 </span>
               )}
             </div>
@@ -614,7 +873,7 @@ export const ChatWindow = () => {
                 handleSend();
               }
             }}
-            placeholder={effectiveMode === 'research' ? 'Ask a research question...' : 'Type a message...'}
+            placeholder={composerPlaceholder}
             className="flex-1 min-h-[40px] px-3 py-2 text-sm leading-5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
             rows={1}
           />
@@ -622,9 +881,15 @@ export const ChatWindow = () => {
             onClick={handleSend}
             disabled={!newMessage.trim() || isResearchGenerating || quickGeneratingType !== null}
             className={`h-10 w-10 flex items-center justify-center rounded-lg transition-colors ${uiTokens.controls.button.brandSolid}`}
-            title={isResearchGenerating ? 'Generating research insight...' : 'Send message'}
+            title={
+              isResearchGenerating
+                ? 'Generating research insight...'
+                : quickGeneratingType
+                ? `Generating ${quickGeneratingType} insight...`
+                : 'Send message'
+            }
           >
-            {isResearchGenerating ? (
+            {isResearchGenerating || quickGeneratingType !== null ? (
               <svg className="w-4.5 h-4.5 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

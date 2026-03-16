@@ -6,6 +6,7 @@
  */
 
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import type { RuleDefinition } from '../ai/rules/ruleDefinitions.js';
 import { DEFAULT_RULES } from '../ai/rules/ruleDefinitions.js';
@@ -767,17 +768,29 @@ export class ChimeRuleController {
     insightId?: string;
     errorMsg?: string;
   }): Promise<void> {
-    await prisma.chimeLog.create({
-      data: {
-        ruleId: data.ruleId,
-        teamId: data.teamId,
-        outcome: data.outcome,
-        confidence: data.confidence,
-        messageId: data.messageId,
-        insightId: data.insightId,
-        errorMsg: data.errorMsg,
-      },
-    });
+    try {
+      await prisma.chimeLog.create({
+        data: {
+          ruleId: data.ruleId,
+          teamId: data.teamId,
+          outcome: data.outcome,
+          confidence: data.confidence,
+          messageId: data.messageId,
+          insightId: data.insightId,
+          errorMsg: data.errorMsg,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        console.warn(
+          `[ChimeRuleController] ⚠️ Skipping chime log due FK constraint ` +
+            `(ruleId=${data.ruleId}, teamId=${data.teamId}, outcome=${data.outcome})`
+        );
+        return;
+      }
+
+      throw error;
+    }
   }
 
   /**

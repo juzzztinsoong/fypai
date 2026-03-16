@@ -35,18 +35,22 @@ interface RouteMetadataSnapshot {
 }
 
 const STRONG_RESEARCH_PATTERNS: RegExp[] = [
-  /\bresearch\b/i,
+  /\bresearch\s+(brief|plan|report|analysis|summary)\b/i,
+  /\bresearch\s+(on|about)\b/i,
+  /\bresearch\s+this\b/i,
+  /\b(?:do|run|perform|conduct)\s+(?:some\s+)?research\b/i,
   /\bcompare\b/i,
   /\btrade[-\s]?off(s)?\b/i,
   /\bpros?\s+and\s+cons?\b/i,
   /\bdeep\s+dive\b/i,
-  /\bbrief\b/i,
   /\bliterature\s+review\b/i,
   /\bevidence\b/i,
   /\bbenchmark\b/i,
 ]
 
 const SOFT_RESEARCH_PATTERNS: RegExp[] = [
+  /\bresearch\b/i,
+  /\bbrief\b/i,
   /\banaly[sz]e\b/i,
   /\boptions?\b/i,
   /\brecommend\b/i,
@@ -93,19 +97,19 @@ const LOW_CONFIDENCE_CLARIFY_FLOOR = clamp(
 )
 const MIN_AUTO_INSIGHT_INPUT_CHARS = Math.max(
   0,
-  Number.parseInt(process.env.MIN_AUTO_INSIGHT_INPUT_CHARS || '120', 10),
+  Number.parseInt(process.env.MIN_AUTO_INSIGHT_INPUT_CHARS || '40', 10),
 )
 const MIN_EXPLICIT_TEXT_INSIGHT_INPUT_CHARS = Math.max(
   0,
-  Number.parseInt(process.env.MIN_EXPLICIT_TEXT_INSIGHT_INPUT_CHARS || '120', 10),
+  Number.parseInt(process.env.MIN_EXPLICIT_TEXT_INSIGHT_INPUT_CHARS || '24', 10),
 )
 const MIN_AUTO_INSIGHT_INPUT_WORDS = Math.max(
   0,
-  Number.parseInt(process.env.MIN_AUTO_INSIGHT_INPUT_WORDS || '18', 10),
+  Number.parseInt(process.env.MIN_AUTO_INSIGHT_INPUT_WORDS || '8', 10),
 )
 const MIN_EXPLICIT_TEXT_INSIGHT_INPUT_WORDS = Math.max(
   0,
-  Number.parseInt(process.env.MIN_EXPLICIT_TEXT_INSIGHT_INPUT_WORDS || '18', 10),
+  Number.parseInt(process.env.MIN_EXPLICIT_TEXT_INSIGHT_INPUT_WORDS || '4', 10),
 )
 
 interface ExplicitInsightCommand {
@@ -351,6 +355,18 @@ export class IntentController {
       }
     }
 
+    const nonExplicitWordCount = countWords(trimmedContent)
+    if (nonExplicitWordCount <= 1) {
+      return {
+        channel: 'chat_message',
+        confidence: 0.2,
+        rationale: 'Single-word non-explicit input stays conversational.',
+        explicit: false,
+        clarify: false,
+        classifierIntent: 'none',
+      }
+    }
+
     const syntheticMessage: MessageDTO = {
       id: 'intent-route-preview',
       teamId: teamId || 'intent-route-preview-team',
@@ -455,6 +471,15 @@ export class IntentController {
         confidence: 1,
         rationale: 'Direct @agent mention should route to conversational assistant mode.',
         classifierIntent: 'direct_mention',
+      }
+    }
+
+    if (countWords(trimmedContent) <= 1) {
+      return {
+        mode: 'ask',
+        confidence: 0.2,
+        rationale: 'Single-word non-explicit input stays in ask mode.',
+        classifierIntent: 'none',
       }
     }
 

@@ -24,7 +24,7 @@ export const ChatHeader = () => {
 
   if (!currentTeam) {
     return (
-      <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-gray-200 bg-white flex items-center`}>
+      <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white flex items-center z-10`}>
         <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-gray-800 leading-6">No Team Selected</h1>
@@ -47,7 +47,7 @@ export const ChatHeader = () => {
   const totalMembers = currentTeam.members.length;
 
   return (
-    <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-gray-200 bg-white flex items-center`}>
+    <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white flex items-center z-10`}>
       <div className="w-full flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-800 leading-6">{currentTeam.name}</h1>

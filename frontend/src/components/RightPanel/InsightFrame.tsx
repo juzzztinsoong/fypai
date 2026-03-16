@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import type { AIInsightDTO } from '../../types'
 import { getChipClass } from '@/styles/uiTokens'
-import { getInsightTypeTheme } from './insightUtils'
+import { getInsightProvenance } from '@/utils/provenance'
+import { emitDraftPromotion, extractDraftExcerpt } from '@/utils/draftComposer'
 
 interface InsightFrameProps {
   insight: AIInsightDTO
@@ -24,13 +25,27 @@ export const InsightFrame = ({
   onJumpToSource,
   onJumpToChatMarker,
 }: InsightFrameProps) => {
-  const theme = getInsightTypeTheme(insight.type)
+  const provenance = getInsightProvenance(insight.metadata)
   const lineageMetadata = insight.metadata as
     | (typeof insight.metadata & {
         sourceInsightId?: string
         sourceExcerpt?: string
       })
     | undefined
+
+  const handleReplyFromInsight = () => {
+    const excerpt = extractDraftExcerpt(insight.content || insight.title)
+    if (!excerpt) return
+
+    emitDraftPromotion({
+      sourceType: 'insight',
+      sourceId: insight.id,
+      sourceLabel: insight.title,
+      excerpt,
+      parentMessageId: insight.relatedMessageIds?.[0],
+      teamId: insight.teamId,
+    })
+  }
 
   return (
     <div
@@ -49,6 +64,31 @@ export const InsightFrame = ({
           </div>
         </div>
       </div>
+
+      {(provenance.source || provenance.trigger || provenance.createdBy || provenance.detail) && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {provenance.source && (
+            <span className={getChipClass('neutral', 'xs')}>
+              Source: {provenance.source}
+            </span>
+          )}
+          {provenance.trigger && (
+            <span className={getChipClass('warning', 'xs')}>
+              Trigger: {provenance.trigger}
+            </span>
+          )}
+          {provenance.createdBy && (
+            <span className={getChipClass('muted', 'xs')}>
+              By: {provenance.createdBy}
+            </span>
+          )}
+          {provenance.detail && (
+            <span className={getChipClass('muted', 'xs')}>
+              Detail: {provenance.detail}
+            </span>
+          )}
+        </div>
+      )}
 
       {insight.metadata?.chimeRuleName && (
         <div className="mb-4">
@@ -77,15 +117,24 @@ export const InsightFrame = ({
 
       {content}
 
-      {onJumpToChatMarker && (
+      <div className="mt-3 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => onJumpToChatMarker(insight.id)}
-          className={`mt-3 text-xs font-medium ${theme.link}`}
+          onClick={handleReplyFromInsight}
+          className="inline-flex items-center rounded-md border border-indigo-600 bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700"
         >
-          View marker in chat →
+          Reply
         </button>
-      )}
+        {onJumpToChatMarker && (
+          <button
+            type="button"
+            onClick={() => onJumpToChatMarker(insight.id)}
+            className="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+          >
+            View marker in chat →
+          </button>
+        )}
+      </div>
     </div>
   )
 }

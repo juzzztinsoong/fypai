@@ -1,4 +1,5 @@
 import { MessageDTO } from '@fypai/types';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../db.js';
 import { ChimeEvaluator, ChimeEvaluationContext, ChimeDecision } from './chimeEngine.js';
 import type { RuleDefinition } from '../rules/ruleDefinitions.js';
@@ -16,8 +17,16 @@ export class UnifiedRuleEngine {
   private llm: GitHubModelsClient;
   private ruleEmbeddings: Map<string, number[]> = new Map();
   private processedMessageTriggers: Map<string, number> = new Map(); // messageId -> timestamp
+  private ruleCooldownExpirations: Map<string, number> = new Map(); // teamId:ruleId -> expiry timestamp
+  private inFlightExecutions: Map<string, number> = new Map(); // messageId -> lock timestamp
   private readonly processedMessageTtlMs = 10 * 60 * 1000; // 10 minutes
   private readonly asyncMaxMessageAgeMs = parseInt(process.env.ASYNC_CHIME_MAX_AGE_MS || '120000', 10);
+  private readonly inFlightExecutionTtlMs = Math.max(
+    1000,
+    parseInt(process.env.CHIME_IN_FLIGHT_TTL_MS || '45000', 10),
+  );
+  private static readonly ACK_OR_SOCIAL_PATTERN =
+    /^(ok(?:ay)?|k|kk|thanks|thank you|thx|got it|noted|sounds good|great|cool|nice|awesome|roger|yep|yeah|nope|nah|all good|looks good|works for me)[.!\s]*$/i;
 
   private constructor() {
     this.llm = new GitHubModelsClient();
@@ -54,6 +63,112 @@ export class UnifiedRuleEngine {
     this.processedMessageTriggers.set(messageId, Date.now());
   }
 
+  private getRuleCooldownKey(teamId: string, ruleId: string): string {
+    return `${teamId}:${ruleId}`;
+  }
+
+  private pruneRuleCooldowns(): void {
+    const now = Date.now();
+    for (const [key, expiresAt] of this.ruleCooldownExpirations.entries()) {
+      if (expiresAt <= now) {
+        this.ruleCooldownExpirations.delete(key);
+      }
+    }
+  }
+
+  private isRuleInCooldown(ruleId: string, teamId: string, cooldownMinutes: number): boolean {
+    if (!Number.isFinite(cooldownMinutes) || cooldownMinutes <= 0) {
+      return false;
+    }
+
+    this.pruneRuleCooldowns();
+    const key = this.getRuleCooldownKey(teamId, ruleId);
+    const expiresAt = this.ruleCooldownExpirations.get(key);
+    if (!expiresAt) {
+      return false;
+    }
+
+    return expiresAt > Date.now();
+  }
+
+  private markRuleCooldown(ruleId: string, teamId: string, cooldownMinutes: number): void {
+    if (!Number.isFinite(cooldownMinutes) || cooldownMinutes <= 0) {
+      return;
+    }
+
+    const expiresAt = Date.now() + (cooldownMinutes * 60 * 1000);
+    const key = this.getRuleCooldownKey(teamId, ruleId);
+    this.ruleCooldownExpirations.set(key, expiresAt);
+  }
+
+  private pruneInFlightExecutions(): void {
+    const now = Date.now();
+    for (const [messageId, lockedAt] of this.inFlightExecutions.entries()) {
+      if (now - lockedAt > this.inFlightExecutionTtlMs) {
+        this.inFlightExecutions.delete(messageId);
+      }
+    }
+  }
+
+  private isInFlightExecution(messageId: string): boolean {
+    this.pruneInFlightExecutions();
+    return this.inFlightExecutions.has(messageId);
+  }
+
+  private acquireExecutionLock(messageId: string): boolean {
+    this.pruneInFlightExecutions();
+    if (this.inFlightExecutions.has(messageId)) {
+      return false;
+    }
+
+    this.inFlightExecutions.set(messageId, Date.now());
+    return true;
+  }
+
+  private releaseExecutionLock(messageId: string): void {
+    this.inFlightExecutions.delete(messageId);
+  }
+
+  private isCommitmentRule(ruleName: string, requiredIntents: IntentType[]): boolean {
+    return (
+      requiredIntents.includes('action_commitment') ||
+      /commitment|action\s*item|tracker/i.test(ruleName)
+    );
+  }
+
+  private passesCommitmentQualityGate(message: MessageDTO): boolean {
+    const content = (message.content || '').trim();
+    if (!content) return false;
+
+    const normalized = content.toLowerCase();
+    const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+
+    if (UnifiedRuleEngine.ACK_OR_SOCIAL_PATTERN.test(normalized)) {
+      return false;
+    }
+
+    if (/\bwhat do you think\b/.test(normalized) || /\bthanks\b/.test(normalized)) {
+      return false;
+    }
+
+    const hasOwnerSignal =
+      /\b(i\s*'ll|i\s*will|we\s*'ll|we\s*will|let\s+me|i\s+am\s+going\s+to|i'm\s+going\s+to)\b/.test(normalized);
+    const hasConcreteActionVerb =
+      /\b(finish|complete|deliver|prepare|send|draft|book|organize|coordinate|review|submit|create|update|schedule|finalize|share)\b/.test(normalized);
+    const hasDeadlineSignal =
+      /\b(by|before|tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+week|end\s+of|eod|eow|\d{4}-\d{2}-\d{2}|\d{1,2}\s*(am|pm))\b/.test(normalized);
+
+    const strongCommitment = hasOwnerSignal && hasConcreteActionVerb;
+    if (!strongCommitment) return false;
+
+    // Require either a time signal or enough detail to avoid short vague commitments.
+    if (!hasDeadlineSignal && wordCount < 7) {
+      return false;
+    }
+
+    return true;
+  }
+
   /**
    * Mark a message as already handled (e.g., by the reactive @agent path).
    * Prevents the async evaluation from producing a duplicate response.
@@ -70,6 +185,11 @@ export class UnifiedRuleEngine {
   async evaluateSync(message: MessageDTO): Promise<void> {
     if (this.hasProcessedTrigger(message.id)) {
       console.log(`[UnifiedRuleEngine] ⏭️ Sync skipped (already processed message ${message.id})`);
+      return;
+    }
+
+    if (this.isInFlightExecution(message.id)) {
+      console.log(`[UnifiedRuleEngine] ⏳ Sync skipped (message ${message.id} already in-flight)`);
       return;
     }
 
@@ -118,7 +238,19 @@ export class UnifiedRuleEngine {
       updatedAt: r.updatedAt
     }));
 
-    const evaluator = new ChimeEvaluator(mappedRules);
+    const cooldownEligibleRules = mappedRules.filter((rule) => {
+      const inCooldown = this.isRuleInCooldown(rule.id, message.teamId, rule.cooldownMinutes);
+      if (inCooldown) {
+        console.log(`[UnifiedRuleEngine] ⏸️ Sync rule in cooldown, skipping: ${rule.name}`);
+      }
+      return !inCooldown;
+    });
+
+    if (cooldownEligibleRules.length === 0) {
+      return;
+    }
+
+    const evaluator = new ChimeEvaluator(cooldownEligibleRules);
     const decisions = await evaluator.evaluate(context);
 
     // 4. Execute highest priority decision
@@ -131,8 +263,18 @@ export class UnifiedRuleEngine {
         return;
       }
 
-      await this.executeDecision(topDecision);
-      this.markProcessedTrigger(triggeringMessageId);
+      if (!this.acquireExecutionLock(triggeringMessageId)) {
+        console.log(`[UnifiedRuleEngine] ⏳ Sync top decision skipped (lock held for ${triggeringMessageId})`);
+        return;
+      }
+
+      try {
+        this.markRuleCooldown(topDecision.rule.id, message.teamId, topDecision.rule.cooldownMinutes);
+        await this.executeDecision(topDecision);
+        this.markProcessedTrigger(triggeringMessageId);
+      } finally {
+        this.releaseExecutionLock(triggeringMessageId);
+      }
     }
   }
 
@@ -161,6 +303,11 @@ export class UnifiedRuleEngine {
       return;
     }
 
+    if (this.isInFlightExecution(message.id)) {
+      console.log(`[UnifiedRuleEngine] ⏳ Async skipped (message ${message.id} already in-flight)`);
+      return;
+    }
+
     // Skip agent messages to prevent loops
     if (message.authorId === 'agent') {
       console.log(`[UnifiedRuleEngine] ⏭️ Skipping agent message`);
@@ -186,60 +333,75 @@ export class UnifiedRuleEngine {
 
     for (const rule of rules) {
       try {
+        if (this.isRuleInCooldown(rule.id, message.teamId, rule.cooldownMinutes)) {
+          console.log(`[UnifiedRuleEngine] ⏸️ Async rule in cooldown, skipping: ${rule.name}`);
+          continue;
+        }
+
         const conditions = JSON.parse(rule.conditions);
-        let shouldTrigger = false;
         let confidence = 0;
 
         // Phase 6.2: Intent + Urgency + Sentiment matching
         // Logic: ALL specified conditions must pass (AND), not just any one (OR)
         // Each condition that exists is a filter; if any filter fails, the rule doesn't trigger
+        const hasIntentFilters = Boolean(
+          conditions.requiredIntents || conditions.minUrgency || conditions.triggerSentiments,
+        );
         let intentPassed = true;  // default true = no filter
         let urgencyPassed = true;
         let sentimentPassed = true;
 
         // Intent filter
-        if (conditions.requiredIntents && classification) {
-          const requiredIntents = conditions.requiredIntents as IntentType[];
-          if (requiredIntents.includes(classification.intent)) {
-            confidence = Math.max(confidence, classification.confidence);
-            console.log(`[UnifiedRuleEngine] 🎯 Intent match for ${rule.name}: ${classification.intent}`);
+        const requiredIntents = (conditions.requiredIntents || []) as IntentType[];
+        if (conditions.requiredIntents) {
+          if (classification) {
+            if (requiredIntents.includes(classification.intent)) {
+              confidence = Math.max(confidence, classification.confidence);
+              console.log(`[UnifiedRuleEngine] 🎯 Intent match for ${rule.name}: ${classification.intent}`);
+            } else {
+              intentPassed = false;
+            }
           } else {
             intentPassed = false;
           }
         }
 
         // Urgency filter (only checked if intent passed or no intent required)
-        if (conditions.minUrgency && classification) {
-          const urgencyOrder: UrgencyLevel[] = ['low', 'medium', 'high', 'critical'];
-          const minIndex = urgencyOrder.indexOf(conditions.minUrgency);
-          const messageIndex = urgencyOrder.indexOf(classification.urgency);
-          if (messageIndex >= minIndex) {
-            confidence = Math.max(confidence, 0.7 + (messageIndex * 0.1));
-            console.log(`[UnifiedRuleEngine] 🚨 Urgency threshold met for ${rule.name}: ${classification.urgency}`);
+        if (conditions.minUrgency) {
+          if (classification) {
+            const urgencyOrder: UrgencyLevel[] = ['low', 'medium', 'high', 'critical'];
+            const minIndex = urgencyOrder.indexOf(conditions.minUrgency);
+            const messageIndex = urgencyOrder.indexOf(classification.urgency);
+            if (messageIndex >= minIndex) {
+              confidence = Math.max(confidence, 0.7 + (messageIndex * 0.1));
+              console.log(`[UnifiedRuleEngine] 🚨 Urgency threshold met for ${rule.name}: ${classification.urgency}`);
+            } else {
+              urgencyPassed = false;
+            }
           } else {
             urgencyPassed = false;
           }
         }
 
         // Sentiment filter
-        if (conditions.triggerSentiments && classification) {
-          const triggerSentiments = conditions.triggerSentiments as string[];
-          if (triggerSentiments.includes(classification.sentiment)) {
-            confidence = Math.max(confidence, classification.confidence);
-            console.log(`[UnifiedRuleEngine] 😤 Sentiment match for ${rule.name}: ${classification.sentiment}`);
+        if (conditions.triggerSentiments) {
+          if (classification) {
+            const triggerSentiments = conditions.triggerSentiments as string[];
+            if (triggerSentiments.includes(classification.sentiment)) {
+              confidence = Math.max(confidence, classification.confidence);
+              console.log(`[UnifiedRuleEngine] 😤 Sentiment match for ${rule.name}: ${classification.sentiment}`);
+            } else {
+              sentimentPassed = false;
+            }
           } else {
             sentimentPassed = false;
           }
         }
 
-        // Rule triggers only if ALL specified conditions pass
-        if (intentPassed && urgencyPassed && sentimentPassed && 
-            (conditions.requiredIntents || conditions.minUrgency || conditions.triggerSentiments)) {
-          shouldTrigger = true;
-        }
-
-        // Semantic vector matching (original behavior)
         const semanticQuery = conditions.semanticQuery;
+        const hasSemanticFilter = Boolean(semanticQuery);
+        let semanticPassed = !hasSemanticFilter;
+
         if (semanticQuery) {
           // Get or generate rule embedding
           let ruleEmbedding = this.ruleEmbeddings.get(rule.id);
@@ -254,9 +416,29 @@ export class UnifiedRuleEngine {
           const threshold = conditions.threshold || 0.5;
           
           if (similarity >= threshold) {
-            shouldTrigger = true;
+            semanticPassed = true;
             confidence = Math.max(confidence, similarity);
             console.log(`[UnifiedRuleEngine] 📊 Semantic match for ${rule.name}: ${similarity.toFixed(2)}`);
+          } else {
+            semanticPassed = false;
+          }
+        }
+
+        let shouldTrigger =
+          intentPassed &&
+          urgencyPassed &&
+          sentimentPassed &&
+          semanticPassed &&
+          (hasIntentFilters || hasSemanticFilter);
+
+        // Additional guard: avoid noisy autonomous action-item creation on low-signal/social turns.
+        if (shouldTrigger && this.isCommitmentRule(rule.name, requiredIntents)) {
+          const qualityPass = this.passesCommitmentQualityGate(message);
+          if (!qualityPass) {
+            shouldTrigger = false;
+            console.log(
+              `[UnifiedRuleEngine] 🛑 Commitment quality gate blocked ${rule.name} for message ${message.id}`
+            );
           }
         }
 
@@ -311,9 +493,19 @@ export class UnifiedRuleEngine {
         return;
       }
 
-      console.log(`[UnifiedRuleEngine] 🏆 Executing top decision: ${topDecision.rule.name}`);
-      await this.executeDecision(topDecision);
-      this.markProcessedTrigger(triggeringMessageId);
+      if (!this.acquireExecutionLock(triggeringMessageId)) {
+        console.log(`[UnifiedRuleEngine] ⏳ Async top decision skipped (lock held for ${triggeringMessageId})`);
+        return;
+      }
+
+      try {
+        this.markRuleCooldown(topDecision.rule.id, message.teamId, topDecision.rule.cooldownMinutes);
+        console.log(`[UnifiedRuleEngine] 🏆 Executing top decision: ${topDecision.rule.name}`);
+        await this.executeDecision(topDecision);
+        this.markProcessedTrigger(triggeringMessageId);
+      } finally {
+        this.releaseExecutionLock(triggeringMessageId);
+      }
     }
   }
 
@@ -329,6 +521,71 @@ export class UnifiedRuleEngine {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
+  private async safeCreateChimeLog(data: {
+    ruleId: string;
+    teamId: string;
+    outcome: 'success' | 'cooldown' | 'error';
+    confidence?: number;
+    messageId?: string;
+    insightId?: string;
+    errorMsg?: string;
+  }): Promise<void> {
+    try {
+      await prisma.chimeLog.create({
+        data: {
+          ruleId: data.ruleId,
+          teamId: data.teamId,
+          outcome: data.outcome,
+          confidence: data.confidence,
+          messageId: data.messageId,
+          insightId: data.insightId,
+          errorMsg: data.errorMsg,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        let hasRule = false;
+        let hasTeam = false;
+
+        try {
+          const [rule, team] = await Promise.all([
+            prisma.chimeRule.findUnique({ where: { id: data.ruleId }, select: { id: true } }),
+            prisma.team.findUnique({ where: { id: data.teamId }, select: { id: true } }),
+          ]);
+          hasRule = Boolean(rule);
+          hasTeam = Boolean(team);
+        } catch {
+          // best effort diagnostics only
+        }
+
+        console.warn(
+          `[UnifiedRuleEngine] ⚠️ Skipping chime log insert due FK constraint ` +
+            `(ruleExists=${hasRule}, teamExists=${hasTeam}, outcome=${data.outcome})`
+        );
+        return;
+      }
+
+      console.error('[UnifiedRuleEngine] Failed to persist chime log:', error);
+    }
+  }
+
+  private async ensureDecisionRefsExist(ruleId: string, teamId: string): Promise<boolean> {
+    const [rule, team] = await Promise.all([
+      prisma.chimeRule.findUnique({ where: { id: ruleId }, select: { id: true } }),
+      prisma.team.findUnique({ where: { id: teamId }, select: { id: true } }),
+    ]);
+
+    if (!rule || !team) {
+      console.warn(
+        `[UnifiedRuleEngine] ⏭️ Skipping decision execution due missing references ` +
+          `(ruleId=${ruleId}, ruleExists=${Boolean(rule)}, teamId=${teamId}, teamExists=${Boolean(team)})`
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   /**
    * Execute a Chime Decision
    */
@@ -337,6 +594,11 @@ export class UnifiedRuleEngine {
     console.log(`[UnifiedRuleEngine] Executing rule: ${rule.name}`);
 
     try {
+      const refsExist = await this.ensureDecisionRefsExist(rule.id, teamId);
+      if (!refsExist) {
+        return;
+      }
+
       // Generate content using LLM
       const messages = await MessageController.getMessages(teamId, 20);
       // Simple context builder
@@ -421,25 +683,21 @@ export class UnifiedRuleEngine {
       }
 
       // Log success
-      await prisma.chimeLog.create({
-        data: {
-          ruleId: rule.id,
-          teamId,
-          outcome: 'success',
-          confidence: decision.confidence
-        }
+      await this.safeCreateChimeLog({
+        ruleId: rule.id,
+        teamId,
+        outcome: 'success',
+        confidence: decision.confidence,
       });
 
     } catch (error) {
       console.error(`[UnifiedRuleEngine] Error executing rule ${rule.name}:`, error);
       // Log error
-      await prisma.chimeLog.create({
-        data: {
-          ruleId: rule.id,
-          teamId,
-          outcome: 'error',
-          errorMsg: error instanceof Error ? error.message : 'Unknown error'
-        }
+      await this.safeCreateChimeLog({
+        ruleId: rule.id,
+        teamId,
+        outcome: 'error',
+        errorMsg: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }

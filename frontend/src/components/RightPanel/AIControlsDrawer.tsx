@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { AgentPreferencesDTO, AgentPersonality, AgentProactivity, AgentResponseLength, AgentModelTier } from '@fypai/types'
 import { getAgentPreferences, updateAgentPreferences, resetAgentPreferences } from '@/services/agentPreferencesService'
 import { RuleTogglePanel } from './RuleTogglePanel'
-import { getSegmentedActiveClass, getSwitchThumbClass, getSwitchTrackClass, uiTokens } from '@/styles/uiTokens'
+import { getElevationClass, getSegmentedActiveClass, getSwitchThumbClass, getSwitchTrackClass, uiTokens } from '@/styles/uiTokens'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ function CompactPicker<T extends string>({
   value: T
   onChange: (v: T) => void
 }) {
-  const activeClass = `${getSegmentedActiveClass('brand')} shadow-sm ring-1 ring-indigo-200`
+  const activeClass = `${getSegmentedActiveClass('brand')} ${getElevationClass('surface')} ring-1 ring-indigo-200`
 
   return (
     <div className="space-y-1">
@@ -197,7 +197,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated =
         <div
           className={
             integrated
-              ? 'absolute inset-x-4 bottom-full z-30 mb-2 rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3 shadow-xl shadow-slate-900/10 max-h-[40vh] overflow-y-auto'
+              ? `absolute inset-x-4 bottom-full z-30 mb-2 rounded-xl border border-slate-200 bg-white px-4 py-3 space-y-3 ${getElevationClass('overlay')} max-h-[40vh] overflow-y-auto`
               : 'border-t border-gray-100 px-4 py-3 space-y-3 max-h-[40vh] overflow-y-auto'
           }
         >

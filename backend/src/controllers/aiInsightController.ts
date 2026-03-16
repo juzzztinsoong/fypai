@@ -40,6 +40,16 @@ import { Server as SocketIOServer } from 'socket.io'
 import { CacheService } from '../services/cacheService.js'
 
 type HttpError = Error & { statusCode?: number }
+type InsightMetadataRecord = Record<string, unknown>
+
+type ProcessingTargetType = 'chat' | 'summary' | 'document' | 'action' | 'suggestion'
+
+type InsightProvenance = {
+  source: string
+  trigger: string
+  createdBy: string
+  detail?: string
+}
 
 export class AIInsightController {
   private static llm = new GitHubModelsClient();
@@ -48,7 +58,7 @@ export class AIInsightController {
   private static readonly GENERIC_TITLE_SET = new Set([
     'conversation summary',
     'summary',
-    'research brief',
+    'research',
     'brief',
     'report',
     'action item',
@@ -192,17 +202,58 @@ export class AIInsightController {
     return this.getDefaultTitleByType(data.type);
   }
 
+  private static stripMarkdownForSnippet(markdown: string): string {
+    return markdown
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^[-*]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private static extractInsightSnippet(content: string, maxLength = 180): string {
+    const plain = this.stripMarkdownForSnippet(content);
+    if (!plain) return '';
+
+    const sentence = plain.split(/[.!?]/)[0]?.trim() || plain;
+    if (sentence.length <= maxLength) return sentence;
+    return `${sentence.slice(0, maxLength - 3).trimEnd()}...`;
+  }
+
   private static emitProcessingStage(
     teamId: string,
     stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle',
+    detail?: string,
+    targetType?: ProcessingTargetType,
   ): void {
     if (!this.io) return;
-    this.io.to(`team:${teamId}`).emit('ai:processing', {
+    const payload: {
+      teamId: string;
+      userId: string;
+      stage: 'thinking' | 'searching-memory' | 'analyzing' | 'idle';
+      detail?: string;
+      targetType?: ProcessingTargetType;
+    } = {
       teamId,
       userId: 'agent',
       stage,
-    });
-    console.log(`[AIInsightController] 🧭 Emitted ai:processing stage=${stage} for team=${teamId}`);
+    };
+
+    if (detail) payload.detail = detail;
+    if (targetType) payload.targetType = targetType;
+
+    this.io.to(`team:${teamId}`).emit('ai:processing', payload);
+    console.log(
+      `[AIInsightController] 🧭 Emitted ai:processing stage=${stage}` +
+        `${detail ? ` detail=${detail}` : ''}` +
+        `${targetType ? ` target=${targetType}` : ''} for team=${teamId}`,
+    );
   }
 
   private static emitTyping(teamId: string, isTyping: boolean): void {
@@ -216,6 +267,131 @@ export class AIInsightController {
 
   private static normalizeExcerpt(excerpt: string): string {
     return excerpt.replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  private static readStringField(metadata: InsightMetadataRecord, key: string): string | undefined {
+    const value = metadata[key]
+    if (typeof value !== 'string') return undefined
+
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : undefined
+  }
+
+  private static normalizeTags(tags?: string[]): Set<string> {
+    if (!Array.isArray(tags)) return new Set()
+
+    return new Set(
+      tags
+        .map((tag) => tag.toLowerCase().trim())
+        .filter((tag) => tag.length > 0),
+    )
+  }
+
+  private static deriveInsightProvenance(tags: string[] | undefined, metadata: InsightMetadataRecord): InsightProvenance {
+    const normalizedTags = this.normalizeTags(tags)
+    const hasOnboardingSignal = normalizedTags.has('onboarding') || Boolean(metadata.onboardingDemo)
+
+    if (hasOnboardingSignal) {
+      return {
+        source: 'seed-onboarding',
+        trigger: 'seed-bootstrap',
+        createdBy: 'system',
+      }
+    }
+
+    const chimeRuleName = this.readStringField(metadata, 'chimeRuleName')
+    if (chimeRuleName) {
+      return {
+        source: 'autonomous-rule',
+        trigger: 'chime-rule',
+        createdBy: 'agent',
+        detail: chimeRuleName,
+      }
+    }
+
+    const hasPromotionSignal =
+      Boolean(this.readStringField(metadata, 'sourceInsightId')) ||
+      Boolean(this.readStringField(metadata, 'sourceMessageId'))
+    if (hasPromotionSignal) {
+      return {
+        source: 'promoted-content',
+        trigger: 'promote-iterate',
+        createdBy: 'user',
+      }
+    }
+
+    const promptValue = this.readStringField(metadata, 'prompt')
+    const isAutoEscalated =
+      promptValue === 'auto-escalated-from-chat' || normalizedTags.has('auto-escalated-from-chat')
+    if (isAutoEscalated) {
+      return {
+        source: 'reactive-chat',
+        trigger: 'auto-escalation',
+        createdBy: 'agent',
+      }
+    }
+
+    if (normalizedTags.has('user-requested')) {
+      return {
+        source: 'user-request',
+        trigger: 'explicit-request',
+        createdBy: 'user',
+      }
+    }
+
+    if (normalizedTags.has('auto-generated')) {
+      return {
+        source: 'ai-generation',
+        trigger: 'manual-generation',
+        createdBy: 'agent',
+      }
+    }
+
+    return {
+      source: 'direct-insight-create',
+      trigger: 'api-request',
+      createdBy: 'user',
+    }
+  }
+
+  private static enrichInsightMetadataWithProvenance(
+    tags: string[] | undefined,
+    rawMetadata: InsightMetadataRecord | null,
+  ): InsightMetadataRecord {
+    const metadata: InsightMetadataRecord = rawMetadata ? { ...rawMetadata } : {}
+    const derived = this.deriveInsightProvenance(tags, metadata)
+
+    if (!this.readStringField(metadata, 'provenanceSource')) {
+      metadata.provenanceSource = derived.source
+    }
+
+    if (!this.readStringField(metadata, 'provenanceTrigger')) {
+      metadata.provenanceTrigger = derived.trigger
+    }
+
+    if (!this.readStringField(metadata, 'provenanceCreatedBy')) {
+      metadata.provenanceCreatedBy = derived.createdBy
+    }
+
+    if (!this.readStringField(metadata, 'provenanceDetail') && derived.detail) {
+      metadata.provenanceDetail = derived.detail
+    }
+
+    return metadata
+  }
+
+  private static resolveMarkerProvenance(insight: AIInsightDTO): InsightProvenance {
+    const metadata = (insight.metadata && typeof insight.metadata === 'object'
+      ? ({ ...insight.metadata } as InsightMetadataRecord)
+      : {}) as InsightMetadataRecord
+    const derived = this.deriveInsightProvenance(insight.tags, metadata)
+
+    return {
+      source: this.readStringField(metadata, 'provenanceSource') || derived.source,
+      trigger: this.readStringField(metadata, 'provenanceTrigger') || derived.trigger,
+      createdBy: this.readStringField(metadata, 'provenanceCreatedBy') || derived.createdBy,
+      detail: this.readStringField(metadata, 'provenanceDetail') || derived.detail,
+    }
   }
 
   private static sanitizeInsightMetadata(rawMetadata: CreateAIInsightRequest['metadata']) {
@@ -241,6 +417,22 @@ export class AIInsightController {
     if (typeof metadata.sourceMessageExcerpt === 'string') {
       const trimmed = metadata.sourceMessageExcerpt.replace(/\s+/g, ' ').trim();
       metadata.sourceMessageExcerpt = trimmed.slice(0, 500);
+    }
+
+    if (typeof metadata.provenanceSource === 'string') {
+      metadata.provenanceSource = metadata.provenanceSource.trim().slice(0, 80);
+    }
+
+    if (typeof metadata.provenanceTrigger === 'string') {
+      metadata.provenanceTrigger = metadata.provenanceTrigger.trim().slice(0, 80);
+    }
+
+    if (typeof metadata.provenanceCreatedBy === 'string') {
+      metadata.provenanceCreatedBy = metadata.provenanceCreatedBy.trim().slice(0, 80);
+    }
+
+    if (typeof metadata.provenanceDetail === 'string') {
+      metadata.provenanceDetail = metadata.provenanceDetail.replace(/\s+/g, ' ').trim().slice(0, 180);
     }
 
     return metadata;
@@ -288,17 +480,32 @@ export class AIInsightController {
     const markerLabelByType: Record<string, string> = {
       action: 'Action Item',
       summary: 'Summary',
-      document: 'Research Brief',
+      document: 'Research',
       suggestion: 'Help',
       analysis: 'Analysis',
       code: 'Code Output',
     }
 
+    const markerVerbByType: Record<string, string> = {
+      action: 'Generated action items',
+      summary: 'Generated summary',
+      document: 'Generated research',
+      suggestion: 'Generated help recommendations',
+      analysis: 'Generated analysis',
+      code: 'Generated code output',
+    }
+
     const markerLabel = markerLabelByType[insight.type] || 'Insight'
+    const markerVerb = markerVerbByType[insight.type] || 'Generated insight'
+    const markerSnippet = this.extractInsightSnippet(insight.content)
+    const markerProvenance = this.resolveMarkerProvenance(insight)
     const markerMessage = await MessageController.createMessage({
       teamId,
       authorId: 'agent',
-      content: `📌 ${markerLabel} available: ${insight.title}`,
+      content:
+        markerSnippet.length > 0
+          ? `${markerVerb}: ${insight.title}\n\n${markerSnippet}`
+          : `${markerVerb}: ${insight.title}`,
       contentType: 'text',
       metadata: {
         markerType: insight.type === 'action' ? 'action-insight-link' : 'insight-link',
@@ -307,6 +514,11 @@ export class AIInsightController {
         linkedInsightType: insight.type,
         sourceActionTitle: insight.title,
         markerLabel,
+        markerPreview: markerSnippet || undefined,
+        markerSource: markerProvenance.source,
+        markerTrigger: markerProvenance.trigger,
+        markerCreatedBy: markerProvenance.createdBy,
+        markerTriggerDetail: markerProvenance.detail,
       },
     });
 
@@ -439,6 +651,7 @@ export class AIInsightController {
     }
 
     const sanitizedMetadata = this.sanitizeInsightMetadata(data.metadata);
+    const enrichedMetadata = this.enrichInsightMetadataWithProvenance(data.tags, sanitizedMetadata);
     const resolvedTitle = this.resolveInsightTitle({
       type: data.type,
       title: data.title,
@@ -460,7 +673,7 @@ export class AIInsightController {
         priority: data.priority || null,
         tags: data.tags ? JSON.stringify(data.tags) : null,
         relatedMessageIds: data.relatedMessageIds ? JSON.stringify(data.relatedMessageIds) : null,
-        metadata: sanitizedMetadata ? JSON.stringify(sanitizedMetadata) : null,
+        metadata: JSON.stringify(enrichedMetadata),
         agentMetadata: data.agentMetadata ? JSON.stringify(data.agentMetadata) : null,
       }
     })
@@ -624,7 +837,7 @@ export class AIInsightController {
    */
   static async generateSummary(teamId: string, archetypeHint?: string): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
-    this.emitProcessingStage(teamId, 'thinking');
+    this.emitProcessingStage(teamId, 'thinking', 'Reviewing recent discussion', 'summary');
 
     try {
       const messages = await MessageController.getMessages(teamId);
@@ -652,7 +865,7 @@ export class AIInsightController {
       }
 
       console.log(`[AIInsightController] Generating summary for team ${teamId}`);
-      this.emitProcessingStage(teamId, 'analyzing');
+      this.emitProcessingStage(teamId, 'analyzing', 'Generating summary', 'summary');
 
       const archetypeDecision = this.resolveArchetype(archetypeHint, 'decision-brief');
       const summaryPrompt = applyPromptArchetype(SYSTEM_PROMPTS.summarizer, archetypeDecision.archetype);
@@ -699,7 +912,7 @@ export class AIInsightController {
 
   /**
    * Generate AI-powered research insight
-   * Creates a comprehensive research brief based on team discussions
+    * Creates comprehensive research based on team discussions
    * @param {string} teamId - Team ID
    * @param {string} prompt - Optional custom prompt for research generation
    * @returns {Promise<AIInsightDTO>} Created research insight
@@ -710,7 +923,7 @@ export class AIInsightController {
     archetypeHint?: string,
   ): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
-    this.emitProcessingStage(teamId, 'thinking');
+    this.emitProcessingStage(teamId, 'thinking', 'Reviewing context for research', 'document');
 
     try {
       const messages = await MessageController.getMessages(teamId);
@@ -737,7 +950,7 @@ export class AIInsightController {
         console.warn('[AIInsightController] Failed to load task context for research:', error);
       }
 
-      const defaultPrompt = `Generate a comprehensive research brief from the team discussion.
+      const defaultPrompt = `Generate a comprehensive research analysis from the team discussion.
 
     Requirements:
     - Cover context, key topics, decisions, rationale, risks, and open questions.
@@ -748,8 +961,8 @@ export class AIInsightController {
     Do not include task lists, assignees, or deadlines.`;
       const reportPrompt = prompt || defaultPrompt;
 
-      console.log(`[AIInsightController] Generating research brief for team ${teamId}`);
-      this.emitProcessingStage(teamId, 'analyzing');
+      console.log(`[AIInsightController] Generating research for team ${teamId}`);
+      this.emitProcessingStage(teamId, 'analyzing', 'Generating research', 'document');
 
       const archetypeDecision = this.resolveArchetype(archetypeHint, 'research-analyst');
       const reportSystemPrompt = applyPromptArchetype(SYSTEM_PROMPTS.reporter, archetypeDecision.archetype);
@@ -770,7 +983,7 @@ export class AIInsightController {
       const insightDTO = await this.createInsight({
         teamId,
         type: 'document',
-        title: 'Research Brief',
+        title: 'Research',
         content: response.content,
         priority: 'high',
         tags: ['auto-generated', 'research', response.model],
@@ -806,7 +1019,7 @@ export class AIInsightController {
     archetypeHint?: string,
   ): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
-    this.emitProcessingStage(teamId, 'thinking');
+    this.emitProcessingStage(teamId, 'thinking', 'Reviewing commitments and decisions', 'action');
 
     try {
       const messages = await MessageController.getMessages(teamId);
@@ -848,7 +1061,7 @@ Rules:
       const actionPrompt = prompt || defaultPrompt;
 
       console.log(`[AIInsightController] Generating action insight for team ${teamId}`);
-      this.emitProcessingStage(teamId, 'analyzing');
+        this.emitProcessingStage(teamId, 'analyzing', 'Generating action items', 'action');
 
       const archetypeDecision = this.resolveArchetype(archetypeHint, 'execution-coach');
       const actionSystemPrompt = applyPromptArchetype(SYSTEM_PROMPTS.assistant, archetypeDecision.archetype);
@@ -904,7 +1117,7 @@ Rules:
     archetypeHint?: string,
   ): Promise<AIInsightDTO> {
     this.emitTyping(teamId, true);
-    this.emitProcessingStage(teamId, 'thinking');
+    this.emitProcessingStage(teamId, 'thinking', 'Reviewing blockers and support needs', 'suggestion');
 
     try {
       const messages = await MessageController.getMessages(teamId);
@@ -948,7 +1161,7 @@ Rules:
       const suggestionPrompt = prompt || defaultPrompt;
 
       console.log(`[AIInsightController] Generating help insight for team ${teamId}`);
-      this.emitProcessingStage(teamId, 'analyzing');
+        this.emitProcessingStage(teamId, 'analyzing', 'Generating help recommendations', 'suggestion');
 
       const archetypeDecision = this.resolveArchetype(archetypeHint, 'pragmatic-advisor');
       const suggestionSystemPrompt = applyPromptArchetype(SYSTEM_PROMPTS.assistant, archetypeDecision.archetype);

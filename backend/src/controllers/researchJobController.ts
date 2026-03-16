@@ -101,7 +101,7 @@ export class ResearchJobController {
     })
     this.emitJobUpdate(this.toDTO(runningJob))
 
-    const researchPrompt = `Create a focused research brief for this user request from the ongoing team context.
+    const researchPrompt = `Create focused research for this user request from the ongoing team context.
 
 User research request:
 ${runningJob.query}
