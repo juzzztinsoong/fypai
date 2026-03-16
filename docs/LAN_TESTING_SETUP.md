@@ -27,11 +27,11 @@ GITHUB_TOKEN=your_github_models_token
 
 # IMPORTANT for LAN clients (CORS allowlist)
 # Use the host machine frontend origin, not localhost
-FRONTEND_URL=http://192.168.1.23:3000
+FRONTEND_URL=http://172.31.10.142:3000
 
 # Optional: allow additional frontend origins (comma-separated)
 # Example when teammates run frontend on their own machines:
-# FRONTEND_URLS=http://192.168.1.23:3000,http://192.168.1.50:3000
+# FRONTEND_URLS=http://172.31.10.142:3000,http://172.31.10.142:3000
 ```
 
 ## 1) Initialize / Sync Database Schema (Prisma)
