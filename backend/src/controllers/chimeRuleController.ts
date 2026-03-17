@@ -646,9 +646,12 @@ export class ChimeRuleController {
   static async seedDefaultRules(req: Request, res: Response) {
     try {
       const { teamId } = req.body; // Optional
+      const disableAsyncRuleSeeding = process.env.DISABLE_ASYNC_RULE_SEEDING === 'true';
 
       // Use DEFAULT_RULES to get ALL rules (including disabled ones)
-      const defaultRules = DEFAULT_RULES;
+      const defaultRules = disableAsyncRuleSeeding
+        ? DEFAULT_RULES.filter(rule => rule.execution !== 'async')
+        : DEFAULT_RULES;
       const createdRules = [];
 
       for (const rule of defaultRules) {
@@ -671,7 +674,7 @@ export class ChimeRuleController {
       }
 
       res.status(201).json({
-        message: `Seeded ${createdRules.length} default rules`,
+        message: `Seeded ${createdRules.length} default rules${disableAsyncRuleSeeding ? ' (async rules excluded)' : ''}`,
         rules: createdRules,
       });
     } catch (error) {

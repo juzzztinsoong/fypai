@@ -28,7 +28,6 @@ import * as Sentry from '@sentry/node'
 import { nodeProfilingIntegration } from '@sentry/profiling-node'
 
 import { prisma } from './db.js'
-import { RuleSeederService } from './services/ruleSeederService.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { setupSocketHandlers } from './socket/socketHandlers.js'
 import { getRedisClient, checkRedisHealth, disconnectRedis } from './services/redis.js'
@@ -226,16 +225,6 @@ server.listen(PORT, async () => {
   try {
     await prisma.$connect()
     console.log('✅ Database connected')
-    
-    // Auto-sync chime rules: seed new teams + sync existing teams with latest definitions
-    try {
-      const { seeded, synced } = await RuleSeederService.syncAllTeams()
-      if (seeded > 0 || synced > 0) {
-        console.log(`✅ Rules synced: ${seeded} teams seeded, ${synced} teams updated`)
-      }
-    } catch (seedError) {
-      console.warn('⚠️  Rule auto-sync failed:', seedError)
-    }
   } catch (error) {
     console.error('❌ Database connection failed:', error)
   }
