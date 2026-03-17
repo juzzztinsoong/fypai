@@ -9,6 +9,17 @@ import { prisma } from '../db.js';
 import { ALL_SYSTEM_RULES, RuleDefinition } from '../ai/rules/ruleDefinitions.js';
 
 export class RuleSeederService {
+  private static shouldDisableAsyncRuleSeeding(): boolean {
+    return process.env.DISABLE_ASYNC_RULE_SEEDING === 'true';
+  }
+
+  private static getSeedRules(): RuleDefinition[] {
+    if (this.shouldDisableAsyncRuleSeeding()) {
+      return ALL_SYSTEM_RULES.filter((rule) => rule.execution !== 'async');
+    }
+
+    return ALL_SYSTEM_RULES;
+  }
   
   /**
    * Seeds default rules for a specific team by copying system rules.
@@ -28,9 +39,14 @@ export class RuleSeederService {
       return 0;
     }
     
-    console.log(`[RuleSeeder] Seeding ${ALL_SYSTEM_RULES.length} rules for team ${teamId}`);
+    const seedRules = this.getSeedRules();
+    const asyncDisabled = this.shouldDisableAsyncRuleSeeding();
+    console.log(
+      `[RuleSeeder] Seeding ${seedRules.length} rules for team ${teamId}` +
+        (asyncDisabled ? ' (async rules excluded)' : '')
+    );
     
-    const rules = ALL_SYSTEM_RULES.map(rule => ({
+    const rules = seedRules.map(rule => ({
       teamId,
       name: rule.name,
       description: rule.description,
@@ -83,6 +99,11 @@ export class RuleSeederService {
    * - Teams with rules get synced (add new, update existing, remove obsolete)
    */
   static async syncAllTeams(): Promise<{ seeded: number; synced: number }> {
+    const asyncDisabled = this.shouldDisableAsyncRuleSeeding();
+    if (asyncDisabled) {
+      console.log('[RuleSeeder] Async rule seeding is disabled (DISABLE_ASYNC_RULE_SEEDING=true)');
+    }
+
     const teams = await prisma.team.findMany({
       select: { id: true, name: true }
     });
@@ -122,6 +143,8 @@ export class RuleSeederService {
    * @returns Count of added and updated rules
    */
   static async syncTeamRules(teamId: string): Promise<{ added: number; updated: number; removed: number }> {
+    const seedRules = this.getSeedRules();
+
     const existingRules = await prisma.chimeRule.findMany({
       where: { teamId }
     });
@@ -143,7 +166,7 @@ export class RuleSeederService {
     let removed = 0;
     
     // Build set of current system rule IDs
-    const systemRuleIds = new Set(ALL_SYSTEM_RULES.map(r => r.id));
+    const systemRuleIds = new Set(seedRules.map(r => r.id));
     
     // Remove obsolete rules (sourceRuleId no longer in system definitions)
     for (const existing of existingRules) {
@@ -154,7 +177,7 @@ export class RuleSeederService {
       }
     }
     
-    for (const systemRule of ALL_SYSTEM_RULES) {
+    for (const systemRule of seedRules) {
       const existing = existingBySourceId.get(systemRule.id);
       
       if (!existing) {
