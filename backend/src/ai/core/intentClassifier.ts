@@ -303,6 +303,9 @@ Rules:
 - requiresResponse=true when there is a clear ask, blocker, confusion, or meaningful continuation.
 - requiresResponse=false for pure acknowledgements/closures without a new ask.
 - isContinuation=true if latest message logically continues the prior thread even without @agent.
+- For short or vague replies (<= 6 words) without a question mark or continuation cue, prefer requiresResponse=false.
+- Do NOT infer continuation from politeness, agreement, or social filler alone.
+- If uncertain, choose requiresResponse=false and isContinuation=false.
 - Keep reason short (max 12 words).
 
 Return JSON only:
@@ -331,8 +334,29 @@ Return JSON only:
 
       const cleanedContent = response.content.trim().replace(/```json\n?|\n?```/g, '');
       const parsed = JSON.parse(cleanedContent) as Partial<ReplyNeedAssessment>;
+      const parsedRequiresResponse = Boolean(parsed.requiresResponse);
+      const parsedIsContinuation = Boolean(parsed.isContinuation);
 
-      if (!parsed.requiresResponse && isShortTopicReply && previousAgentInvitedFollowup) {
+      const conservativeLowSignalBlock =
+        sync.intent === 'none' &&
+        wordCount <= 6 &&
+        !hasContinuationCue &&
+        !trimmedContent.includes('?') &&
+        !previousAgentInvitedFollowup &&
+        (context.routeConfidence || 0) < 0.65;
+
+      if (conservativeLowSignalBlock && (parsedRequiresResponse || parsedIsContinuation)) {
+        return {
+          requiresResponse: false,
+          isContinuation: false,
+          intent: 'none',
+          urgency: 'low',
+          confidence: Math.min(1, Math.max(0.6, Number(parsed.confidence ?? 0.6))),
+          reason: 'conservative-low-signal-block',
+        };
+      }
+
+      if (!parsedRequiresResponse && isShortTopicReply && previousAgentInvitedFollowup) {
         return {
           requiresResponse: true,
           isContinuation: true,
@@ -344,8 +368,8 @@ Return JSON only:
       }
 
       return {
-        requiresResponse: Boolean(parsed.requiresResponse),
-        isContinuation: Boolean(parsed.isContinuation),
+        requiresResponse: parsedRequiresResponse,
+        isContinuation: parsedIsContinuation,
         intent: this.validateIntent(String(parsed.intent || 'none')),
         urgency: this.validateUrgency(String(parsed.urgency || 'low')),
         confidence: Math.min(1, Math.max(0, Number(parsed.confidence ?? sync.confidence ?? 0.5))),

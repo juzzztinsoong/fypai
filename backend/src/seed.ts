@@ -151,8 +151,16 @@ async function main() {
   // 4. CHIME RULES (via RuleSeederService for all teams)
   // ═══════════════════════════════════════════════════════════
   console.log('\n📋 Seeding chime rules...');
-  const ruleResult = await RuleSeederService.seedAllTeams();
-  console.log(`   ✅ ${ruleResult.seeded} teams seeded with rules`);
+  const nonStudyTeams = await prisma.team.findMany({
+    where: { id: { not: { startsWith: 'study-team-' } } },
+    select: { id: true },
+  });
+  let seededRuleTeams = 0;
+  for (const team of nonStudyTeams) {
+    await RuleSeederService.seedTeamRules(team.id);
+    seededRuleTeams += 1;
+  }
+  console.log(`   ✅ ${seededRuleTeams} teams seeded with rules (study teams excluded)`);
 
   // ═══════════════════════════════════════════════════════════
   // 5. MESSAGES

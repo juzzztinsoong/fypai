@@ -62,6 +62,7 @@ export const Sidebar = () => {
   // Get showAIDetails preference for research toggle (Phase 6.5.1)
   const showAIDetails = useUIStore((state) => state.preferences.showAIDetails)
   const enableTimelineSync = useUIStore((state) => state.preferences.enableTimelineSync)
+  const sidebarCollapsed = useUIStore((state) => state.preferences.sidebarCollapsed)
   const updatePreference = useUIStore((state) => state.updatePreference)
   
   // Get current user and presence from SessionStore
@@ -255,10 +256,22 @@ export const Sidebar = () => {
 
   if (isLoading) {
     return (
-      <aside className="w-60 h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
-          <div className="mt-6 text-gray-500">Loading teams...</div>
+      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20 transition-all duration-200`}>
+        <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 border-b border-slate-100`}>
+          <div className="flex items-center justify-between gap-2">
+            {!sidebarCollapsed && <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>}
+            <button
+              onClick={() => updatePreference('sidebarCollapsed', !sidebarCollapsed)}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100"
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <svg className={`h-4 w-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+          {!sidebarCollapsed && <div className="mt-6 text-gray-500">Loading teams...</div>}
         </div>
       </aside>
     )
@@ -266,23 +279,47 @@ export const Sidebar = () => {
 
   if (error) {
     return (
-      <aside className="w-60 h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
-          <div className="mt-6 text-red-500">Error: {error}</div>
+      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20 transition-all duration-200`}>
+        <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 border-b border-slate-100`}>
+          <div className="flex items-center justify-between gap-2">
+            {!sidebarCollapsed && <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>}
+            <button
+              onClick={() => updatePreference('sidebarCollapsed', !sidebarCollapsed)}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100"
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <svg className={`h-4 w-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+          {!sidebarCollapsed && <div className="mt-6 text-red-500">Error: {error}</div>}
         </div>
       </aside>
     )
   }
 
   return (
-    <aside className="w-60 h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20">
+    <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20 transition-all duration-200`}>
       {/* Teams Section */}
-      <div className="px-5 py-4 border-b border-slate-100">
-        <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>
+      <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 border-b border-slate-100`}>
+        <div className="flex items-center justify-between gap-2">
+          {!sidebarCollapsed && <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>}
+          <button
+            onClick={() => updatePreference('sidebarCollapsed', !sidebarCollapsed)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg className={`h-4 w-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div className="px-5 py-4 flex-1 min-h-0 overflow-y-auto bg-slate-50/30">
+      <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 flex-1 min-h-0 overflow-y-auto bg-slate-50/30`}>
 
         <nav className="mt-2">
           <ul className="space-y-2">
@@ -304,11 +341,12 @@ export const Sidebar = () => {
                     }
                     setCurrentTeamId(team.id)
                   }}
+                  title={sidebarCollapsed ? team.name : undefined}
                   className={`w-full px-3 py-2 rounded-lg text-left flex items-center space-x-3 text-sm font-medium
                     ${currentTeamId === team.id 
                       ? 'bg-indigo-50 text-indigo-600' 
                       : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    } ${sidebarCollapsed ? 'justify-center space-x-0 px-2' : ''}`}
                 >
                   <svg 
                     className={`w-5 h-5 ${currentTeamId === team.id ? 'text-indigo-600' : 'text-gray-400'}`}
@@ -318,7 +356,7 @@ export const Sidebar = () => {
                   >
                     <path fillRule="evenodd" d="M12 2c-2.714 0-5 2.286-5 5s2.286 5 5 5 5-2.286 5-5-2.286-5-5-5zm-7 12c-2.714 0-5 2.286-5 5v3h24v-3c0-2.714-2.286-5-5-5h-14z" />
                   </svg>
-                  <span>{team.name}</span>
+                  {!sidebarCollapsed && <span>{team.name}</span>}
                 </button>
               </li>
             ))}
@@ -327,8 +365,8 @@ export const Sidebar = () => {
       </div>
 
       {/* User Profile Section */}
-      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 shrink-0">
-        <div className="flex items-center space-x-3">
+      <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-3 border-t border-slate-200 bg-slate-50 shrink-0`}>
+        <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
           <div className="relative">
             <div className={`w-10 h-10 rounded-full ${userAvatarColor} flex items-center justify-center text-white font-semibold`}>
               {getUserInitials(currentUser?.name || 'User')}
@@ -337,14 +375,17 @@ export const Sidebar = () => {
               <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50"></span>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{currentUser?.name || 'User'}</p>
-            <p className="text-xs text-gray-500">Research testing mode</p>
-          </div>
+          {!sidebarCollapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{currentUser?.name || 'User'}</p>
+              <p className="text-xs text-gray-500">Research testing mode</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Research Tools (collapsible) */}
+      {!sidebarCollapsed && (
       <div className="px-5 py-3 border-t border-slate-200 bg-white space-y-3 shrink-0">
         <button
           onClick={() => setShowResearchTools(prev => !prev)}
@@ -600,6 +641,7 @@ export const Sidebar = () => {
           </div>
         )}
       </div>
+      )}
 
     </aside>
   )

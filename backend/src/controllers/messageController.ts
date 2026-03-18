@@ -51,11 +51,20 @@ export class MessageController {
    * @returns {Promise<MessageDTO>} Created message DTO
    */
   static async createMessage(data: CreateMessageRequest): Promise<MessageDTO> {
+    if (typeof data.content !== 'string') {
+      throw new Error('Invalid message content: expected string');
+    }
+
+    const normalizedContent = data.content.trim();
+    if (!normalizedContent) {
+      throw new Error('Invalid message content: empty after trim');
+    }
+
     const message = await prisma.message.create({
       data: {
         teamId: data.teamId,
         authorId: data.authorId,
-        content: data.content,
+        content: normalizedContent,
         contentType: data.contentType,
         metadata: data.metadata ? JSON.stringify(data.metadata) : null,
         agentMetadata: data.agentMetadata ? JSON.stringify(data.agentMetadata) : null

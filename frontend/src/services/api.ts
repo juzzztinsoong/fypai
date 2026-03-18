@@ -33,6 +33,28 @@ const JITTER_MAX = 200 // ms: random jitter up to 200ms
 // Track retry attempts per request
 const retryCountMap = new WeakMap<AxiosRequestConfig, number>()
 
+const POLICY_STATUS_CODES = new Set([400, 403, 422])
+const POLICY_MESSAGE_PATTERN = /policy|safety|unsafe|disallow|not allowed|moderation|violat/i
+
+function getPolicyViolationMessage(error: AxiosError): string | null {
+  const status = error.response?.status
+  if (!status || !POLICY_STATUS_CODES.has(status)) {
+    return null
+  }
+
+  const serverMessage =
+    (error.response?.data as { message?: string; error?: string } | undefined)?.message ||
+    (error.response?.data as { message?: string; error?: string } | undefined)?.error ||
+    error.message ||
+    ''
+
+  if (!POLICY_MESSAGE_PATTERN.test(serverMessage)) {
+    return null
+  }
+
+  return 'Message blocked by content policy. Rephrase with neutral, non-harmful wording and try again.'
+}
+
 /**
  * Calculate retry delay with exponential backoff and jitter
  * @param retryCount - Current retry attempt (0-indexed)
@@ -246,6 +268,11 @@ api.interceptors.response.use(
  */
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
+    const policyMessage = getPolicyViolationMessage(error)
+    if (policyMessage) {
+      return policyMessage
+    }
+
     if (error.response?.data?.message) {
       return error.response.data.message
     }

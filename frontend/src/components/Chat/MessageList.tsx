@@ -9,7 +9,7 @@
  *
  * Tech Stack: React (Vite), EntityStore, UIStore, SessionStore, Tailwind CSS
  */
-import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useMemo, useState, type ComponentPropsWithoutRef } from 'react'
 import { useEntityStore } from '@/stores/entityStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useSessionStore, type AIProcessingTargetType } from '@/stores/sessionStore'
@@ -183,6 +183,23 @@ const formatProcessingTargetLabel = (targetType?: AIProcessingTargetType): strin
   if (targetType === 'suggestion') return 'Help'
   if (targetType === 'chat') return 'Response'
   return null
+}
+
+function MarkdownLink({ href, children }: ComponentPropsWithoutRef<'a'>) {
+  if (!href) {
+    return <span className="underline decoration-slate-400 [overflow-wrap:anywhere]">{children}</span>
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-semibold text-violet-700 underline decoration-violet-400 underline-offset-2 break-all hover:text-violet-800"
+    >
+      {children}
+    </a>
+  )
 }
 
 type ReplyPreviewTarget = {
@@ -919,9 +936,9 @@ export const MessageList = () => {
               <div className="group flex items-center space-x-2">
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-gray-500 mb-1">You</span>
-                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 ${getElevationClass('surface')} w-fit min-w-[4rem] max-w-[70%}`}>
+                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 ${getElevationClass('surface')} w-fit min-w-[4rem] max-w-[70%] overflow-hidden`}>
                     {renderReplyPreview(message, 'right')}
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
                   </div>
                   <button
                     type="button"
@@ -1109,7 +1126,7 @@ export const MessageList = () => {
           return (
             <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-center px-2 py-2">
               <div
-                className={`relative flex max-w-[80%] flex-col items-center rounded-2xl border p-3 ${getElevationClass('raised')} ${agentCardTheme}`}
+                className={`relative flex max-w-[80%] flex-col items-center rounded-2xl border p-3 ${getElevationClass('raised')} ${agentCardTheme} overflow-hidden`}
               >
                 <span
                   className={`absolute left-0 top-3 h-8 w-1 rounded-r-full ${agentAccentRail}`}
@@ -1141,12 +1158,13 @@ export const MessageList = () => {
                   {renderReplyPreview(message, 'center')}
                   <ReactMarkdown
                     components={{
-                      p: ({ children }) => <p className="whitespace-pre-wrap break-words font-medium mb-2 last:mb-0">{children}</p>,
+                      p: ({ children }) => <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-medium mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
                       ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
                       ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
-                      li: ({ children }) => <li className="break-words">{children}</li>,
+                      li: ({ children }) => <li className="break-words [overflow-wrap:anywhere]">{children}</li>,
+                      a: MarkdownLink,
                     }}
                   >
                     {message.content}
@@ -1207,9 +1225,9 @@ export const MessageList = () => {
                 </div>
                 <div className="flex flex-col items-start">
                   <span className={`text-xs mb-1 ${userTheme.bubbleMutedText}`}>{member?.name || 'User'}</span>
-                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] ${getElevationClass('surface')} ${userTheme.bubbleBg} ${userTheme.bubbleText}`}> 
+                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] ${getElevationClass('surface')} ${userTheme.bubbleBg} ${userTheme.bubbleText} overflow-hidden`}> 
                     {renderReplyPreview(message, 'left')}
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
                   </div>
                   <button
                     type="button"

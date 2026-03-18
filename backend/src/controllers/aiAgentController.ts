@@ -222,6 +222,17 @@ export class AIAgentController {
     };
   }
 
+  private static coerceChatOnlyRouteDecision(routeDecision: RouteDecision, reason: string): RouteDecision {
+    return {
+      ...routeDecision,
+      channel: 'chat_message',
+      clarify: false,
+      insightType: undefined,
+      suggestedInsightType: undefined,
+      rationale: `${routeDecision.rationale} ${reason}`,
+    };
+  }
+
   private static getInsightTitle(insightType: InsightGenerationType): string {
     if (insightType === 'summary') return 'Conversation Summary';
     if (insightType === 'action') return 'Action Items';
@@ -364,6 +375,7 @@ export class AIAgentController {
     return (
       this.ENABLE_CHAT_PLUS_INSIGHT &&
       routeDecision.channel === 'insight' &&
+      routeDecision.insightType !== 'document' &&
       Boolean(routeDecision.insightType) &&
       routeDecision.explicit
     );
@@ -485,25 +497,34 @@ export class AIAgentController {
         return;
       }
 
-      // 1.5 Global AI gate: if disabled, skip both reactive and autonomous paths.
-      const isTeamAIEnabled = this.resolveTeamAIEnabled(message.teamId, team);
-      if (!isTeamAIEnabled) {
-        this.emitContinuationStatus(message.teamId, {
-          status: 'ended',
-          confidence: 0,
-          trigger: 'confidence-gate',
-          reason: 'AI is disabled for this team.',
-        });
-        console.log(
-          `[AI Agent] 🚫 AI disabled for team ${message.teamId}, skipping reactive/autonomous processing`
-        );
-        return;
-      }
-
       // 2. Check if this is an @agent mention (reactive mode)
       const hasAgentMention = message.content.toLowerCase().includes('@agent');
       const hasExplicitInsightCommand = IntentController.hasExplicitInsightCommand(message.content);
       const hasDraftContextSignal = this.hasDraftContextSignal(message);
+
+      // 1.5 Global AI gate
+      // - AI_ON: full reactive + autonomous processing
+      // - AI_LIGHT: explicit @agent conversational responses only
+      const isTeamAIEnabled = this.resolveTeamAIEnabled(message.teamId, team);
+      const isExplicitMentionOnlyMode = !isTeamAIEnabled;
+      if (!isTeamAIEnabled) {
+        if (!hasAgentMention) {
+          this.emitContinuationStatus(message.teamId, {
+            status: 'ended',
+            confidence: 0,
+            trigger: 'confidence-gate',
+            reason: 'AI-light mode allows only explicit @agent mentions.',
+          });
+          console.log(
+            `[AI Agent] 🚫 AI-light mode for team ${message.teamId}, skipping non-mention message`
+          );
+          return;
+        }
+
+        console.log(
+          `[AI Agent] ⚠️ AI-light mode for team ${message.teamId}: explicit @agent mention allowed, autonomous disabled`
+        );
+      }
 
       // 2.5 Conversational continuation gate
       // Continuation is accepted by explicit mention/reply, or inferred when a
@@ -523,6 +544,12 @@ export class AIAgentController {
         return routeDecisionCache;
       };
       const baselineRouteDecision = await getRouteDecision();
+      const effectiveRouteDecision = isExplicitMentionOnlyMode
+        ? this.coerceChatOnlyRouteDecision(
+            baselineRouteDecision,
+            'AI-light mode forced conversational chat output (insight routing disabled).',
+          )
+        : baselineRouteDecision;
 
       let isReplyToAgent = Boolean(parentMessage && parentMessage.authorId === 'agent');
       let isConfidenceContinuedConversation = false;
@@ -530,7 +557,7 @@ export class AIAgentController {
         console.log('[AI Agent] 🗣️ Explicit reply-to-agent detected via parentMessageId');
       }
 
-      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && messages.length >= 2) {
+      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && messages.length >= 2 && !isExplicitMentionOnlyMode) {
         const previousMessage = messages[messages.length - 2];
         const elapsedMs = new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
         const isRecentAgentTurn =
@@ -539,7 +566,7 @@ export class AIAgentController {
           elapsedMs <= this.CONTINUATION_WINDOW_MS;
 
         if (isRecentAgentTurn) {
-          const routeDecision = baselineRouteDecision;
+          const routeDecision = effectiveRouteDecision;
           if (routeDecision.confidence >= this.CONTINUATION_MIN_CONFIDENCE) {
             isReplyToAgent = true;
             isConfidenceContinuedConversation = true;
@@ -572,7 +599,7 @@ export class AIAgentController {
 
       // Optional implicit mode (off by default): use Tier 1 only when enabled.
       const enableImplicitConversationalMode = process.env.ENABLE_IMPLICIT_CONVERSATIONAL_MODE === 'true';
-      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && enableImplicitConversationalMode && messages.length >= 2) {
+      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && enableImplicitConversationalMode && messages.length >= 2 && !isExplicitMentionOnlyMode) {
         const previousMessage = messages[messages.length - 2];
         const timeDiff = new Date(message.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
         const isRecent = timeDiff < 5 * 60 * 1000; // 5 minutes
@@ -590,12 +617,12 @@ export class AIAgentController {
 
       let isModelProactiveResponse = false;
 
-      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand) {
+      if (!hasAgentMention && !isReplyToAgent && !hasExplicitInsightCommand && !isExplicitMentionOnlyMode) {
         if (hasDraftContextSignal) {
           isReplyToAgent = true;
           this.emitContinuationStatus(message.teamId, {
             status: 'active',
-            confidence: Math.max(0.85, baselineRouteDecision.confidence),
+            confidence: Math.max(0.85, effectiveRouteDecision.confidence),
             trigger: 'explicit-command',
             reason: 'Draft context promotion explicitly requested an agent reply.',
           });
@@ -604,7 +631,7 @@ export class AIAgentController {
         } else {
           const proactiveDecision = await this.shouldRespondProactively(
             message,
-            baselineRouteDecision,
+            effectiveRouteDecision,
             messages,
           );
           if (proactiveDecision.shouldRespond) {
@@ -675,8 +702,8 @@ export class AIAgentController {
           }
 
           const routeDecision = hasDraftContextSignal
-            ? this.coerceDraftContextRouteDecision(baselineRouteDecision)
-            : baselineRouteDecision;
+            ? this.coerceDraftContextRouteDecision(effectiveRouteDecision)
+            : effectiveRouteDecision;
 
           const processingTarget: ProcessingTargetType =
             routeDecision.channel === 'insight' && routeDecision.insightType
@@ -752,6 +779,19 @@ export class AIAgentController {
           } else {
             // 3b. Normal conversational response
             const response = await this.generateResponse(messages, team, message, routeDecision);
+            const responseContent = typeof response.content === 'string' ? response.content.trim() : '';
+
+            if (!responseContent) {
+              console.warn('[AI Agent] Skipping chat post because generated response content was empty');
+              if (this.io) {
+                this.io.to(`team:${message.teamId}`).emit('typing:stop', {
+                  teamId: message.teamId,
+                  userId: 'agent'
+                });
+              }
+              this.emitProcessingStage(message.teamId, 'idle');
+              return;
+            }
 
             // Reactive responses should remain in the main chat channel.
             const cost = this.calculateCost(response.model, response.usage.inputTokens, response.usage.outputTokens);
@@ -761,7 +801,7 @@ export class AIAgentController {
             const agentMessage = await MessageController.createMessage({
               teamId: message.teamId,
               authorId: 'agent',
-              content: response.content,
+              content: responseContent,
               contentType: 'text',
               metadata: {
                 parentMessageId: message.id,
@@ -816,9 +856,9 @@ export class AIAgentController {
       if (!hasEmittedContinuationStatus) {
         this.emitContinuationStatus(message.teamId, {
           status: 'ended',
-          confidence: baselineRouteDecision.confidence,
+          confidence: effectiveRouteDecision.confidence,
           trigger: 'passive-observation',
-          reason: this.buildPassiveObservationReason(baselineRouteDecision),
+          reason: this.buildPassiveObservationReason(effectiveRouteDecision),
         });
       }
 
@@ -1428,8 +1468,10 @@ Return JSON only:
     try {
       console.log(`[AI Agent] 🔔 Evaluating chime rules for message ${message.id}`);
 
-      // 0. Check if AI is enabled for this team
-      if (!this.isAIEnabled(message.teamId)) {
+      // 0. Check if AI is enabled for this team (fresh DB-backed state)
+      const team = await TeamController.getTeamById(message.teamId);
+      const isTeamAIEnabled = this.resolveTeamAIEnabled(message.teamId, team || undefined);
+      if (!isTeamAIEnabled) {
         console.log(`[AI Agent] 🚫 AI disabled for team ${message.teamId}, skipping chime evaluation`);
         return;
       }

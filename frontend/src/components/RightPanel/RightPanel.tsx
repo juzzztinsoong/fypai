@@ -20,7 +20,7 @@ import { getInsights } from '@/services/insightService';
 import { getTaskContext, setTeamAIEnabled } from '@/services/teamService';
 import { trackSessionEvent } from '@/services/analyticsService';
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl';
-import { type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
+import { getSwitchThumbClass, getSwitchTrackClass, type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
 
 type ContentFilter = 'all' | 'summaries' | 'research' | 'actions' | 'suggestions';
 
@@ -77,10 +77,7 @@ export const RightPanel = () => {
   const isTeamAIEnabled = currentTeam?.isChimeEnabled ?? true;
   
   const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
-  const [showArchivedSummaries, setShowArchivedSummaries] = useState(false);
-  const [showArchivedResearch, setShowArchivedResearch] = useState(false);
-  const [showArchivedActions, setShowArchivedActions] = useState(false);
-  const [showArchivedSuggestions, setShowArchivedSuggestions] = useState(false);
+  const [showArchivedInsights, setShowArchivedInsights] = useState(false);
   const [showCompletedActions, setShowCompletedActions] = useState(false);
   const [showTaskContext, setShowTaskContext] = useState(false);
   const [contextEditToken, setContextEditToken] = useState(0);
@@ -182,6 +179,8 @@ export const RightPanel = () => {
     [archivedInsights]
   );
 
+  const archivedCount = archivedInsights.length;
+
   const summaryInsights = useMemo(
     () => activeInsights.filter(i => i.type === 'summary'),
     [activeInsights]
@@ -254,10 +253,7 @@ export const RightPanel = () => {
     archivedResearchInsights.length,
     archivedActionInsights.length,
     archivedSuggestionInsights.length,
-    showArchivedSummaries,
-    showArchivedResearch,
-    showArchivedActions,
-    showArchivedSuggestions,
+    showArchivedInsights,
     showCompletedActions,
   ]);
 
@@ -604,6 +600,17 @@ export const RightPanel = () => {
             ) : (
               <p className="text-xs text-gray-500">No AI content yet</p>
             )}
+
+            {showArchivedInsights && (
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Insights</h3>
+                {archivedInsights.length > 0 ? (
+                  <InsightsList insights={archivedInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+                ) : (
+                  <p className="text-xs text-gray-500">No archived insights</p>
+                )}
+              </div>
+            )}
           </section>
         )}
 
@@ -615,18 +622,7 @@ export const RightPanel = () => {
               <p className="text-xs text-gray-500">No summary yet</p>
             )}
 
-            {archivedSummaryInsights.length > 0 && (
-              <button
-                onClick={() => setShowArchivedSummaries(prev => !prev)}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                {showArchivedSummaries
-                  ? 'Hide archived summaries'
-                  : `Show archived summaries (${archivedSummaryInsights.length})`}
-              </button>
-            )}
-
-            {showArchivedSummaries && (
+            {showArchivedInsights && (
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Summaries</h3>
                 {archivedSummaryInsights.length > 0 ? (
@@ -647,18 +643,7 @@ export const RightPanel = () => {
               <p className="text-xs text-gray-500">No research yet</p>
             )}
 
-            {archivedResearchInsights.length > 0 && (
-              <button
-                onClick={() => setShowArchivedResearch(prev => !prev)}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                {showArchivedResearch
-                  ? 'Hide archived research'
-                  : `Show archived research (${archivedResearchInsights.length})`}
-              </button>
-            )}
-
-            {showArchivedResearch && (
+            {showArchivedInsights && (
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Research</h3>
                 {archivedResearchInsights.length > 0 ? (
@@ -697,18 +682,7 @@ export const RightPanel = () => {
               </div>
             )}
 
-            {archivedActionInsights.length > 0 && (
-              <button
-                onClick={() => setShowArchivedActions(prev => !prev)}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                {showArchivedActions
-                  ? 'Hide archived actions'
-                  : `Show archived actions (${archivedActionInsights.length})`}
-              </button>
-            )}
-
-            {showArchivedActions && (
+            {showArchivedInsights && (
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Actions</h3>
                 {archivedActionInsights.length > 0 ? (
@@ -729,18 +703,7 @@ export const RightPanel = () => {
               <p className="text-xs text-gray-500">No help insights yet</p>
             )}
 
-            {archivedSuggestionInsights.length > 0 && (
-              <button
-                onClick={() => setShowArchivedSuggestions(prev => !prev)}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                {showArchivedSuggestions
-                  ? 'Hide archived help'
-                  : `Show archived help (${archivedSuggestionInsights.length})`}
-              </button>
-            )}
-
-            {showArchivedSuggestions && (
+            {showArchivedInsights && (
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Help</h3>
                 {archivedSuggestionInsights.length > 0 ? (
@@ -769,14 +732,34 @@ export const RightPanel = () => {
         }}
       >
         {/* Bottom Insight Tabs */}
-        <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center border-b border-slate-100`}>
-          <SegmentedControl
-            items={bottomTabItems}
-            activeKey={contentFilter}
-            onChange={handleContentFilterChange}
-            wrap
-            styleVariant="pill"
-          />
+        <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center justify-between gap-3 border-b border-slate-100`}>
+          <div className="min-w-0 flex-1">
+            <SegmentedControl
+              items={bottomTabItems}
+              activeKey={contentFilter}
+              onChange={handleContentFilterChange}
+              wrap
+              styleVariant="pill"
+            />
+          </div>
+
+          <div className="shrink-0 inline-flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-600 whitespace-nowrap">
+              Archived ({archivedCount})
+            </span>
+            <button
+              onClick={() => setShowArchivedInsights((prev) => !prev)}
+              className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(showArchivedInsights)}`}
+              role="switch"
+              aria-checked={showArchivedInsights}
+              aria-label="Toggle archived insights visibility"
+              title={showArchivedInsights ? 'Hide archived insights' : 'Show archived insights'}
+            >
+              <span
+                className={`${uiTokens.controls.switch.thumbBase} ${getSwitchThumbClass(showArchivedInsights)}`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Collapsible AI Controls Footer */}

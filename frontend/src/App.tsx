@@ -56,6 +56,7 @@ function App() {
   
   // Watch current team and auto-join socket room
   const currentTeamId = useUIStore((state) => state.currentTeamId)
+  const sidebarCollapsed = useUIStore((state) => state.preferences.sidebarCollapsed)
   
   appRenderCount++
   console.log('[App] 🎨 Render #' + appRenderCount, { isInitialized, currentTeamId })
@@ -160,7 +161,7 @@ function App() {
   return (
     <div className="flex min-h-screen bg-gray-50 overflow-hidden">
       <Sidebar />
-      <div className="ml-60 flex flex-1 min-w-0">
+      <div className={`${sidebarCollapsed ? 'ml-16' : 'ml-60'} flex flex-1 min-w-0 transition-[margin] duration-200`}>
         <ChatWindow />
         <RightPanel />
       </div>

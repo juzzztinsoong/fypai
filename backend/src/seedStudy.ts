@@ -6,7 +6,6 @@ import {
   DEFAULT_STUDY_TEMPLATE_ID,
   STUDY_SEED_TEMPLATES,
   StudyCondition,
-  RulePresetId,
   StudySeedTemplate,
   getRunOneCondition,
   getRunTwoCondition,
@@ -27,12 +26,6 @@ interface SeededTeamSummary {
   scenarioVariant: 'A' | 'B'
   runOneCondition: StudyCondition
   runTwoCondition: StudyCondition
-}
-
-interface RulePresetConfig {
-  id: RulePresetId
-  cooldownMultiplier: number
-  minPriorityEnabled: number
 }
 
 interface TeamInstructionMessageInput {
@@ -57,24 +50,6 @@ const DEV_ACCESS_USERS = [
   { id: 'user2', name: 'Bob', role: 'member' as const },
   { id: 'user3', name: 'Charlie', role: 'member' as const },
 ]
-
-const RULE_PRESETS: Record<RulePresetId, RulePresetConfig> = {
-  conservative: {
-    id: 'conservative',
-    cooldownMultiplier: 1.6,
-    minPriorityEnabled: 80,
-  },
-  balanced: {
-    id: 'balanced',
-    cooldownMultiplier: 1,
-    minPriorityEnabled: 65,
-  },
-  proactive: {
-    id: 'proactive',
-    cooldownMultiplier: 0.75,
-    minPriorityEnabled: 40,
-  },
-}
 
 const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
   {
@@ -234,6 +209,14 @@ async function ensureDevAccessUsers(): Promise<void> {
 }
 
 async function cleanupExistingStudyData(): Promise<void> {
+  await prisma.chimeLog.deleteMany({
+    where: { teamId: { startsWith: 'study-team-' } },
+  })
+
+  await prisma.chimeRule.deleteMany({
+    where: { teamId: { startsWith: 'study-team-' } },
+  })
+
   const existingTeams = await prisma.team.findMany({
     where: {
       id: { startsWith: 'study-team-' },
@@ -252,21 +235,18 @@ async function cleanupExistingStudyData(): Promise<void> {
   })
 }
 
-async function applyRulePreset(teamId: string, presetId: RulePresetId): Promise<void> {
-  const preset = RULE_PRESETS[presetId]
-  const teamRules = await prisma.chimeRule.findMany({ where: { teamId } })
+async function seedSyncOnlyRulesForTeam(teamId: string): Promise<void> {
+  const previous = process.env.DISABLE_ASYNC_RULE_SEEDING
+  process.env.DISABLE_ASYNC_RULE_SEEDING = 'true'
 
-  for (const rule of teamRules) {
-    const nextCooldown = Math.max(1, Math.round(rule.cooldownMinutes * preset.cooldownMultiplier))
-    const nextEnabled = rule.priority < preset.minPriorityEnabled ? false : rule.enabled
-
-    await prisma.chimeRule.update({
-      where: { id: rule.id },
-      data: {
-        cooldownMinutes: nextCooldown,
-        enabled: nextEnabled,
-      },
-    })
+  try {
+    await RuleSeederService.seedTeamRules(teamId)
+  } finally {
+    if (typeof previous === 'undefined') {
+      delete process.env.DISABLE_ASYNC_RULE_SEEDING
+    } else {
+      process.env.DISABLE_ASYNC_RULE_SEEDING = previous
+    }
   }
 }
 
@@ -409,8 +389,7 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
       ],
     })
 
-    await RuleSeederService.seedTeamRules(teamTemplate.id)
-    await applyRulePreset(teamTemplate.id, runOneProfile.presetId)
+    await seedSyncOnlyRulesForTeam(teamTemplate.id)
 
     await prisma.teamAgentPreference.upsert({
       where: { teamId: teamTemplate.id },

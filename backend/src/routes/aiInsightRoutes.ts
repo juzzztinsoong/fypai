@@ -20,6 +20,32 @@ import { Request, Response, NextFunction } from 'express'
 
 const router = Router()
 
+const GENERATE_WINDOW_MS = parseInt(process.env.INSIGHT_GENERATE_WINDOW_MS || '60000', 10)
+const GENERATE_MAX_REQUESTS = parseInt(process.env.INSIGHT_GENERATE_MAX_PER_WINDOW || '6', 10)
+const generateRequestTimestamps: number[] = []
+
+function applyGenerateRateLimit(req: Request, res: Response, next: NextFunction) {
+  const now = Date.now()
+  const cutoff = now - GENERATE_WINDOW_MS
+
+  while (generateRequestTimestamps.length > 0 && generateRequestTimestamps[0] < cutoff) {
+    generateRequestTimestamps.shift()
+  }
+
+  if (generateRequestTimestamps.length >= GENERATE_MAX_REQUESTS) {
+    const earliest = generateRequestTimestamps[0]
+    const retryAfterMs = Math.max(0, GENERATE_WINDOW_MS - (now - earliest))
+    const retryAfterSeconds = Math.max(1, Math.ceil(retryAfterMs / 1000))
+    return res.status(429).json({
+      error: 'Too many AI generation requests. Please retry shortly.',
+      retryAfterSeconds,
+    })
+  }
+
+  generateRequestTimestamps.push(now)
+  next()
+}
+
 /**
  * GET /api/insights?teamId=:id
  * Get all AI insights for a team
@@ -122,7 +148,7 @@ router.delete('/:id', async (req, res, next) => {
  * POST /api/insights/generate/summary
  * Generate AI-powered conversation summary as insight
  */
-router.post('/generate/summary', async (req, res, next) => {
+router.post('/generate/summary', applyGenerateRateLimit, async (req, res, next) => {
   try {
     const { teamId, archetype } = req.body
     if (!teamId) {
@@ -139,7 +165,7 @@ router.post('/generate/summary', async (req, res, next) => {
  * POST /api/insights/generate/report
  * Generate AI-powered discussion report as insight
  */
-router.post('/generate/report', async (req, res, next) => {
+router.post('/generate/report', applyGenerateRateLimit, async (req, res, next) => {
   try {
     const { teamId, prompt, archetype } = req.body
     if (!teamId) {

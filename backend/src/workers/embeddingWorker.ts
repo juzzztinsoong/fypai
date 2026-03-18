@@ -29,6 +29,7 @@ import { MessageDTO } from '@fypai/types';
 const BATCH_SIZE = 20;
 const FLUSH_TIMEOUT_MS = 60000; // 60 seconds
 const ASYNC_CHIME_MAX_AGE_MS = parseInt(process.env.ASYNC_CHIME_MAX_AGE_MS || '120000', 10); // 2 minutes default
+const CLASSIFICATION_CONCURRENCY = Math.max(1, parseInt(process.env.CLASSIFICATION_CONCURRENCY || '2', 10));
 
 // Trivial content filter
 const TRIVIAL_WORDS = new Set([
@@ -60,6 +61,29 @@ interface BufferedJob {
 const jobBuffer: BufferedJob[] = [];
 let flushTimeout: NodeJS.Timeout | null = null;
 
+async function mapWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>
+): Promise<void> {
+  const pending: Promise<void>[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const next = worker(items[i], i).finally(() => {
+      const idx = pending.indexOf(next);
+      if (idx >= 0) pending.splice(idx, 1);
+    });
+
+    pending.push(next);
+
+    if (pending.length >= concurrency) {
+      await Promise.race(pending);
+    }
+  }
+
+  await Promise.all(pending);
+}
+
 /**
  * Flush the buffer: Generate embeddings for the batch and process results
  */
@@ -82,9 +106,8 @@ async function flushBuffer() {
     // This uses 1 API call for N messages
     const result = await embeddingService.generateBatch(texts);
 
-    // Step 2: Process each result
-    // We process them in parallel to speed up DB/Pinecone ops
-    await Promise.all(batch.map(async (item, index) => {
+    // Step 2: Process each result with bounded concurrency to avoid LLM rate-limit bursts
+    await mapWithConcurrency(batch, CLASSIFICATION_CONCURRENCY, async (item, index) => {
       const { job, resolve, reject } = item;
       const embedding = result.embeddings[index];
       const { messageId, teamId, authorId, content, createdAt } = job.data;
@@ -129,8 +152,20 @@ async function flushBuffer() {
           },
         });
 
-        // Await classification result
-        const classification = await classificationPromise;
+        // Await classification result. If classification fails after retries, keep ingestion flowing.
+        let classification: MessageClassification;
+        try {
+          classification = await classificationPromise;
+        } catch (classificationError) {
+          console.warn(`[EmbeddingWorker] ⚠️ Classification fallback for ${messageId}:`, classificationError);
+          classification = {
+            intent: 'none',
+            sentiment: 'neutral',
+            urgency: 'low',
+            topics: [],
+            confidence: 0,
+          };
+        }
 
         // Update Message record with embedding and classification
         const updateResult = await prisma.message.updateMany({
@@ -176,7 +211,7 @@ async function flushBuffer() {
         console.error(`[EmbeddingWorker] ❌ Failed to process message ${messageId} in batch:`, err);
         reject(err as Error);
       }
-    }));
+    });
 
     const cost = embeddingService.estimateCost(result.totalTokens);
     console.log(`[EmbeddingWorker] 💰 Batch cost: $${cost.toFixed(6)}`);
@@ -248,7 +283,7 @@ export function createEmbeddingWorker(): Worker {
     console.error('[EmbeddingWorker] ❌ Worker error:', error);
   });
 
-  console.log(`[EmbeddingWorker] 🏃 Worker started (concurrency: ${BATCH_SIZE})`);
+  console.log(`[EmbeddingWorker] 🏃 Worker started (concurrency: ${BATCH_SIZE}, classification concurrency: ${CLASSIFICATION_CONCURRENCY})`);
 
   return worker;
 }

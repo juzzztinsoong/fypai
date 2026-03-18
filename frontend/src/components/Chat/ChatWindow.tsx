@@ -17,6 +17,7 @@ import { createMessage } from '@/services/messageService'
 import { createResearchJob } from '@/services/researchJobService'
 import { generateAction, generateReport, generateSuggestion, generateSummary } from '@/services/insightService'
 import { classifyIntent } from '@/services/intentService'
+import { getErrorMessage } from '@/services/api'
 import { trackSessionEvent } from '@/services/analyticsService'
 import { MessageList } from './MessageList'
 import { ChatHeader } from './ChatHeader'
@@ -129,6 +130,7 @@ function getDeterministicKindFromOverride(
 
 export const ChatWindow = () => {
   const [newMessage, setNewMessage] = useState('')
+  const [composerError, setComposerError] = useState<string | null>(null)
   const [composerOverrideMode, setComposerOverrideMode] = useState<ComposerOverrideMode>('auto')
   const [draftContexts, setDraftContexts] = useState<DraftContextItem[]>([])
   const [isResearchGenerating, setIsResearchGenerating] = useState(false)
@@ -347,6 +349,7 @@ export const ChatWindow = () => {
 
     const submittedMessage = newMessage.trim()
     if (!submittedMessage) return
+    setComposerError(null)
 
     const selectedDeterministicKind = getDeterministicKindFromOverride(composerOverrideMode)
 
@@ -459,6 +462,7 @@ export const ChatWindow = () => {
         })
       } catch (error) {
         console.error('[ChatWindow] Failed to send category-selected message:', error)
+        setComposerError(getErrorMessage(error))
         return
       }
 
@@ -613,13 +617,14 @@ export const ChatWindow = () => {
           })
         } catch (researchError) {
           console.error('[ChatWindow] Failed to generate research insight:', researchError)
+          setComposerError(getErrorMessage(researchError))
         } finally {
           setIsResearchGenerating(false)
         }
       }
     } catch (error) {
       console.error('[ChatWindow] Failed to send message:', error)
-      // Could show error toast here
+      setComposerError(getErrorMessage(error))
     }
   }
 
@@ -686,6 +691,7 @@ export const ChatWindow = () => {
         },
       })
       console.error('[ChatWindow] Deterministic generation failed:', error)
+      setComposerError(getErrorMessage(error))
     } finally {
       setQuickGeneratingType(null)
     }
@@ -906,6 +912,10 @@ export const ChatWindow = () => {
             )}
           </button>
         </div>
+
+        {composerError && (
+          <p className="mt-2 text-xs font-medium text-rose-600">{composerError}</p>
+        )}
       </div>
     </main>
   )
