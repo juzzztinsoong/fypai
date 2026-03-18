@@ -12,7 +12,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { AgentPreferencesDTO, AgentPersonality, AgentProactivity, AgentResponseLength, AgentModelTier } from '@fypai/types'
 import { getAgentPreferences, updateAgentPreferences, resetAgentPreferences } from '@/services/agentPreferencesService'
-import { RuleTogglePanel } from './RuleTogglePanel'
 import { getElevationClass, getSegmentedActiveClass, getSwitchThumbClass, getSwitchTrackClass, uiTokens } from '@/styles/uiTokens'
 
 // ─── Types ──────────────────────────────────────────────────
@@ -76,7 +75,6 @@ function CompactPicker<T extends string>({
 
 export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated = false }: AIControlsDrawerProps) => {
   const [expanded, setExpanded] = useState(false)
-  const [showRules, setShowRules] = useState(false)
 
   // ── Agent Preferences state ────────────────────────────
   const [prefs, setPrefs] = useState<AgentPreferencesDTO | null>(null)
@@ -150,7 +148,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated =
       <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center ${integrated ? 'border-t border-gray-100' : ''}`}>
         {/* Top row: Toggle + gear */}
         <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-start gap-2.5">
             <button
               onClick={onToggleAI}
               className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(isAIEnabled)}`}
@@ -162,9 +160,16 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated =
                 className={`${uiTokens.controls.switch.thumbBase} ${getSwitchThumbClass(isAIEnabled)}`}
               />
             </button>
-            <span className="text-xs font-medium text-gray-700">
-              AI {isAIEnabled ? 'Active' : 'Off'}
-            </span>
+            <div className="leading-tight">
+              <div className="text-xs font-semibold text-gray-800">
+                Condition: {isAIEnabled ? 'AI-On' : 'AI-Light'}
+              </div>
+              <div className="text-[11px] text-gray-500">
+                {isAIEnabled
+                  ? 'Assistant chat and insight generation are available.'
+                  : 'Explicit @agent chat is available; autonomous generation is disabled.'}
+              </div>
+            </div>
           </div>
 
           {SHOW_AI_SETTINGS_MENU && (
@@ -269,29 +274,6 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated =
                 value={prefs.modelTierOverride}
                 onChange={(v) => handlePrefChange('modelTierOverride', v)}
               />
-
-              <div className="pt-2 border-t border-gray-100">
-                <button
-                  onClick={() => setShowRules(prev => !prev)}
-                  className="w-full flex items-center justify-between text-left"
-                >
-                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Chime Rules</span>
-                  <svg
-                    className={`w-3 h-3 text-gray-500 transition-transform ${showRules ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {showRules && (
-                  <div className="mt-2">
-                    <RuleTogglePanel teamId={teamId} />
-                  </div>
-                )}
-              </div>
             </>
           ) : (
             <p className="text-xs text-gray-400 text-center py-2">Unable to load settings</p>

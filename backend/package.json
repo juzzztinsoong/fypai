@@ -18,7 +18,9 @@
     "db:seed": "tsx src/seed.ts",
     "seed": "tsx src/seed.ts",
     "seed:study": "tsx src/seedStudy.ts",
-    "test:agent-pipeline": "node tests/test-agent-ingestion-embedding.js"
+    "test:conversational-routing": "tsx tests/test-conversational-routing-guardrails.ts",
+    "test:agent-pipeline": "node tests/test-agent-ingestion-embedding.js",
+    "test:export-contract": "node tests/test-export-contract.js"
   },
   "keywords": [],
   "author": "",

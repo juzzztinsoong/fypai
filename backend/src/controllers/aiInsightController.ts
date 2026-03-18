@@ -21,10 +21,12 @@ import {
   AIInsightDTO,
   AgentPromptArchetype,
   CreateAIInsightRequest,
+  MessageMetadata,
   UpdateAIInsightRequest,
   UpdateInsightStatusRequest,
   aiInsightToDTO,
   aiInsightsToDTO,
+  messageToDTO,
 } from '../types.js'
 import { GitHubModelsClient } from '../ai/core/llm.js'
 import {
@@ -499,6 +501,7 @@ export class AIInsightController {
     const markerVerb = markerVerbByType[insight.type] || 'Generated insight'
     const markerSnippet = this.extractInsightSnippet(insight.content)
     const markerProvenance = this.resolveMarkerProvenance(insight)
+    const markerCompanionText = `I generated this ${markerLabel.toLowerCase()} insight and linked it here so you can open the full version.`
     const markerMessage = await MessageController.createMessage({
       teamId,
       authorId: 'agent',
@@ -515,6 +518,7 @@ export class AIInsightController {
         sourceActionTitle: insight.title,
         markerLabel,
         markerPreview: markerSnippet || undefined,
+        markerCompanionText,
         markerSource: markerProvenance.source,
         markerTrigger: markerProvenance.trigger,
         markerCreatedBy: markerProvenance.createdBy,
@@ -525,6 +529,54 @@ export class AIInsightController {
     if (this.io) {
       this.io.to(`team:${teamId}`).emit('message:new', markerMessage);
       console.log(`[AIInsightController] 🔗 Broadcasted marker message for insight: ${insight.id}`);
+    }
+  }
+
+  static async mergeCompanionIntoMarker(
+    teamId: string,
+    insightId: string,
+    companionText: string,
+  ): Promise<void> {
+    const normalizedText = companionText.replace(/\s+/g, ' ').trim();
+    if (!normalizedText) return;
+
+    const markerRecord = await prisma.message.findFirst({
+      where: {
+        teamId,
+        authorId: 'agent',
+        metadata: {
+          contains: `\"linkedInsightId\":\"${insightId}\"`,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!markerRecord) {
+      console.log(`[AIInsightController] ⚠️ No marker found to merge companion text for insight: ${insightId}`);
+      return;
+    }
+
+    const metadata: MessageMetadata = markerRecord.metadata
+      ? (JSON.parse(markerRecord.metadata) as MessageMetadata)
+      : {};
+
+    if (metadata.markerCompanionText === normalizedText) {
+      return;
+    }
+
+    const updated = await prisma.message.update({
+      where: { id: markerRecord.id },
+      data: {
+        metadata: JSON.stringify({
+          ...metadata,
+          markerCompanionText: normalizedText,
+        }),
+      },
+    });
+
+    if (this.io) {
+      this.io.to(`team:${teamId}`).emit('message:edited', messageToDTO(updated));
+      console.log(`[AIInsightController] 🧩 Merged companion text into marker ${updated.id} for insight: ${insightId}`);
     }
   }
 

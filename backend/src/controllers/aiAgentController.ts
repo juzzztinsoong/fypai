@@ -51,6 +51,7 @@ export class AIAgentController {
   private static teamAIEnabled: Map<string, boolean> = new Map(); // In-memory cache for AI enabled state
   private static readonly ENABLE_MODEL_PROACTIVE_RESPONSE = process.env.ENABLE_MODEL_PROACTIVE_RESPONSE !== 'false';
   private static readonly ENABLE_CHAT_PLUS_INSIGHT = process.env.ENABLE_CHAT_PLUS_INSIGHT === 'true';
+  private static readonly ENABLE_MERGED_MARKER_COMPANION = process.env.ENABLE_MERGED_MARKER_COMPANION !== 'false';
   private static readonly PROACTIVE_RESPONSE_MIN_CONFIDENCE = Math.min(
     1,
     Math.max(0, parseFloat(process.env.PROACTIVE_RESPONSE_MIN_CONFIDENCE || '0.65')),
@@ -374,10 +375,32 @@ export class AIAgentController {
   private static shouldEmitCompanionChat(routeDecision: RouteDecision): boolean {
     return (
       this.ENABLE_CHAT_PLUS_INSIGHT &&
+      !this.ENABLE_MERGED_MARKER_COMPANION &&
       routeDecision.channel === 'insight' &&
-      routeDecision.insightType !== 'document' &&
-      Boolean(routeDecision.insightType) &&
-      routeDecision.explicit
+      Boolean(routeDecision.insightType)
+    );
+  }
+
+  private static shouldMergeCompanionIntoMarker(routeDecision: RouteDecision): boolean {
+    return (
+      this.ENABLE_CHAT_PLUS_INSIGHT &&
+      this.ENABLE_MERGED_MARKER_COMPANION &&
+      routeDecision.channel === 'insight' &&
+      Boolean(routeDecision.insightType)
+    );
+  }
+
+  private static buildInsightCompanionText(
+    insight: AIInsightDTO,
+    routeDecision: RouteDecision,
+  ): string {
+    const label = this.getInsightLabel(routeDecision.insightType || 'document');
+    const snippet = this.extractInsightSnippet(insight.content, 160);
+    const snippetLine = snippet ? ` ${snippet}` : '';
+
+    return (
+      `I generated a ${label} insight: ${insight.title}.${snippetLine} ` +
+      'Open this card to view the full version.'
     );
   }
 
@@ -386,13 +409,8 @@ export class AIAgentController {
     insight: AIInsightDTO,
     routeDecision: RouteDecision,
   ): Promise<void> {
-    const label = this.getInsightLabel(routeDecision.insightType || 'document');
     const snippet = this.extractInsightSnippet(insight.content);
-    const snippetLine = snippet ? `\n\nQuick take: ${snippet}` : '';
-
-    const content =
-      `I generated a detailed ${label} in Insights: **${insight.title}**.${snippetLine}\n\n` +
-      `If you want, I can refine one specific section in chat.`;
+    const content = this.buildInsightCompanionText(insight, routeDecision);
 
     const companionMessage = await MessageController.createMessage({
       teamId: triggerMessage.teamId,
@@ -403,7 +421,9 @@ export class AIAgentController {
         parentMessageId: triggerMessage.id,
         linkedInsightId: insight.id,
         linkedInsightType: insight.type,
-        markerType: 'insight-link',
+        sourceActionTitle: insight.title,
+        markerLabel: this.getInsightLabel(routeDecision.insightType || 'document'),
+        markerPreview: snippet,
       },
     });
 
@@ -436,6 +456,20 @@ export class AIAgentController {
     if (focusParts.length === 0) return null;
 
     return `FOCUS DIRECTIVE:\n- ${focusParts.join('\n- ')}\n- Prioritize these over older generic context.`;
+  }
+
+  private static buildRecentInsightsContext(
+    insights: Array<{ title: string; type: string; createdAt: Date; content: string }>,
+  ): string | null {
+    if (insights.length === 0) return null;
+
+    const lines = insights.map((insight) => {
+      const createdAt = insight.createdAt.toISOString();
+      const snippet = this.extractInsightSnippet(insight.content, 180);
+      return `- [${createdAt}] (${insight.type}) ${insight.title}${snippet ? ` :: ${snippet}` : ''}`;
+    });
+
+    return `RECENT TEAM INSIGHTS (use as secondary context when relevant):\n${lines.join('\n')}`;
   }
 
   private static async createEscalatedInsightFromChat(
@@ -751,6 +785,14 @@ export class AIAgentController {
               insightArchetype.archetype,
             );
 
+            if (this.shouldMergeCompanionIntoMarker(routeDecision)) {
+              await AIInsightController.mergeCompanionIntoMarker(
+                message.teamId,
+                generatedInsight.id,
+                this.buildInsightCompanionText(generatedInsight, routeDecision),
+              );
+            }
+
             if (this.shouldEmitCompanionChat(routeDecision)) {
               await this.emitInsightCompanionMessage(message, generatedInsight, routeDecision);
             }
@@ -988,18 +1030,44 @@ export class AIAgentController {
       console.warn('[AI Agent] Failed to load task context:', error);
     }
 
+    let recentInsightsMessage: { role: 'system'; content: string } | null = null;
+    try {
+      const insightsLimit = Math.max(1, parseInt(process.env.AI_RECENT_INSIGHTS_CONTEXT_LIMIT || '6', 10));
+      const recentInsights = await prisma.aIInsight.findMany({
+        where: { teamId: triggerMessage.teamId },
+        select: { title: true, type: true, content: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: insightsLimit,
+      });
+
+      const recentInsightsContext = this.buildRecentInsightsContext(recentInsights);
+      if (recentInsightsContext) {
+        recentInsightsMessage = {
+          role: 'system' as const,
+          content: recentInsightsContext,
+        };
+      }
+    } catch (error) {
+      console.warn('[AI Agent] Failed to load recent insights context:', error);
+    }
+
     const focusDirective = this.buildFocusDirective(triggerMessage, routeDecision);
+    const conversationalConciseDirective =
+      'CONVERSATIONAL REPLY MODE: Keep the response concise and practical. Use 2-5 sentences total unless the user explicitly asks for detail.';
+    const chatMaxTokens = Math.max(160, parseInt(process.env.AI_CHAT_MAX_TOKENS || '480', 10));
 
     const response = await this.llm.generate({
       messages: [
         ...(taskContextMessage ? [taskContextMessage] : []),
+        ...(recentInsightsMessage ? [recentInsightsMessage] : []),
         { role: 'system' as const, content: archetypedPrompt.prompt },
         ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...(focusDirective ? [{ role: 'system' as const, content: focusDirective }] : []),
+        { role: 'system' as const, content: conversationalConciseDirective },
         ...conversationHistory,
       ],
       model, // Use preference-based model selection
-      maxTokens: parseInt(process.env.AI_MAX_TOKENS || '2048'),
+      maxTokens: chatMaxTokens,
       temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
     });
 

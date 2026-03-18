@@ -83,13 +83,10 @@ export const ChatHeader = () => {
               return (
                 <div
                   key={member.id}
-                  className="relative w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold border-2 border-white animate-pulse"
+                  className="relative w-8 h-8 rounded-full bg-violet-700 flex items-center justify-center text-white text-xs font-semibold border-2 border-white"
                   title={`${member.name} (online)`}
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" />
-                    <text x="12" y="16" textAnchor="middle" fontSize="10" fill="#fff">AI</text>
-                  </svg>
+                  AI
                   <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
                 </div>
               );

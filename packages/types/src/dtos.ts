@@ -143,6 +143,7 @@ export interface MessageMetadata {
   sourceActionTitle?: string
   markerLabel?: string
   markerPreview?: string
+  markerCompanionText?: string
   markerSource?: MarkerProvenanceSource
   markerTrigger?: MarkerProvenanceTrigger
   markerCreatedBy?: string

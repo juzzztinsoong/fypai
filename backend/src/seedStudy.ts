@@ -1,7 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { prisma } from './db.js'
-import { RuleSeederService } from './services/ruleSeederService.js'
 import {
   DEFAULT_STUDY_TEMPLATE_ID,
   STUDY_SEED_TEMPLATES,
@@ -29,10 +28,8 @@ interface SeededTeamSummary {
 }
 
 interface TeamInstructionMessageInput {
-  template: StudySeedTemplate
   teamName: string
   runOrder: 'AB' | 'BA'
-  scenarioVariant: 'A' | 'B'
   runOneCondition: StudyCondition
   runTwoCondition: StudyCondition
 }
@@ -56,18 +53,10 @@ const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
     type: 'summary',
     title: 'Demo: Conversation Snapshot',
     content: [
-      '## What This Card Is For',
-      '- Quick recap of what your team discussed so far.',
-      '- Fast way to align before making a decision.',
-      '',
-      '## How To Use It',
-      '1. Read this summary after a few chat messages.',
-      '2. Check whether the summary matches what the team actually meant.',
-      '3. If needed, ask follow-up questions in chat to close gaps.',
-      '',
-      '## Marker Flow',
-      '- Jump to chat marker from this card to verify traceability.',
-      '- Jump back from marker to this card to confirm context continuity.',
+      '## Snapshot',
+      '- Use after a short discussion to confirm team alignment.',
+      '- If details look wrong, correct them in chat.',
+      '- Use **View marker in chat** to check source context.',
     ].join('\n'),
     markerLabel: 'Summary',
     priority: 'medium',
@@ -76,17 +65,10 @@ const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
     type: 'document',
     title: 'Demo: Research',
     content: [
-      '## What This Card Is For',
-      '- Longer-form reasoning, options, and trade-offs.',
-      '- A place to compare alternatives before committing.',
-      '',
-      '## How To Use It',
-      '1. Use Research flow when the team needs evidence or comparison.',
-      '2. Validate assumptions with the team in chat.',
-      '3. Promote only the strongest points into action planning.',
-      '',
-      '## Marker Flow',
-      '- Use marker links to keep the research source connected to decisions.',
+      '## Compare Options',
+      '- Use when choices need evidence or trade-offs.',
+      '- Pull only useful points into decisions and actions.',
+      '- Verify assumptions in chat before committing.',
     ].join('\n'),
     markerLabel: 'Research',
     priority: 'medium',
@@ -95,15 +77,12 @@ const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
     type: 'action',
     title: 'Demo: Action Item',
     content: [
-      '## Action Template',
-      '- [ ] **Owner**: choose one teammate',
-      '- [ ] **Task**: define the next concrete step',
-      '- [ ] **Target Date**: set a realistic deadline',
+      '## Next Step',
+      '- **Owner**: assign one teammate',
+      '- **Task**: define one concrete step',
+      '- **Target date**: set a realistic deadline',
       '',
-      '## Lifecycle',
-      '1. Accept or dismiss.',
-      '2. Refine details if needed.',
-      '3. Mark complete when actually done.',
+      'Lifecycle: accept or dismiss -> refine -> mark complete.',
     ].join('\n'),
     markerLabel: 'Action Item',
     priority: 'high',
@@ -112,14 +91,10 @@ const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
     type: 'suggestion',
     title: 'Demo: Help Card',
     content: [
-      '## What This Card Is For',
-      '- Lightweight guidance when the team gets stuck.',
-      '- Practical options to unblock progress quickly.',
-      '',
-      '## Good Use Cases',
-      '- You are debating too long without converging.',
-      '- You need a simple next step now, not a full report.',
-      '- You need alternatives with clear trade-offs.',
+      '## Unblock',
+      '- Use when discussion stalls or choices feel unclear.',
+      '- Ask for 2-3 practical options.',
+      '- Pick one next step and continue in chat.',
     ].join('\n'),
     markerLabel: 'Help',
     priority: 'low',
@@ -235,61 +210,27 @@ async function cleanupExistingStudyData(): Promise<void> {
   })
 }
 
-async function seedSyncOnlyRulesForTeam(teamId: string): Promise<void> {
-  const previous = process.env.DISABLE_ASYNC_RULE_SEEDING
-  process.env.DISABLE_ASYNC_RULE_SEEDING = 'true'
-
-  try {
-    await RuleSeederService.seedTeamRules(teamId)
-  } finally {
-    if (typeof previous === 'undefined') {
-      delete process.env.DISABLE_ASYNC_RULE_SEEDING
-    } else {
-      process.env.DISABLE_ASYNC_RULE_SEEDING = previous
-    }
-  }
-}
-
 function buildTeamInstructionMessage(input: TeamInstructionMessageInput): string {
   const lines: string[] = []
-  lines.push('# Welcome to Your Team Workspace')
+  lines.push('# Team Workspace')
   lines.push('')
-  lines.push('This space is designed for **discussion in chat** plus **structured outputs in Insights**.')
-  lines.push('Use this quick setup before your first planning message.')
+  lines.push('Use this quick start to begin.')
   lines.push('')
-  lines.push('## Start Here (about 90 seconds)')
-  lines.push('1. Open **Edit Context** in the right header and set project goal, constraints, timeline, and success criteria.')
-  lines.push('2. Use center chat to align on plan direction and decisions.')
-  lines.push('3. Use top composer toggles to choose **Auto / Ask / Research** intentionally.')
-  lines.push('4. Use slash commands when needed: `/summary`, `/research`, `/actions`, `/help`.')
+  lines.push('## Start')
+  lines.push('1. (Optional) Open **Edit Context** and set goal, constraints, timeline, and success criteria.')
+  lines.push('2. Use center chat to align on direction and decisions.')
+  lines.push('3. Use composer modes or slash commands as needed: `/summary`, `/research`, `/actions`, `/help`.')
   lines.push('')
-  lines.push('## Marker Flow (Traceability)')
-  lines.push('- From an insight card: **View marker in chat ->**')
-  lines.push('- From a chat marker: jump back to the linked insight card')
-  lines.push('- Treat marker jumps as evidence links between conversation and outputs')
+  lines.push('## Workspace')
+  lines.push('- Insights are shown in the right panel.')
+  lines.push('- Marker links connect each insight back to source chat context.')
   lines.push('')
-  lines.push('## Demo Cards Loaded For Onboarding')
-  lines.push('- Summary marker linked')
-  lines.push('- Research marker linked')
-  lines.push('- Action Item marker linked')
-  lines.push('- Help marker linked')
-  lines.push('- Project Context starts blank by design and should be set at kickoff')
-  lines.push('')
-  lines.push('## Session Details')
-  lines.push(`- Team: ${input.teamName}`)
-  lines.push(`- Scenario Variant: ${input.scenarioVariant}`)
-  lines.push(`- Run Order: ${input.runOrder}`)
-  lines.push(`- Run 1 Condition: ${input.runOneCondition}`)
-  lines.push(`- Run 2 Condition: ${input.runTwoCondition}`)
-  lines.push('')
-  lines.push('Follow facilitator timing for official Run 1 and Run 2 start/end.')
-  lines.push('')
-  lines.push('You are ready to begin.')
+  lines.push('Begin with a short team intro in chat.')
 
   return lines.join('\n')
 }
 
-async function seedOnboardingInsightMarkers(teamId: string, templateId: string, scenarioVariant: 'A' | 'B') {
+async function seedOnboardingInsightMarkers(teamId: string, templateId: string) {
   for (const demo of ONBOARDING_INSIGHTS) {
     const insight = await prisma.aIInsight.create({
       data: {
@@ -302,7 +243,6 @@ async function seedOnboardingInsightMarkers(teamId: string, templateId: string, 
         metadata: JSON.stringify({
           onboardingDemo: true,
           seedTemplateId: templateId,
-          scenarioVariant,
           provenanceSource: 'seed-onboarding',
           provenanceTrigger: 'seed-bootstrap',
           provenanceCreatedBy: 'system',
@@ -326,7 +266,6 @@ async function seedOnboardingInsightMarkers(teamId: string, templateId: string, 
           markerLabel: demo.markerLabel,
           onboardingDemo: true,
           seedTemplateId: templateId,
-          scenarioVariant,
           markerSource: 'seed-onboarding',
           markerTrigger: 'seed-bootstrap',
           markerCreatedBy: 'system',
@@ -389,8 +328,6 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
       ],
     })
 
-    await seedSyncOnlyRulesForTeam(teamTemplate.id)
-
     await prisma.teamAgentPreference.upsert({
       where: { teamId: teamTemplate.id },
       create: {
@@ -413,10 +350,8 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
         teamId: teamTemplate.id,
         authorId: 'agent',
         content: buildTeamInstructionMessage({
-          template,
           teamName: teamTemplate.name,
           runOrder: teamTemplate.runOrder,
-          scenarioVariant: teamTemplate.scenarioVariant,
           runOneCondition,
           runTwoCondition,
         }),
@@ -427,7 +362,6 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
           seedTemplateId: template.id,
           onboardingDemo: true,
           runOrder: teamTemplate.runOrder,
-          scenarioVariant: teamTemplate.scenarioVariant,
           runOneCondition,
           runTwoCondition,
           markerSource: 'seed-onboarding',
@@ -438,7 +372,7 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
       },
     })
 
-    await seedOnboardingInsightMarkers(teamTemplate.id, template.id, teamTemplate.scenarioVariant)
+    await seedOnboardingInsightMarkers(teamTemplate.id, template.id)
 
     created.push({
       id: teamTemplate.id,
@@ -475,12 +409,12 @@ function buildInstructionMarkdown(template: StudySeedTemplate, teams: SeededTeam
   lines.push('')
   lines.push('## Team Assignments')
   lines.push('')
-  lines.push('| Team ID | Team Name | Participants | Run Order | Scenario | Run 1 | Run 2 |')
-  lines.push('|---|---|---:|---|---|---|---|')
+  lines.push('| Team ID | Team Name | Participants | Run Order | Run 1 | Run 2 |')
+  lines.push('|---|---|---:|---|---|---|')
 
   for (const team of teams) {
     lines.push(
-      `| ${team.id} | ${team.name} | ${team.participantIds.length} | ${team.runOrder} | ${team.scenarioVariant} | ${team.runOneCondition} | ${team.runTwoCondition} |`
+      `| ${team.id} | ${team.name} | ${team.participantIds.length} | ${team.runOrder} | ${team.runOneCondition} | ${team.runTwoCondition} |`
     )
   }
 
@@ -567,7 +501,7 @@ async function main(): Promise<void> {
     console.log('[StudySeed] Dry run only. No database writes were performed.')
     for (const team of template.teams) {
       console.log(
-        `- ${team.id}: participants=${team.participantCount}, order=${team.runOrder}, scenario=${team.scenarioVariant}, run1=${getRunOneCondition(
+        `- ${team.id}: participants=${team.participantCount}, order=${team.runOrder}, run1=${getRunOneCondition(
           team.runOrder
         )}`
       )

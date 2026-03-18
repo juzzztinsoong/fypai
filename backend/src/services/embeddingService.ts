@@ -19,6 +19,16 @@
 
 import OpenAI from 'openai';
 
+export class EmbeddingRateLimitError extends Error {
+  retryAfterSeconds: number;
+
+  constructor(message: string, retryAfterSeconds: number) {
+    super(message);
+    this.name = 'EmbeddingRateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 export interface EmbeddingResult {
   embedding: number[];
   tokens: number;
@@ -37,6 +47,31 @@ class EmbeddingService {
   private maxRetries: number = 3;
   private totalTokensUsed: number = 0;
   private totalRequests: number = 0;
+
+  private parseRetryAfterSeconds(error: unknown): number {
+    const fallbackSeconds = 120;
+
+    const maybeAny = error as any;
+    const headerValue = maybeAny?.headers?.['retry-after'];
+    if (typeof headerValue === 'string' && /^\d+$/.test(headerValue)) {
+      return Math.max(1, parseInt(headerValue, 10));
+    }
+
+    const message = maybeAny?.message || '';
+    if (typeof message === 'string') {
+      const waitMatch = message.match(/wait\s+(\d+)\s+seconds/i);
+      if (waitMatch) {
+        return Math.max(1, parseInt(waitMatch[1], 10));
+      }
+    }
+
+    return fallbackSeconds;
+  }
+
+  private isRateLimitError(error: unknown): boolean {
+    const maybeAny = error as any;
+    return maybeAny?.status === 429 || maybeAny?.code === 'RateLimitReached';
+  }
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY || process.env.GITHUB_TOKEN;
@@ -112,6 +147,14 @@ class EmbeddingService {
         lastError = error as Error;
         console.error(`[EmbeddingService] ❌ Attempt ${attempt}/${this.maxRetries} failed:`, error);
 
+        if (this.isRateLimitError(error)) {
+          const retryAfterSeconds = this.parseRetryAfterSeconds(error);
+          throw new EmbeddingRateLimitError(
+            `Embedding rate limit reached. Retry after ${retryAfterSeconds} seconds.`,
+            retryAfterSeconds,
+          );
+        }
+
         if (attempt < this.maxRetries) {
           const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
           console.log(`[EmbeddingService] Retrying in ${delay}ms...`);
@@ -167,6 +210,14 @@ class EmbeddingService {
       } catch (error) {
         lastError = error as Error;
         console.error(`[EmbeddingService] ❌ Batch attempt ${attempt}/${this.maxRetries} failed:`, error);
+
+        if (this.isRateLimitError(error)) {
+          const retryAfterSeconds = this.parseRetryAfterSeconds(error);
+          throw new EmbeddingRateLimitError(
+            `Embedding rate limit reached. Retry after ${retryAfterSeconds} seconds.`,
+            retryAfterSeconds,
+          );
+        }
 
         if (attempt < this.maxRetries) {
           const delay = Math.pow(2, attempt) * 1000;

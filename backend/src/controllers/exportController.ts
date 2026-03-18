@@ -33,6 +33,25 @@ export class ExportController {
       AIInsightController.getInsights(teamId),
     ])
 
+    const [team, memberships] = await Promise.all([
+      prisma.team.findUnique({
+        where: { id: teamId },
+        select: { id: true, name: true, isChimeEnabled: true },
+      }),
+      prisma.teamMember.findMany({
+        where: { teamId },
+        include: {
+          user: {
+            select: { id: true, name: true, role: true },
+          },
+        },
+      }),
+    ])
+
+    if (!team) {
+      throw new Error('Team not found')
+    }
+
     let feedbackRows: Array<{
       id: string
       messageId: string
@@ -80,11 +99,37 @@ export class ExportController {
 
     const metrics = SessionEventController.computeMetrics(events, teamId, options?.sessionId)
 
+    const onboardingMetadata = messages.find(
+      (message) => message.metadata?.markerLabel === 'participant-onboarding',
+    )?.metadata as Record<string, unknown> | undefined
+
+    const sessionSpec = {
+      teamId,
+      teamName: team.name,
+      sessionId: options?.sessionId,
+      conditionFlag: team.isChimeEnabled ? 'AI_ON' : 'AI_LIGHT',
+      runOrder: typeof onboardingMetadata?.runOrder === 'string' ? onboardingMetadata.runOrder : null,
+      runOneCondition:
+        typeof onboardingMetadata?.runOneCondition === 'string' ? onboardingMetadata.runOneCondition : null,
+      runTwoCondition:
+        typeof onboardingMetadata?.runTwoCondition === 'string' ? onboardingMetadata.runTwoCondition : null,
+    }
+
+    const participants = memberships.map((member) => ({
+      userId: member.userId,
+      name: member.user.name,
+      role: member.user.role,
+      teamRole: member.teamRole,
+      isAgent: member.userId === 'agent',
+    }))
+
     if (format === 'timeline-json') {
       return {
         teamId,
         sessionId: options?.sessionId,
         exportedAt: new Date().toISOString(),
+        sessionSpec,
+        participants,
         timeline: events,
         metrics,
       }
@@ -93,7 +138,14 @@ export class ExportController {
     if (format === 'metrics-csv') {
       const headers = [
         'teamId',
+        'teamName',
         'sessionId',
+        'conditionFlag',
+        'runOrder',
+        'runOneCondition',
+        'runTwoCondition',
+        'participantCount',
+        'humanParticipantCount',
         'windowStart',
         'windowEnd',
         'totalEvents',
@@ -115,7 +167,14 @@ export class ExportController {
 
       const row = [
         csvEscape(metrics.teamId),
+        csvEscape(sessionSpec.teamName),
         csvEscape(metrics.sessionId),
+        csvEscape(sessionSpec.conditionFlag),
+        csvEscape(sessionSpec.runOrder),
+        csvEscape(sessionSpec.runOneCondition),
+        csvEscape(sessionSpec.runTwoCondition),
+        csvEscape(participants.length),
+        csvEscape(participants.filter((participant) => !participant.isAgent).length),
         csvEscape(metrics.windowStart),
         csvEscape(metrics.windowEnd),
         csvEscape(metrics.totalEvents),
@@ -143,6 +202,8 @@ export class ExportController {
         teamId,
         sessionId: options?.sessionId,
         exportedAt: new Date().toISOString(),
+        sessionSpec,
+        participants,
         messages,
         insights,
         feedback,

@@ -55,24 +55,24 @@ function buildTeams(
       participantCount: entry.count,
       scenarioVariant: entry.variant,
       runOrder: entry.order,
-      taskContext: `${variantContext} Include at least one source-verifiable decision and keep scope realistic for a student team.`,
+      taskContext: `${variantContext}`,
     }
   })
 }
 
 const SOFTWARE_CONTEXTS: ScenarioContextPair = {
-  A: 'Hackathon launch planning. Produce a clear plan, ownership map, and validation checklist for demo readiness.',
-  B: 'Assignment workflow redesign. Produce prioritized workflow improvements, ownership map, and evaluation criteria.',
+  A: 'Facilitator will provide Scenario A verbally at run start. Keep app-seeded context neutral before briefing.',
+  B: 'Facilitator will provide Scenario B verbally at run start. Keep app-seeded context neutral before briefing.',
 }
 
 const CAMPUS_SERVICES_CONTEXTS: ScenarioContextPair = {
-  A: 'Campus wellness fair operations planning. Produce an execution plan for booths, volunteers, and disruption handling.',
-  B: 'Peer tutoring program coordination. Produce a scheduling and assignment workflow with clear handoffs and demand coverage.',
+  A: 'Facilitator will provide Scenario A verbally at run start. Keep app-seeded context neutral before briefing.',
+  B: 'Facilitator will provide Scenario B verbally at run start. Keep app-seeded context neutral before briefing.',
 }
 
 const COMMUNITY_IMPACT_CONTEXTS: ScenarioContextPair = {
-  A: 'Student food pantry distribution planning. Produce a fair allocation workflow with volunteer handoffs and shortage contingencies.',
-  B: 'Campus e-waste collection campaign. Produce outreach and collection logistics with clear routing and ownership decisions.',
+  A: 'Facilitator will provide Scenario A verbally at run start. Keep app-seeded context neutral before briefing.',
+  B: 'Facilitator will provide Scenario B verbally at run start. Keep app-seeded context neutral before briefing.',
 }
 
 const SHARED_PROFILES: Record<StudyCondition, ConditionProfile> = {

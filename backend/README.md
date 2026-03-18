@@ -151,6 +151,19 @@ FRONTEND_URL="http://localhost:5173"
 | `PORT` | Server port | `5000` | ❌ No |
 | `NODE_ENV` | Environment mode | `development` | ❌ No |
 | `FRONTEND_URL` | Frontend origin for CORS | `http://localhost:5173` | ✅ Yes |
+| `ENABLE_CHIME_RULE_MUTATIONS` | Allow create/update/delete/seed/preset changes for chime rules | `false` | ❌ No |
+| `EMBEDDING_BATCH_SIZE` | Embedding worker batch size for API calls | `20` | ❌ No |
+| `EMBEDDING_FLUSH_TIMEOUT_MS` | Max wait before flushing partial embedding batch | `60000` | ❌ No |
+| `AI_RECENT_INSIGHTS_CONTEXT_LIMIT` | Number of recent insights injected as fallback context | `6` | ❌ No |
+| `ENABLE_EMBEDDING_BACKFILL_SCHEDULER` | Automatically requeue deferred embedding jobs in background | `true` | ❌ No |
+| `EMBEDDING_BACKFILL_INTERVAL_MS` | Scheduler interval for deferred embedding requeue | `300000` | ❌ No |
+| `EMBEDDING_BACKFILL_BATCH_SIZE` | Max deferred messages scanned per scheduler tick | `100` | ❌ No |
+
+Deferred embedding observability endpoint:
+- `GET /api/stats/embeddings/deferred` returns deferred count, due-now count, and next retry window.
+
+Study readiness preflight endpoint:
+- `GET /api/study/preflight` returns matrix-critical readiness checks (policy lock state, AI condition mix, deferred embedding health, and env-derived guard settings).
 
 ---
 

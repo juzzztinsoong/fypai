@@ -34,6 +34,7 @@ import { getRedisClient, checkRedisHealth, disconnectRedis } from './services/re
 import { pineconeService } from './services/pineconeService.js'
 import { embeddingService } from './services/embeddingService.js'
 import { createEmbeddingWorker, shutdownEmbeddingWorker } from './workers/embeddingWorker.js'
+import { startEmbeddingBackfillScheduler, stopEmbeddingBackfillScheduler } from './services/embeddingBackfillService.js'
 import type { Worker } from 'bullmq'
 
 // Import routes
@@ -163,6 +164,185 @@ app.get('/api/stats/embeddings', (req, res) => {
   })
 })
 
+// Deferred embedding backlog stats
+app.get('/api/stats/embeddings/deferred', async (req, res) => {
+  try {
+    const deferredMessages = await prisma.message.findMany({
+      where: {
+        embeddingId: null,
+        contentType: 'text',
+        metadata: {
+          contains: 'deferred_rate_limit',
+        },
+      },
+      select: {
+        id: true,
+        metadata: true,
+        createdAt: true,
+      },
+      take: 5000,
+      orderBy: { createdAt: 'asc' },
+    })
+
+    const nowMs = Date.now()
+    let deferredCount = 0
+    let dueNowCount = 0
+    let nextRetryAtMs: number | null = null
+
+    for (const message of deferredMessages) {
+      if (!message.metadata) continue
+
+      try {
+        const parsed = JSON.parse(message.metadata) as any
+        const embedding = parsed?.embedding
+        if (!embedding || embedding.status !== 'deferred_rate_limit') continue
+
+        deferredCount += 1
+
+        const deferredUntil = embedding.deferredUntil
+        const deferredUntilMs = deferredUntil ? new Date(deferredUntil).getTime() : NaN
+
+        if (!Number.isNaN(deferredUntilMs)) {
+          if (deferredUntilMs <= nowMs) {
+            dueNowCount += 1
+          } else if (nextRetryAtMs === null || deferredUntilMs < nextRetryAtMs) {
+            nextRetryAtMs = deferredUntilMs
+          }
+        } else {
+          dueNowCount += 1
+        }
+      } catch {
+        // Ignore malformed metadata rows.
+      }
+    }
+
+    res.json({
+      deferredCount,
+      dueNowCount,
+      nextRetryAt: nextRetryAtMs ? new Date(nextRetryAtMs).toISOString() : null,
+      schedulerEnabled: process.env.ENABLE_EMBEDDING_BACKFILL_SCHEDULER !== 'false',
+      schedulerIntervalMs: Math.max(15000, parseInt(process.env.EMBEDDING_BACKFILL_INTERVAL_MS || '300000', 10)),
+      scanLimit: deferredMessages.length,
+    })
+  } catch (error) {
+    console.error('[Stats] Deferred embedding stats failed:', error)
+    res.status(500).json({ error: 'Failed to read deferred embedding stats' })
+  }
+})
+
+// Study matrix preflight endpoint
+app.get('/api/study/preflight', async (req, res) => {
+  try {
+    const teams = await prisma.team.findMany({
+      select: { id: true, name: true, isChimeEnabled: true },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    })
+
+    const deferredRows = await prisma.message.findMany({
+      where: {
+        embeddingId: null,
+        contentType: 'text',
+        metadata: {
+          contains: 'deferred_rate_limit',
+        },
+      },
+      select: { metadata: true },
+      take: 5000,
+    })
+
+    const nowMs = Date.now()
+    let deferredCount = 0
+    let dueNowCount = 0
+    let nextRetryAtMs: number | null = null
+
+    for (const row of deferredRows) {
+      if (!row.metadata) continue
+
+      try {
+        const parsed = JSON.parse(row.metadata) as any
+        const embedding = parsed?.embedding
+        if (!embedding || embedding.status !== 'deferred_rate_limit') continue
+
+        deferredCount += 1
+
+        const deferredUntilMs = embedding.deferredUntil
+          ? new Date(embedding.deferredUntil).getTime()
+          : NaN
+
+        if (!Number.isNaN(deferredUntilMs)) {
+          if (deferredUntilMs <= nowMs) {
+            dueNowCount += 1
+          } else if (nextRetryAtMs === null || deferredUntilMs < nextRetryAtMs) {
+            nextRetryAtMs = deferredUntilMs
+          }
+        } else {
+          dueNowCount += 1
+        }
+      } catch {
+        // Ignore malformed rows.
+      }
+    }
+
+    const settings = {
+      aiLightBackendEnforcement: true,
+      enableChimeRuleMutations: process.env.ENABLE_CHIME_RULE_MUTATIONS === 'true',
+      embeddingBatchSize: Math.max(1, parseInt(process.env.EMBEDDING_BATCH_SIZE || '20', 10)),
+      embeddingFlushTimeoutMs: Math.max(1000, parseInt(process.env.EMBEDDING_FLUSH_TIMEOUT_MS || '60000', 10)),
+      enableEmbeddingBackfillScheduler: process.env.ENABLE_EMBEDDING_BACKFILL_SCHEDULER !== 'false',
+      embeddingBackfillIntervalMs: Math.max(15000, parseInt(process.env.EMBEDDING_BACKFILL_INTERVAL_MS || '300000', 10)),
+      embeddingBackfillBatchSize: Math.max(1, parseInt(process.env.EMBEDDING_BACKFILL_BATCH_SIZE || '100', 10)),
+      recentInsightsContextLimit: Math.max(1, parseInt(process.env.AI_RECENT_INSIGHTS_CONTEXT_LIMIT || '6', 10)),
+      continuationMinConfidence: Math.min(
+        1,
+        Math.max(0, parseFloat(process.env.CONTINUATION_MIN_CONFIDENCE || '0.6')),
+      ),
+    }
+
+    const checks = {
+      chimeMutationsLocked: !settings.enableChimeRuleMutations,
+      backfillSchedulerEnabled: settings.enableEmbeddingBackfillScheduler,
+      aiLightEnforcementExpected: settings.aiLightBackendEnforcement,
+      embeddingBacklogManageable: deferredCount < 5000,
+      deferredReadyToRequeue: dueNowCount > 0,
+    }
+
+    const violations: string[] = []
+    if (!checks.chimeMutationsLocked) {
+      violations.push('ENABLE_CHIME_RULE_MUTATIONS is true; participant-facing rule mutation API is unlocked.')
+    }
+    if (!checks.backfillSchedulerEnabled) {
+      violations.push('Deferred embedding backfill scheduler is disabled.')
+    }
+    if (!checks.embeddingBacklogManageable) {
+      violations.push('Deferred embedding backlog is high (>= 5000 sampled rows).')
+    }
+
+    const ready = violations.length === 0
+
+    res.json({
+      ready,
+      timestamp: new Date().toISOString(),
+      settings,
+      checks,
+      violations,
+      teams: {
+        total: teams.length,
+        aiOn: teams.filter((team) => team.isChimeEnabled).length,
+        aiLight: teams.filter((team) => !team.isChimeEnabled).length,
+      },
+      embeddingDeferred: {
+        deferredCount,
+        dueNowCount,
+        nextRetryAt: nextRetryAtMs ? new Date(nextRetryAtMs).toISOString() : null,
+      },
+    })
+  } catch (error) {
+    console.error('[StudyPreflight] Failed:', error)
+    res.status(500).json({ error: 'Failed to compute study preflight status' })
+  }
+})
+
 // Debug RAG endpoint
 app.post('/api/debug/rag-search', async (req, res) => {
   const { query, teamId, topK = 5, minScore = 0.7 } = req.body;
@@ -257,11 +437,15 @@ server.listen(PORT, async () => {
   } catch (error) {
     console.error('❌ Embedding worker failed to start:', error)
   }
+
+  // Start deferred embedding backfill scheduler
+  startEmbeddingBackfillScheduler()
 })
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...')
+  stopEmbeddingBackfillScheduler()
   if (embeddingWorker) {
     await shutdownEmbeddingWorker(embeddingWorker)
   }

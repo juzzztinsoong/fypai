@@ -149,6 +149,7 @@ export const ChatWindow = () => {
   const currentTeam = useEntityStore((state) => 
     currentTeamId ? state.getTeam(currentTeamId) : null
   )
+  const isAiLightCondition = Boolean(currentTeam && !currentTeam.isChimeEnabled)
 
   const continuationStatus = useSessionStore((state) =>
     currentTeamId ? state.presence.aiContinuation[currentTeamId] || null : null
@@ -362,6 +363,11 @@ export const ChatWindow = () => {
     const slashInsightCommand = invokingMessage ? parseSlashInsightCommand(invokingMessage) : null
 
     if (slashInsightCommand) {
+      if (isAiLightCondition) {
+        setComposerError('This condition supports explicit @agent chat only. Insight commands are disabled.')
+        return
+      }
+
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current)
         debounceTimeoutRef.current = null
@@ -385,6 +391,11 @@ export const ChatWindow = () => {
     }
 
     if (selectedDeterministicKind) {
+      if (isAiLightCondition) {
+        setComposerError('This condition supports explicit @agent chat only. Deterministic insight generation is disabled.')
+        return
+      }
+
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current)
         debounceTimeoutRef.current = null
@@ -513,6 +524,16 @@ export const ChatWindow = () => {
           source: 'frontend-fallback',
         }
       }
+    }
+
+    if (isAiLightCondition && routeDecision.mode === 'research') {
+      routeDecision = {
+        mode: 'ask',
+        confidence: routeDecision.confidence,
+        rationale: 'AI-light condition enforces explicit @agent chat only; research route was downgraded to ask.',
+        source: routeDecision.source,
+      }
+      effectiveMode = 'ask'
     }
 
     // Phase 2.3: Clear all timers and stop typing
@@ -698,6 +719,18 @@ export const ChatWindow = () => {
   }
 
   const inferredMode = inferComposerMode(newMessage)
+  const allowedComposerSegments = isAiLightCondition
+    ? COMPOSER_SEGMENTS.filter((item) => item.key === 'auto' || item.key === 'ask')
+    : COMPOSER_SEGMENTS
+
+  useEffect(() => {
+    if (!isAiLightCondition) return
+
+    if (composerOverrideMode === 'research' || composerOverrideMode === 'summary' || composerOverrideMode === 'action' || composerOverrideMode === 'suggestion') {
+      setComposerOverrideMode('auto')
+    }
+  }, [isAiLightCondition, composerOverrideMode])
+
   const effectiveMode: ComposerMode =
     composerOverrideMode === 'auto'
       ? inferredMode
@@ -785,7 +818,7 @@ export const ChatWindow = () => {
         <div className="mb-2 space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <SegmentedControl
-              items={COMPOSER_SEGMENTS}
+              items={allowedComposerSegments}
               activeKey={composerOverrideMode}
               onChange={setComposerOverrideMode}
             />
@@ -804,10 +837,10 @@ export const ChatWindow = () => {
                     type="button"
                     onClick={() => focusDraftContextSource(context)}
                     className="inline-flex items-center gap-1 px-2 py-0.5 transition hover:bg-indigo-100"
-                    title={`Jump to ${context.sourceLabel}`}
+                    title={`Open ${context.sourceLabel}`}
                   >
                     <span className="max-w-[13rem] truncate text-left">{context.sourceLabel}</span>
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">Jump</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">View</span>
                   </button>
                   <button
                     type="button"

@@ -10,7 +10,7 @@
  * What it does:
  *   1. Wipes all database tables (cascade-safe order)
  *   2. Clears Pinecone vector index
- *   3. Seeds users, teams, memberships, messages, insights, chime rules
+ *   3. Seeds users, teams, memberships, messages, insights
  *   4. Prints a summary of the final database state
  * 
  * Design decisions:
@@ -22,7 +22,6 @@
  */
 
 import { prisma } from './db.js';
-import { RuleSeederService } from './services/ruleSeederService.js';
 import { pineconeService } from './services/pineconeService.js';
 
 // ─── Timestamp Helpers ──────────────────────────────────────
@@ -148,22 +147,7 @@ async function main() {
   console.log(`   ✅ ${memberships.length} memberships`);
 
   // ═══════════════════════════════════════════════════════════
-  // 4. CHIME RULES (via RuleSeederService for all teams)
-  // ═══════════════════════════════════════════════════════════
-  console.log('\n📋 Seeding chime rules...');
-  const nonStudyTeams = await prisma.team.findMany({
-    where: { id: { not: { startsWith: 'study-team-' } } },
-    select: { id: true },
-  });
-  let seededRuleTeams = 0;
-  for (const team of nonStudyTeams) {
-    await RuleSeederService.seedTeamRules(team.id);
-    seededRuleTeams += 1;
-  }
-  console.log(`   ✅ ${seededRuleTeams} teams seeded with rules (study teams excluded)`);
-
-  // ═══════════════════════════════════════════════════════════
-  // 5. MESSAGES
+  // 4. MESSAGES
   //    Create a minimal 'agent' user row for the FK constraint,
   //    then seed all team messages with agentMetadata on AI msgs.
   // ═══════════════════════════════════════════════════════════
