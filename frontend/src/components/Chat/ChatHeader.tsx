@@ -24,7 +24,7 @@ export const ChatHeader = () => {
 
   if (!currentTeam) {
     return (
-      <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white flex items-center z-10`}>
+      <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white flex items-center z-20 fypai-edge-shadow-bottom`}>
         <div className="w-full flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-gray-800 leading-6">No Team Selected</h1>
@@ -47,10 +47,48 @@ export const ChatHeader = () => {
   const totalMembers = currentTeam.members.length;
 
   return (
-    <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white flex items-center z-10`}>
-      <div className="w-full flex items-center justify-between">
+    <header className={`px-5 ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white flex items-center z-20 fypai-edge-shadow-bottom`}>
+      <div className="w-full">
         <div>
-          <h1 className="text-lg font-semibold text-gray-800 leading-6">{currentTeam.name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-gray-800 leading-6">{currentTeam.name}</h1>
+
+            {/* Active user avatars (left aligned) */}
+            <div className="flex shrink-0 items-center -space-x-2">
+              {onlineMembers.slice(0, 5).map((member) => {
+                if (member.userId === 'agent') {
+                  return (
+                    <div
+                      key={member.id}
+                      className="relative w-8 h-8 rounded-full bg-violet-700 flex items-center justify-center text-white text-xs font-semibold border-2 border-white"
+                      title={`${member.name} (online)`}
+                    >
+                      AI
+                      <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
+                    </div>
+                  );
+                }
+
+                const bgColor = getAvatarBackgroundColor(member.userId, currentTeam.members);
+                return (
+                  <div
+                    key={member.id}
+                    className={`relative w-8 h-8 rounded-full ${bgColor} flex items-center justify-center text-white text-xs font-semibold border-2 border-white`}
+                    title={`${member.name} (online)`}
+                  >
+                    {getUserInitials(member.name)}
+                    <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
+                  </div>
+                );
+              })}
+              {onlineCount > 5 && (
+                <div className="relative w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-semibold border-2 border-white">
+                  +{onlineCount - 5}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center space-x-4 mt-0.5">
             <div className="flex items-center space-x-1.5 text-xs text-gray-600">
               <svg
@@ -73,43 +111,6 @@ export const ChatHeader = () => {
               </span>
             </div>
           </div>
-        </div>
-        
-        {/* Optional: Show online member avatars */}
-        <div className="flex items-center -space-x-2 ml-3">
-          {onlineMembers.slice(0, 5).map((member) => {
-            // Special styling for AI agent
-            if (member.userId === 'agent') {
-              return (
-                <div
-                  key={member.id}
-                  className="relative w-8 h-8 rounded-full bg-violet-700 flex items-center justify-center text-white text-xs font-semibold border-2 border-white"
-                  title={`${member.name} (online)`}
-                >
-                  AI
-                  <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
-                </div>
-              );
-            }
-            
-            // Regular user avatars with consistent colors
-            const bgColor = getAvatarBackgroundColor(member.userId, currentTeam.members);
-            return (
-              <div
-                key={member.id}
-                className={`relative w-8 h-8 rounded-full ${bgColor} flex items-center justify-center text-white text-xs font-semibold border-2 border-white`}
-                title={`${member.name} (online)`}
-              >
-                {getUserInitials(member.name)}
-                <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
-              </div>
-            );
-          })}
-          {onlineCount > 5 && (
-            <div className="relative w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-semibold border-2 border-white">
-              +{onlineCount - 5}
-            </div>
-          )}
         </div>
       </div>
     </header>

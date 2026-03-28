@@ -48,7 +48,7 @@ export const RightPanelHeader = ({
   return (
     <div
       ref={headerRef}
-      className={`relative ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white z-10`}
+      className={`relative ${uiTokens.layout.railHeader} border-b border-slate-200 bg-white z-20 fypai-edge-shadow-bottom`}
     >
       <div className="h-full px-5 flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">

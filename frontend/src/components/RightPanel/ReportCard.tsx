@@ -6,6 +6,7 @@
 
 import type { AIInsightDTO } from '../../types';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { InsightFrame } from './InsightFrame';
 import { getElevationClass } from '@/styles/uiTokens';
 import { sanitizeInsightContent } from '@/utils/insightContent';
@@ -22,6 +23,7 @@ export const ReportCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Repo
   const content = (
     <div className="prose prose-sm max-w-none text-emerald-950/90">
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => <h1 className="text-xl font-bold text-emerald-950 mt-4 mb-2 border-b border-emerald-300 pb-1">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-bold text-emerald-900 mt-4 mb-2">{children}</h2>,
@@ -34,6 +36,16 @@ export const ReportCard = ({ insight, onJumpToSource, onJumpToChatMarker }: Repo
           em: ({ children }) => <em className="italic text-emerald-900/80">{children}</em>,
           code: ({ children }) => <code className="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
           hr: () => <hr className="my-4 border-emerald-200" />,
+          table: ({ children }) => (
+            <div className="my-3 overflow-x-auto rounded-md border border-emerald-200">
+              <table className="min-w-full border-collapse text-xs">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-emerald-50">{children}</thead>,
+          tbody: ({ children }) => <tbody className="divide-y divide-emerald-100">{children}</tbody>,
+          tr: ({ children }) => <tr className="align-top">{children}</tr>,
+          th: ({ children }) => <th className="border-b border-emerald-200 px-2.5 py-1.5 text-left font-semibold text-emerald-900">{children}</th>,
+          td: ({ children }) => <td className="px-2.5 py-1.5 text-emerald-950/90">{children}</td>,
         }}
       >
         {displayContent}

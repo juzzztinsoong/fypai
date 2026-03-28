@@ -13,6 +13,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { getTaskContext, updateTaskContext } from '@/services/teamService';
 import { trackSessionEvent } from '@/services/analyticsService';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getElevationClass } from '@/styles/uiTokens';
 
 interface TaskContextCardProps {
@@ -242,7 +243,23 @@ export const TaskContextCard = ({ teamId, mode = 'collapsible', openInEditToken 
         ) : content ? (
           <div>
             <div className={`prose prose-sm max-w-none ${isEmbedded ? 'text-slate-700 max-h-56' : 'text-gray-700 max-h-40'} overflow-y-auto`}>
-              <ReactMarkdown>{content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  table: ({ children }) => (
+                    <div className="my-3 overflow-x-auto rounded-md border border-slate-200">
+                      <table className="min-w-full border-collapse text-xs">{children}</table>
+                    </div>
+                  ),
+                  thead: ({ children }) => <thead className="bg-slate-50">{children}</thead>,
+                  tbody: ({ children }) => <tbody className="divide-y divide-slate-200">{children}</tbody>,
+                  tr: ({ children }) => <tr className="align-top">{children}</tr>,
+                  th: ({ children }) => <th className="border-b border-slate-200 px-2.5 py-1.5 text-left font-semibold text-slate-700">{children}</th>,
+                  td: ({ children }) => <td className="px-2.5 py-1.5 text-slate-700">{children}</td>,
+                }}
+              >
+                {content}
+              </ReactMarkdown>
             </div>
             {updatedAt && (
               <p className={metaTextClassName}>

@@ -20,7 +20,7 @@ import { getInsights } from '@/services/insightService';
 import { getTaskContext, setTeamAIEnabled } from '@/services/teamService';
 import { trackSessionEvent } from '@/services/analyticsService';
 import { SegmentedControl, type SegmentedControlItem } from '@/components/common/SegmentedControl';
-import { getSwitchThumbClass, getSwitchTrackClass, type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
+import { type SegmentedAccent, uiTokens } from '@/styles/uiTokens';
 
 type ContentFilter = 'all' | 'summaries' | 'research' | 'actions' | 'suggestions';
 
@@ -114,6 +114,17 @@ export const RightPanel = () => {
     };
   }, [currentTeamId]);
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('fypai:archived-visibility-changed', {
+        detail: {
+          teamId: currentTeamId,
+          visible: showArchivedInsights,
+        },
+      })
+    );
+  }, [currentTeamId, showArchivedInsights]);
+
   const hasProjectContext = Boolean(storedTaskContext?.content?.trim());
   const projectContextPreview = useMemo(() => {
     const content = storedTaskContext?.content?.trim();
@@ -159,26 +170,6 @@ export const RightPanel = () => {
     [insights]
   );
 
-  const archivedSummaryInsights = useMemo(
-    () => archivedInsights.filter(i => i.type === 'summary'),
-    [archivedInsights]
-  );
-
-  const archivedResearchInsights = useMemo(
-    () => archivedInsights.filter(i => i.type === 'document'),
-    [archivedInsights]
-  );
-
-  const archivedActionInsights = useMemo(
-    () => archivedInsights.filter(i => i.type === 'action'),
-    [archivedInsights]
-  );
-
-  const archivedSuggestionInsights = useMemo(
-    () => archivedInsights.filter(i => i.type === 'suggestion'),
-    [archivedInsights]
-  );
-
   const archivedCount = archivedInsights.length;
 
   const summaryInsights = useMemo(
@@ -196,19 +187,45 @@ export const RightPanel = () => {
     [activeInsights]
   );
 
+  const visibleAllInsights = useMemo(
+    () => (showArchivedInsights ? insights : activeInsights),
+    [insights, activeInsights, showArchivedInsights]
+  );
+
+  const visibleSummaryInsights = useMemo(
+    () => (showArchivedInsights ? insights.filter(i => i.type === 'summary') : summaryInsights),
+    [insights, summaryInsights, showArchivedInsights]
+  );
+
+  const visibleResearchInsights = useMemo(
+    () => (showArchivedInsights ? insights.filter(i => i.type === 'document') : researchInsights),
+    [insights, researchInsights, showArchivedInsights]
+  );
+
+  const visibleActionInsights = useMemo(
+    () =>
+      showArchivedInsights
+        ? insights.filter(i => i.type === 'action')
+        : actionInsights,
+    [insights, actionInsights, showArchivedInsights]
+  );
+
+  const visibleSuggestionInsights = useMemo(
+    () =>
+      showArchivedInsights
+        ? insights.filter(i => i.type === 'suggestion')
+        : activeInsights.filter(i => i.type === 'suggestion'),
+    [insights, activeInsights, showArchivedInsights]
+  );
+
   const openActions = useMemo(
-    () => actionInsights.filter(i => !i.completedAt),
-    [actionInsights]
+    () => visibleActionInsights.filter(i => !i.completedAt),
+    [visibleActionInsights]
   );
 
   const completedActions = useMemo(
-    () => actionInsights.filter(i => !!i.completedAt),
-    [actionInsights]
-  );
-
-  const suggestionInsights = useMemo(
-    () => activeInsights.filter(i => i.type === 'suggestion'),
-    [activeInsights]
+    () => visibleActionInsights.filter(i => !!i.completedAt),
+    [visibleActionInsights]
   );
 
   // Bottom anchor on team switch
@@ -245,23 +262,20 @@ export const RightPanel = () => {
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [
     contentFilter,
-    summaryInsights.length,
-    researchInsights.length,
-    actionInsights.length,
-    suggestionInsights.length,
-    archivedSummaryInsights.length,
-    archivedResearchInsights.length,
-    archivedActionInsights.length,
-    archivedSuggestionInsights.length,
+    visibleAllInsights.length,
+    visibleSummaryInsights.length,
+    visibleResearchInsights.length,
+    visibleActionInsights.length,
+    visibleSuggestionInsights.length,
     showArchivedInsights,
     showCompletedActions,
   ]);
 
-  const allCount = activeInsights.length;
-  const summaryCount = summaryInsights.length;
-  const researchCount = researchInsights.length;
-  const actionCount = actionInsights.length;
-  const suggestionCount = suggestionInsights.length;
+  const allCount = visibleAllInsights.length;
+  const summaryCount = visibleSummaryInsights.length;
+  const researchCount = visibleResearchInsights.length;
+  const actionCount = visibleActionInsights.length;
+  const suggestionCount = visibleSuggestionInsights.length;
   const bottomTabItems = useMemo<SegmentedControlItem<ContentFilter>[]>(() => {
     return TABS.map((tab) => {
       const count =
@@ -390,9 +404,9 @@ export const RightPanel = () => {
       if (!insightElement) return;
 
       insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      insightElement.classList.add('fypai-link-highlight');
+      insightElement.classList.add('fypai-link-highlight-panel');
       setTimeout(() => {
-        insightElement.classList.remove('fypai-link-highlight');
+        insightElement.classList.remove('fypai-link-highlight-panel');
       }, 1800);
     }, 120);
   };
@@ -414,9 +428,9 @@ export const RightPanel = () => {
       if (distanceFromCenter > CHAT_TO_PANEL_CENTER_SNAP_TOLERANCE_PX) {
         insightElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
-      insightElement.classList.add('fypai-link-highlight');
+      insightElement.classList.add('fypai-link-highlight-panel');
       setTimeout(() => {
-        insightElement.classList.remove('fypai-link-highlight');
+        insightElement.classList.remove('fypai-link-highlight-panel');
       }, 1800);
     }, CHAT_TO_PANEL_FOCUS_DELAY_MS);
   };
@@ -561,7 +575,7 @@ export const RightPanel = () => {
   // Show empty state when no team selected (AFTER all hooks)
   if (!currentTeamId) {
     return (
-      <aside className="flex-1 min-w-0 h-screen bg-slate-50/35 flex flex-col">
+      <aside className="relative flex-1 min-w-0 h-screen bg-white flex flex-col">
         <div className="p-6 flex-1">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">AI Insights</h2>
           <p className="text-gray-500">
@@ -573,7 +587,7 @@ export const RightPanel = () => {
   }
 
   return (
-    <aside className="flex-1 min-w-0 h-screen bg-slate-50/35 flex flex-col">
+    <aside className="relative flex-1 min-w-0 h-screen bg-white flex flex-col">
       {/* Fixed Header */}
       <div className="flex-shrink-0">
         <RightPanelHeader
@@ -592,66 +606,33 @@ export const RightPanel = () => {
       </div>
 
       {/* Scrollable Content Area */}
-      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-6 py-5 space-y-4">
+      <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-6 py-5 space-y-4 bg-white">
         {contentFilter === 'all' && (
           <section className="space-y-4">
-            {activeInsights.length > 0 ? (
-              <InsightsList insights={activeInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+            {visibleAllInsights.length > 0 ? (
+              <InsightsList insights={visibleAllInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No AI content yet</p>
-            )}
-
-            {showArchivedInsights && (
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Insights</h3>
-                {archivedInsights.length > 0 ? (
-                  <InsightsList insights={archivedInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
-                ) : (
-                  <p className="text-xs text-gray-500">No archived insights</p>
-                )}
-              </div>
             )}
           </section>
         )}
 
         {contentFilter === 'summaries' && (
           <section className="space-y-4">
-            {summaryInsights.length > 0 ? (
-              <InsightsList insights={summaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+            {visibleSummaryInsights.length > 0 ? (
+              <InsightsList insights={visibleSummaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No summary yet</p>
-            )}
-
-            {showArchivedInsights && (
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Summaries</h3>
-                {archivedSummaryInsights.length > 0 ? (
-                  <InsightsList insights={archivedSummaryInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
-                ) : (
-                  <p className="text-xs text-gray-500">No archived summaries</p>
-                )}
-              </div>
             )}
           </section>
         )}
 
         {contentFilter === 'research' && (
           <section className="space-y-4">
-            {researchInsights.length > 0 ? (
-              <InsightsList insights={researchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+            {visibleResearchInsights.length > 0 ? (
+              <InsightsList insights={visibleResearchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No research yet</p>
-            )}
-
-            {showArchivedInsights && (
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Research</h3>
-                {archivedResearchInsights.length > 0 ? (
-                  <InsightsList insights={archivedResearchInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
-                ) : (
-                  <p className="text-xs text-gray-500">No archived research</p>
-                )}
-              </div>
             )}
           </section>
         )}
@@ -681,51 +662,22 @@ export const RightPanel = () => {
                 )}
               </div>
             )}
-
-            {showArchivedInsights && (
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Actions</h3>
-                {archivedActionInsights.length > 0 ? (
-                  <InsightsList insights={archivedActionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
-                ) : (
-                  <p className="text-xs text-gray-500">No archived actions</p>
-                )}
-              </div>
-            )}
           </section>
         )}
 
         {contentFilter === 'suggestions' && (
           <section className="space-y-4">
-            {suggestionInsights.length > 0 ? (
-              <InsightsList insights={suggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
+            {visibleSuggestionInsights.length > 0 ? (
+              <InsightsList insights={visibleSuggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
             ) : (
               <p className="text-xs text-gray-500">No help insights yet</p>
             )}
-
-            {showArchivedInsights && (
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Archived Help</h3>
-                {archivedSuggestionInsights.length > 0 ? (
-                  <InsightsList insights={archivedSuggestionInsights} onJumpToSource={handleJumpToSource} onJumpToChatMarker={handleJumpToChatMarker} />
-                ) : (
-                  <p className="text-xs text-gray-500">No archived help</p>
-                )}
-              </div>
-            )}
           </section>
-        )}
-
-        {activeInsights.length === 0 && (
-          <div className="text-center py-10 text-gray-500">
-            <p className="text-sm font-medium">No active AI content yet</p>
-            <p className="text-xs text-gray-400 mt-1">Insights will appear as the conversation progresses</p>
-          </div>
         )}
       </div>
 
       <div
-        className={`relative flex-shrink-0 ${uiTokens.layout.railFooter} bg-white border-t border-slate-200 shadow-[0_-10px_20px_-18px_rgba(15,23,42,0.35)]`}
+        className={`fypai-edge-shadow-top relative z-20 flex-shrink-0 ${uiTokens.layout.railFooter} bg-[#ffffff] border-t border-slate-200`}
         style={{
           height: 'var(--fypai-chat-footer-height, 136px)',
           minHeight: 'var(--fypai-chat-footer-height, 136px)',
@@ -743,21 +695,25 @@ export const RightPanel = () => {
             />
           </div>
 
-          <div className="shrink-0 inline-flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-600 whitespace-nowrap">
-              Archived ({archivedCount})
-            </span>
+          <div className="shrink-0">
             <button
               onClick={() => setShowArchivedInsights((prev) => !prev)}
-              className={`${uiTokens.controls.switch.base} ${getSwitchTrackClass(showArchivedInsights)}`}
-              role="switch"
-              aria-checked={showArchivedInsights}
-              aria-label="Toggle archived insights visibility"
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors sm:px-2.5 sm:text-xs ${
+                showArchivedInsights
+                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+              aria-pressed={showArchivedInsights}
+              aria-label={showArchivedInsights ? 'Hide archived insights' : 'Show archived insights'}
               title={showArchivedInsights ? 'Hide archived insights' : 'Show archived insights'}
             >
               <span
-                className={`${uiTokens.controls.switch.thumbBase} ${getSwitchThumbClass(showArchivedInsights)}`}
+                className={`h-1.5 w-1.5 rounded-full ${showArchivedInsights ? 'bg-indigo-500' : 'bg-slate-400'}`}
+                aria-hidden="true"
               />
+              <span className="sm:hidden" aria-hidden="true">📦</span>
+              <span className="hidden sm:inline">Archived</span>
+              <span className="tabular-nums">({archivedCount})</span>
             </button>
           </div>
         </div>

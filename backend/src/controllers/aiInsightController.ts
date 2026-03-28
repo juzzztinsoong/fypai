@@ -74,6 +74,26 @@ export class AIInsightController {
     'decision made',
   ]);
 
+  private static getInsightMaxTokens(type: 'summary' | 'document' | 'action' | 'suggestion'): number {
+    const defaultValueByType: Record<'summary' | 'document' | 'action' | 'suggestion', number> = {
+      summary: 1200,
+      document: 1400,
+      action: 700,
+      suggestion: 700,
+    };
+
+    const envKeyByType: Record<'summary' | 'document' | 'action' | 'suggestion', string> = {
+      summary: 'AI_SUMMARY_MAX_TOKENS',
+      document: 'AI_REPORT_MAX_TOKENS',
+      action: 'AI_ACTION_MAX_TOKENS',
+      suggestion: 'AI_SUGGESTION_MAX_TOKENS',
+    };
+
+    const raw = parseInt(process.env[envKeyByType[type]] || `${defaultValueByType[type]}`, 10);
+    if (Number.isNaN(raw)) return defaultValueByType[type];
+    return Math.max(240, raw);
+  }
+
   private static sanitizeTitleCandidate(raw: string): string {
     return raw
       .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
@@ -505,10 +525,7 @@ export class AIInsightController {
     const markerMessage = await MessageController.createMessage({
       teamId,
       authorId: 'agent',
-      content:
-        markerSnippet.length > 0
-          ? `${markerVerb}: ${insight.title}\n\n${markerSnippet}`
-          : `${markerVerb}: ${insight.title}`,
+      content: `${markerVerb}: ${insight.title}`,
       contentType: 'text',
       metadata: {
         markerType: insight.type === 'action' ? 'action-insight-link' : 'insight-link',
@@ -930,7 +947,7 @@ export class AIInsightController {
           { role: 'user', content: 'Please provide a concise conversation summary focused on discussion highlights, decisions made, rationale, and open questions. Do not include action-item checklists.' },
         ],
         model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for summaries
-        maxTokens: 4096,
+        maxTokens: this.getInsightMaxTokens('summary'),
         temperature: 0.7,
       });
 
@@ -1026,7 +1043,7 @@ export class AIInsightController {
           ...conversationHistory,
           { role: 'user', content: reportPrompt },
         ],
-        maxTokens: 4096,
+        maxTokens: this.getInsightMaxTokens('document'),
         temperature: 0.7,
       });
 
@@ -1126,7 +1143,7 @@ Rules:
           { role: 'user', content: actionPrompt },
         ],
         model: process.env.LLM_MODEL_TIER_2,
-        maxTokens: 1400,
+        maxTokens: this.getInsightMaxTokens('action'),
         temperature: 0.35,
       });
 
@@ -1226,7 +1243,7 @@ Rules:
           { role: 'user', content: suggestionPrompt },
         ],
         model: process.env.LLM_MODEL_TIER_2,
-        maxTokens: 1400,
+        maxTokens: this.getInsightMaxTokens('suggestion'),
         temperature: 0.45,
       });
 

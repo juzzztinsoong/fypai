@@ -6,6 +6,7 @@ export interface StudyTeamTemplate {
   id: string
   name: string
   participantCount: number
+  participantIds?: string[]
   scenarioVariant: 'A' | 'B'
   runOrder: StudyRunOrder
   taskContext: string
@@ -103,6 +104,65 @@ const SHARED_PROFILES: Record<StudyCondition, ConditionProfile> = {
 }
 
 export const STUDY_SEED_TEMPLATES: Record<string, StudySeedTemplate> = {
+  'cohort-3-solo3-team2': {
+    id: 'cohort-3-solo3-team2',
+    title: '3 participants, 3 solo chats + 2 team chats',
+    description:
+      'Primary study seed for onboarding-first flow: three participant solo chats, one shared AI-on team chat, and one shared AI-light team chat.',
+    teams: [
+      {
+        id: 'study-team-01',
+        name: 'Solo - Participant 1',
+        participantCount: 1,
+        participantIds: ['study-user-01'],
+        scenarioVariant: 'A',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.A,
+      },
+      {
+        id: 'study-team-02',
+        name: 'Solo - Participant 2',
+        participantCount: 1,
+        participantIds: ['study-user-02'],
+        scenarioVariant: 'A',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.A,
+      },
+      {
+        id: 'study-team-03',
+        name: 'Solo - Participant 3',
+        participantCount: 1,
+        participantIds: ['study-user-03'],
+        scenarioVariant: 'A',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.A,
+      },
+      {
+        id: 'study-team-04',
+        name: 'Team - AI On',
+        participantCount: 3,
+        participantIds: ['study-user-01', 'study-user-02', 'study-user-03'],
+        scenarioVariant: 'B',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.B,
+      },
+      {
+        id: 'study-team-05',
+        name: 'Team - AI Light',
+        participantCount: 3,
+        participantIds: ['study-user-01', 'study-user-02', 'study-user-03'],
+        scenarioVariant: 'B',
+        runOrder: 'BA',
+        taskContext: SOFTWARE_CONTEXTS.B,
+      },
+    ],
+    profiles: SHARED_PROFILES,
+    instructions: [
+      'Run onboarding in each solo chat first, then continue in the two shared team chats.',
+      'Use Team - AI On for full-support condition and Team - AI Light for reduced-side-output condition.',
+      'Collect Full JSON, Timeline JSON, and Metrics CSV after each condition.',
+    ],
+  },
   'trio-abba-6': {
     id: 'trio-abba-6',
     title: '6 teams, 3 participants each, AB/BA counterbalance',
@@ -201,7 +261,7 @@ export const STUDY_SEED_TEMPLATES: Record<string, StudySeedTemplate> = {
   },
 }
 
-export const DEFAULT_STUDY_TEMPLATE_ID = 'trio-abba-6'
+export const DEFAULT_STUDY_TEMPLATE_ID = 'cohort-3-solo3-team2'
 
 export function getRunOneCondition(order: StudyRunOrder): StudyCondition {
   return order === 'AB' ? 'AI_ON' : 'AI_LIGHT'

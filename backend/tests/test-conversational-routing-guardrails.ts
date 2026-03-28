@@ -75,6 +75,13 @@ async function run(): Promise<void> {
     assertEqual(mode.mode, 'ask', 'Code request classification defaults to ask mode')
   }
 
+  // 7) Conversational @agent help should stay chat, not explicit insight command
+  {
+    const route = await IntentController.decideAgentRoute('@agent help me out')
+    assertEqual(route.channel, 'chat_message', 'Conversational @agent help remains chat')
+    assert(!route.explicit, 'Conversational @agent help is not treated as explicit insight command')
+  }
+
   console.log('\n=== Results ===')
   console.log(`Passed: ${passed}`)
   console.log(`Failed: ${failed}`)

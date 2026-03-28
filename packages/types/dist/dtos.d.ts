@@ -88,6 +88,9 @@ export interface MessageMetadata {
     routeRationale?: string;
     routeSource?: 'manual-override' | 'server-classifier' | 'frontend-fallback';
     routeOverrideUsed?: boolean;
+    requestedInsightType?: 'summary' | 'document' | 'action' | 'suggestion';
+    routeExecutionId?: string;
+    forceAgentReply?: boolean;
     routeArchetype?: AgentPromptArchetype;
     markerType?: 'insight-link' | 'action-insight-link' | 'system-link';
     linkedInsightId?: string;

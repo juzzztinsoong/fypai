@@ -256,7 +256,7 @@ export const Sidebar = () => {
 
   if (isLoading) {
     return (
-      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20 transition-all duration-200`}>
+      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_12px_-10px_rgba(15,23,42,0.14)] flex flex-col fixed overflow-y-auto z-10 transition-all duration-200`}>
         <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 border-b border-slate-100`}>
           <div className="flex items-center justify-between gap-2">
             {!sidebarCollapsed && <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>}
@@ -279,7 +279,7 @@ export const Sidebar = () => {
 
   if (error) {
     return (
-      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20 transition-all duration-200`}>
+      <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_12px_-10px_rgba(15,23,42,0.14)] flex flex-col fixed overflow-y-auto z-10 transition-all duration-200`}>
         <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 border-b border-slate-100`}>
           <div className="flex items-center justify-between gap-2">
             {!sidebarCollapsed && <h2 className="text-lg font-semibold text-gray-800 leading-6">Teams</h2>}
@@ -301,7 +301,7 @@ export const Sidebar = () => {
   }
 
   return (
-    <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_18px_-16px_rgba(15,23,42,0.38)] flex flex-col fixed overflow-y-auto z-20 transition-all duration-200`}>
+    <aside className={`${sidebarCollapsed ? 'w-16' : 'w-60'} h-screen bg-white border-r border-slate-200 shadow-[4px_0_12px_-10px_rgba(15,23,42,0.14)] flex flex-col fixed overflow-y-auto z-10 transition-all duration-200`}>
       {/* Teams Section */}
       <div className={`${sidebarCollapsed ? 'px-2' : 'px-5'} py-4 border-b border-slate-100`}>
         <div className="flex items-center justify-between gap-2">

@@ -145,7 +145,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated =
   return (
     <div className={`relative flex-shrink-0 bg-white ${integrated ? '' : 'border-t border-gray-200'}`}>
       {/* ── Always-visible row: AI toggle + expand ── */}
-      <div className={`${uiTokens.layout.railFooterRow} px-4 flex items-center ${integrated ? 'border-t border-gray-100' : ''}`}>
+      <div className={`px-4 py-2.5 flex items-center ${integrated ? 'border-t border-gray-100' : ''}`}>
         {/* Top row: Toggle + gear */}
         <div className="w-full flex items-center justify-between">
           <div className="flex items-start gap-2.5">
@@ -167,7 +167,7 @@ export const AIControlsDrawer = ({ teamId, isAIEnabled, onToggleAI, integrated =
               <div className="text-[11px] text-gray-500">
                 {isAIEnabled
                   ? 'Assistant chat and insight generation are available.'
-                  : 'Explicit @agent chat is available; autonomous generation is disabled.'}
+                  : 'Ask Assistant chat is available; insight generation is disabled.'}
               </div>
             </div>
           </div>

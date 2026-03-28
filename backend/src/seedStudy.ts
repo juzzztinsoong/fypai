@@ -32,14 +32,14 @@ interface TeamInstructionMessageInput {
   runOrder: 'AB' | 'BA'
   runOneCondition: StudyCondition
   runTwoCondition: StudyCondition
+  onboardingMode: 'solo' | 'team-ai-on' | 'team-ai-light'
 }
 
-interface OnboardingInsightSeed {
-  type: 'summary' | 'document' | 'action' | 'suggestion'
+interface SoloHelpInsightSeed {
+  type: 'suggestion'
   title: string
   content: string
-  markerLabel: string
-  priority: 'low' | 'medium' | 'high'
+  priority: 'low'
 }
 
 const DEV_ACCESS_USERS = [
@@ -48,58 +48,21 @@ const DEV_ACCESS_USERS = [
   { id: 'user3', name: 'Charlie', role: 'member' as const },
 ]
 
-const ONBOARDING_INSIGHTS: OnboardingInsightSeed[] = [
-  {
-    type: 'summary',
-    title: 'Demo: Conversation Snapshot',
-    content: [
-      '## Snapshot',
-      '- Use after a short discussion to confirm team alignment.',
-      '- If details look wrong, correct them in chat.',
-      '- Use **View marker in chat** to check source context.',
-    ].join('\n'),
-    markerLabel: 'Summary',
-    priority: 'medium',
-  },
-  {
-    type: 'document',
-    title: 'Demo: Research',
-    content: [
-      '## Compare Options',
-      '- Use when choices need evidence or trade-offs.',
-      '- Pull only useful points into decisions and actions.',
-      '- Verify assumptions in chat before committing.',
-    ].join('\n'),
-    markerLabel: 'Research',
-    priority: 'medium',
-  },
-  {
-    type: 'action',
-    title: 'Demo: Action Item',
-    content: [
-      '## Next Step',
-      '- **Owner**: assign one teammate',
-      '- **Task**: define one concrete step',
-      '- **Target date**: set a realistic deadline',
-      '',
-      'Lifecycle: accept or dismiss -> refine -> mark complete.',
-    ].join('\n'),
-    markerLabel: 'Action Item',
-    priority: 'high',
-  },
-  {
-    type: 'suggestion',
-    title: 'Demo: Help Card',
-    content: [
-      '## Unblock',
-      '- Use when discussion stalls or choices feel unclear.',
-      '- Ask for 2-3 practical options.',
-      '- Pick one next step and continue in chat.',
-    ].join('\n'),
-    markerLabel: 'Help',
-    priority: 'low',
-  },
-]
+const SOLO_HELP_INSIGHT: SoloHelpInsightSeed = {
+  type: 'suggestion',
+  title: 'Quick Start Help',
+  content: [
+    'If you are not sure where to begin:',
+    '- Use center chat to explore ideas and ask questions.',
+    '- Use Summary for a clear recap.',
+    '- Use Research to compare options.',
+    '- Use Actions to turn decisions into next steps.',
+    '- Use Help when you want guidance on what to do next.',
+    '',
+    'Pick one direction, then continue from there.',
+  ].join('\n'),
+  priority: 'low',
+}
 
 function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = {
@@ -212,72 +175,92 @@ async function cleanupExistingStudyData(): Promise<void> {
 
 function buildTeamInstructionMessage(input: TeamInstructionMessageInput): string {
   const lines: string[] = []
-  lines.push('# Team Workspace')
+
+  if (input.onboardingMode === 'solo') {
+    lines.push('Welcome, great to have you here.')
+    lines.push('')
+    lines.push('First step: go to the Edit Context board on the top right and set your goals.')
+    lines.push('')
+    lines.push('Quick orientation:')
+    lines.push('- Center chat is where you talk things through.')
+    lines.push('- Right panel is where generated outputs appear.')
+    lines.push('')
+    lines.push('Above the chat box, you can choose:')
+    lines.push('- Summary')
+    lines.push('- Research')
+    lines.push('- Actions')
+    lines.push('- Help')
+    lines.push('')
+    lines.push('You will see a companion marker on this message. Click it to open your quick-start help card.')
+    return lines.join('\n')
+  }
+
+  if (input.onboardingMode === 'team-ai-light') {
+    lines.push('Welcome team.')
+    lines.push('')
+    lines.push('This room uses a lighter support mode.')
+    lines.push('')
+    lines.push('Quick orientation:')
+    lines.push('- Center chat is for your discussion.')
+    lines.push('- Nothing will be produced in the right panel.')
+    return lines.join('\n')
+  }
+
+  lines.push('Welcome team.')
   lines.push('')
-  lines.push('Use this quick start to begin.')
+  lines.push('You already completed the solo intro, so this space is for working together.')
   lines.push('')
-  lines.push('## Start')
-  lines.push('1. (Optional) Open **Edit Context** and set goal, constraints, timeline, and success criteria.')
-  lines.push('2. Use center chat to align on direction and decisions.')
-  lines.push('3. Use composer modes or slash commands as needed: `/summary`, `/research`, `/actions`, `/help`.')
+  lines.push('Quick orientation:')
+  lines.push('- Center chat is for discussion and decisions.')
+  lines.push('- Right panel is where generated outputs appear.')
   lines.push('')
-  lines.push('## Workspace')
-  lines.push('- Insights are shown in the right panel.')
-  lines.push('- Marker links connect each insight back to source chat context.')
-  lines.push('')
-  lines.push('Begin with a short team intro in chat.')
+  lines.push('Above the chat box, choose as needed:')
+  lines.push('- Summary')
+  lines.push('- Research')
+  lines.push('- Actions')
+  lines.push('- Help')
 
   return lines.join('\n')
 }
 
-async function seedOnboardingInsightMarkers(teamId: string, templateId: string) {
-  for (const demo of ONBOARDING_INSIGHTS) {
-    const insight = await prisma.aIInsight.create({
-      data: {
-        teamId,
-        type: demo.type,
-        title: demo.title,
-        content: demo.content,
-        priority: demo.priority,
-        tags: JSON.stringify(['onboarding', 'demo', demo.type]),
-        metadata: JSON.stringify({
-          onboardingDemo: true,
-          seedTemplateId: templateId,
-          provenanceSource: 'seed-onboarding',
-          provenanceTrigger: 'seed-bootstrap',
-          provenanceCreatedBy: 'system',
-          provenanceDetail: 'study-template',
-        }),
-      },
-    })
-
-    await prisma.message.create({
-      data: {
-        teamId,
-        authorId: 'agent',
-        content: `📌 ${demo.markerLabel} available: ${demo.title}`,
-        contentType: 'text',
-        metadata: JSON.stringify({
-          markerType: demo.type === 'action' ? 'action-insight-link' : 'insight-link',
-          linkedInsightId: insight.id,
-          linkedActionId: demo.type === 'action' ? insight.id : undefined,
-          linkedInsightType: demo.type,
-          sourceActionTitle: insight.title,
-          markerLabel: demo.markerLabel,
-          onboardingDemo: true,
-          seedTemplateId: templateId,
-          markerSource: 'seed-onboarding',
-          markerTrigger: 'seed-bootstrap',
-          markerCreatedBy: 'system',
-          markerTriggerDetail: 'study-template',
-        }),
-      },
-    })
+function resolveParticipantIds(teamIndex: number, participantCount: number, configuredIds?: string[]): string[] {
+  if (Array.isArray(configuredIds) && configuredIds.length > 0) {
+    return configuredIds
   }
+
+  const participantIds: string[] = []
+  for (let memberIndex = 0; memberIndex < participantCount; memberIndex += 1) {
+    participantIds.push(
+      `study-user-${String(teamIndex + 1).padStart(2, '0')}-${String(memberIndex + 1).padStart(2, '0')}`
+    )
+  }
+  return participantIds
+}
+
+async function seedSoloHelpInsight(teamId: string, templateId: string) {
+  return prisma.aIInsight.create({
+    data: {
+      teamId,
+      type: SOLO_HELP_INSIGHT.type,
+      title: SOLO_HELP_INSIGHT.title,
+      content: SOLO_HELP_INSIGHT.content,
+      priority: SOLO_HELP_INSIGHT.priority,
+      tags: JSON.stringify(['onboarding', 'help', 'solo']),
+      metadata: JSON.stringify({
+        onboardingDemo: true,
+        seedTemplateId: templateId,
+        provenanceSource: 'seed-onboarding',
+        provenanceTrigger: 'seed-bootstrap',
+        provenanceCreatedBy: 'system',
+        provenanceDetail: 'solo-help-card',
+      }),
+    },
+  })
 }
 
 async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSummary[]> {
   const created: SeededTeamSummary[] = []
+  const createdParticipantIds = new Set<string>()
 
   for (let teamIndex = 0; teamIndex < template.teams.length; teamIndex += 1) {
     const teamTemplate = template.teams[teamIndex]
@@ -285,20 +268,32 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
     const runTwoCondition = getRunTwoCondition(teamTemplate.runOrder)
     const runOneProfile = template.profiles[runOneCondition]
 
-    const participantIds: string[] = []
-    for (let memberIndex = 0; memberIndex < teamTemplate.participantCount; memberIndex += 1) {
-      const participantId = `study-user-${String(teamIndex + 1).padStart(2, '0')}-${String(memberIndex + 1).padStart(2, '0')}`
-      participantIds.push(participantId)
+    const participantIds = resolveParticipantIds(teamIndex, teamTemplate.participantCount, teamTemplate.participantIds)
+
+    for (let memberIndex = 0; memberIndex < participantIds.length; memberIndex += 1) {
+      const participantId = participantIds[memberIndex]
+      if (createdParticipantIds.has(participantId)) continue
+      const participantLabel = participantId.replace('study-user-', '')
+      const participantEmailToken = participantLabel.replace(/-/g, '.')
 
       await prisma.user.create({
         data: {
           id: participantId,
-          name: `Study T${teamIndex + 1} Participant ${memberIndex + 1}`,
-          email: `study.t${teamIndex + 1}.p${memberIndex + 1}@fypai.local`,
-          role: memberIndex === 0 ? 'admin' : 'member',
+          name: `Study Participant ${participantLabel}`,
+          email: `study.${participantEmailToken}@fypai.local`,
+          role: createdParticipantIds.size === 0 ? 'admin' : 'member',
         },
       })
+
+      createdParticipantIds.add(participantId)
     }
+
+    const onboardingMode: TeamInstructionMessageInput['onboardingMode'] =
+      participantIds.length === 1
+        ? 'solo'
+        : runOneCondition === 'AI_LIGHT'
+        ? 'team-ai-light'
+        : 'team-ai-on'
 
     await prisma.team.create({
       data: {
@@ -345,6 +340,9 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
       },
     })
 
+    const soloHelpInsight =
+      onboardingMode === 'solo' ? await seedSoloHelpInsight(teamTemplate.id, template.id) : null
+
     await prisma.message.create({
       data: {
         teamId: teamTemplate.id,
@@ -354,6 +352,7 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
           runOrder: teamTemplate.runOrder,
           runOneCondition,
           runTwoCondition,
+          onboardingMode,
         }),
         contentType: 'text',
         metadata: JSON.stringify({
@@ -368,11 +367,16 @@ async function seedTemplate(template: StudySeedTemplate): Promise<SeededTeamSumm
           markerTrigger: 'seed-bootstrap',
           markerCreatedBy: 'system',
           markerTriggerDetail: 'participant-onboarding',
+          linkedInsightId: soloHelpInsight?.id,
+          linkedInsightType: soloHelpInsight ? 'suggestion' : undefined,
+          sourceActionTitle: soloHelpInsight?.title,
+          markerPreview: soloHelpInsight ? 'Quick start help for this chat.' : undefined,
+          markerCompanionText: soloHelpInsight
+            ? 'Click the companion marker to open your quick-start help card.'
+            : undefined,
         }),
       },
     })
-
-    await seedOnboardingInsightMarkers(teamTemplate.id, template.id)
 
     created.push({
       id: teamTemplate.id,
