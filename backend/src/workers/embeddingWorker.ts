@@ -17,7 +17,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection, defaultWorkerOptions, QUEUE_NAMES } from '../queues/queueConfig.js';
 import { EmbeddingJobData } from '../queues/embeddingQueue.js';
-import { embeddingService } from '../services/embeddingService.js';
+import { embeddingService, EmbeddingRateLimitError } from '../services/embeddingService.js';
 import { pineconeService } from '../services/pineconeService.js';
 import { prisma } from '../db.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,10 +26,11 @@ import { IntentClassifier, MessageClassification } from '../ai/core/intentClassi
 import { MessageDTO } from '@fypai/types';
 
 // Buffer configuration
-const BATCH_SIZE = 20;
-const FLUSH_TIMEOUT_MS = 60000; // 60 seconds
+const BATCH_SIZE = Math.max(1, parseInt(process.env.EMBEDDING_BATCH_SIZE || '20', 10));
+const FLUSH_TIMEOUT_MS = Math.max(1000, parseInt(process.env.EMBEDDING_FLUSH_TIMEOUT_MS || '60000', 10));
 const ASYNC_CHIME_MAX_AGE_MS = parseInt(process.env.ASYNC_CHIME_MAX_AGE_MS || '120000', 10); // 2 minutes default
 const CLASSIFICATION_CONCURRENCY = Math.max(1, parseInt(process.env.CLASSIFICATION_CONCURRENCY || '2', 10));
+let embeddingRateLimitUntilMs = 0;
 
 // Trivial content filter
 const TRIVIAL_WORDS = new Set([
@@ -56,6 +57,34 @@ interface BufferedJob {
   job: Job<EmbeddingJobData>;
   resolve: () => void;
   reject: (err: Error) => void;
+}
+
+async function markEmbeddingDeferred(messageId: string, retryAfterSeconds: number, reason: string): Promise<void> {
+  try {
+    const existing = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: { metadata: true },
+    });
+
+    if (!existing) return;
+
+    const parsed = existing.metadata ? JSON.parse(existing.metadata) : {};
+    parsed.embedding = {
+      ...(parsed.embedding || {}),
+      status: 'deferred_rate_limit',
+      reason,
+      retryAfterSeconds,
+      deferredAt: new Date().toISOString(),
+      deferredUntil: new Date(Date.now() + retryAfterSeconds * 1000).toISOString(),
+    };
+
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { metadata: JSON.stringify(parsed) },
+    });
+  } catch (error) {
+    console.warn(`[EmbeddingWorker] ⚠️ Failed to mark deferred metadata for ${messageId}:`, error);
+  }
 }
 
 const jobBuffer: BufferedJob[] = [];
@@ -100,6 +129,14 @@ async function flushBuffer() {
   }
 
   try {
+    if (Date.now() < embeddingRateLimitUntilMs) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((embeddingRateLimitUntilMs - Date.now()) / 1000));
+      await Promise.all(batch.map((item) => markEmbeddingDeferred(item.job.data.messageId, retryAfterSeconds, 'global-rate-limit-cooldown')));
+      batch.forEach((item) => item.resolve());
+      console.log(`[EmbeddingWorker] ⏳ Skipped batch due to active rate-limit cooldown (${retryAfterSeconds}s remaining)`);
+      return;
+    }
+
     const texts = batch.map(b => b.job.data.content);
     
     // Step 1: Generate batch embeddings
@@ -218,7 +255,20 @@ async function flushBuffer() {
 
   } catch (error) {
     console.error('[EmbeddingWorker] ❌ Batch generation failed:', error);
-    // Fail all jobs in this batch so they can be retried (individually or in next batch)
+
+    if (error instanceof EmbeddingRateLimitError) {
+      embeddingRateLimitUntilMs = Date.now() + error.retryAfterSeconds * 1000;
+      await Promise.all(
+        batch.map((item) => markEmbeddingDeferred(item.job.data.messageId, error.retryAfterSeconds, 'provider-rate-limit')),
+      );
+      batch.forEach((item) => item.resolve());
+      console.warn(
+        `[EmbeddingWorker] 🚦 Embedding provider rate-limited. Deferring batch for ${error.retryAfterSeconds}s without failing jobs.`,
+      );
+      return;
+    }
+
+    // Non-rate-limit failures still fail jobs for retries/dead-letter analysis.
     batch.forEach(b => b.reject(error as Error));
   }
 }

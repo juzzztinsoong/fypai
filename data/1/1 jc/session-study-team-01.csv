@@ -1,0 +1,191 @@
+messageId,messageCreatedAt,messageAuthorId,messageContent,agentModel,agentTier,agentTokensInput,agentTokensOutput,feedbackId,feedbackUserId,feedbackType,feedbackReason,feedbackComment,feedbackRuleId,feedbackRuleAction,feedbackCreatedAt
+aedb73ca-03de-4e4d-b3f0-8861f45bffd4,2026-03-18T18:51:01.845Z,agent,"# Team Workspace
+
+Use this quick start to begin.
+
+## Start
+1. (Optional) Open **Edit Context** and set goal, constraints, timeline, and success criteria.
+2. Use center chat to align on direction and decisions.
+3. Use composer modes or slash commands as needed: `/summary`, `/research`, `/actions`, `/help`.
+
+## Workspace
+- Insights are shown in the right panel.
+- Marker links connect each insight back to source chat context.
+
+Begin with a short team intro in chat.",,,,,,,,,,,,
+8277c3bf-e2c2-4aa0-a84b-c7825ab111d4,2026-03-18T18:51:01.851Z,agent,📌 Summary available: Demo: Conversation Snapshot,,,,,,,,,,,,
+a04982c0-1d35-4b23-a9b2-a81a37facba2,2026-03-18T18:51:01.857Z,agent,📌 Research available: Demo: Research,,,,,,,,,,,,
+811c4f33-9e32-4b84-ba70-a24510065b2d,2026-03-18T18:51:01.862Z,agent,📌 Action Item available: Demo: Action Item,,,,,,,,,,,,
+e8953c98-8d12-40e4-a045-cb032f2d610d,2026-03-18T18:51:01.869Z,agent,📌 Help available: Demo: Help Card,,,,,,,,,,,,
+438879ce-8ea7-4923-83e2-dd43d225fdfc,2026-03-19T09:19:23.275Z,study-user-01-01,help me study for network security,,,,,,,,,,,,
+2f2a6d4a-88a7-4fa0-a3d5-4925e7c8228d,2026-03-19T09:19:33.952Z,agent,"Got it! Let's focus on studying network security.  
+
+### Suggested Study Plan:
+1. **Core Topics to Review**:
+   - **Firewall and VPNs**: Understand how they protect networks.
+   - **Authentication and Access Control**: Learn about methods like MFA and role-based access control.
+   - **Network Protocols**: Focus on TCP/IP, HTTPS, DNS security.
+   - **Common Vulnerabilities**: Study threats like DDoS, phishing, and man-in-the-middle attacks.
+
+2. **Resources**:
+   - **Books**: ""Network Security Essentials"" by William Stallings.
+   - **Videos**: Free tutorials on YouTube or platforms like Cybrary.
+   - **Hands-on Practice**: Use tools like Wireshark for packet analysis or set up a virtual lab with Kali Linux.
+
+3. **Study Tips**:
+   - Break it into manageable sections (e.g., protocols today, firewalls tomorrow).
+   - Apply concepts practically through simulations or case studies.
+
+Would you like help finding specific resources or creating a timeline for these topics?",gpt-4o-2024-11-20,tier2,870,221,,,,,,,,
+fd0c6392-c0e4-467e-902a-d8ef5401e77e,2026-03-19T09:19:57.743Z,study-user-01-01,compile some research on bgp and its security issues/features,,,,,,,,,,,,
+03e866d4-3f68-4712-8882-aa69c4599bfb,2026-03-19T09:20:04.568Z,agent,"Generated research: Research Report: BGP and Its Security Issues/Features
+
+Research Report: BGP and Its Security Issues/Features Background and Assumptions Border Gateway Protocol (BGP) is the primary protocol used to exchange routing information betwe...",,,,,,,,,,,,
+246dfc04-83ae-4223-ab87-36f0a392d2e9,2026-03-19T09:20:07.815Z,agent,"Understood! Here's a concise research compilation on BGP and its security aspects:
+
+---
+
+### **Research on BGP and Security**
+**1. Overview of BGP**:
+   - **What is BGP?**: Border Gateway Protocol (BGP) is the backbone routing protocol of the internet, used to exchange routing information between autonomous systems (AS).
+   - **How it works**: BGP uses TCP to establish connections and exchange routing updates based on policies configured by network administrators.
+
+**2. Security Issues**:
+   - **Prefix Hijacking**: Malicious actors announce IP prefixes they do not own, redirecting traffic to their networks.
+   - **Route Leaks**: Incorrect routing announcements, often due to misconfigurations, can lead to traffic disruptions or inefficiencies.
+   - **Lack of Authentication**: BGP does not natively authenticate routing messages, making it susceptible to spoofing and man-in-the-middle attacks.
+   - **DDoS Amplification**: Attackers can exploit BGP to redirect large-scale traffic for distributed denial-of-service (DDoS) attacks.
+
+**3. Security Features/Improvements**:
+   - **RPKI (Resource Public Key Infrastructure)**: Provides cryptographic validation of route origins to prevent prefix hijacking.
+   - **BGP Monitoring Tools**: Platforms like BGPmon and RIPE Atlas help identify anomalies in routing updates.
+   - **Filtering and Best Practices**: Network operators can implement prefix filtering and strict policies to mitigate risks.
+   - **BGPsec**: An extension to BGP that provides message signing to ensure route authenticity.
+
+---
+
+Would you like deeper insights into a specific security mechanism or recommendations for practical tools?",gpt-4o-2024-11-20,tier2,1116,348,,,,,,,,
+9d540598-a70c-4e86-b802-397d9d34c292,2026-03-19T09:22:09.280Z,study-user-01-01,@agent help me do something quiz cards for this,,,,,,,,,,,,
+c36a810d-928b-4cf5-9e49-185d8661d108,2026-03-19T09:22:17.575Z,agent,"Sure! Here's a set of quiz cards based on the BGP research:
+
+---
+
+### **Quiz Cards: BGP and Its Security**
+
+**Flashcard 1**:  
+**Q**: What is the primary function of the Border Gateway Protocol (BGP)?  
+**A**: BGP is used to exchange routing information between different autonomous systems on the internet.
+
+**Flashcard 2**:  
+**Q**: What transport protocol does BGP use to establish connections?  
+**A**: BGP uses TCP for establishing connections.
+
+**Flashcard 3**:  
+**Q**: Name one major security issue associated with BGP.  
+**A**: Prefix hijacking, where malicious actors announce IP prefixes they do not own.
+
+**Flashcard 4**:  
+**Q**: What is RPKI and how does it enhance BGP security?  
+**A**: RPKI (Resource Public Key Infrastructure) provides cryptographic validation of route origins to prevent prefix hijacking.
+
+**Flashcard 5**:  
+**Q**: What is a ""route leak"" in the context of BGP?  
+**A**: A route leak occurs when incorrect routing announcements are made, often due to misconfigurations, leading to traffic disruptions.
+
+**Flashcard 6**:  
+**Q**: What does BGPsec aim to address?  
+**A**: BGPsec ensures route authenticity by signing BGP messages.
+
+**Flashcard 7**:  
+**Q**: Why is BGP vulnerable to man-in-the-middle attacks?  
+**A**: BGP lacks native authentication for its routing messages, making it susceptible to spoofing.
+
+**Flashcard 8**:  
+**Q**: Name a tool that helps monitor and detect anomalies in BGP routing.  
+**A**: BGPmon or RIPE Atlas.
+
+---
+
+Would you like these formatted for a specific flashcard tool (e.g., Quizlet, Anki), or do you need additional cards on specific subtopics?",gpt-4o-2024-11-20,tier2,1630,416,,,,,,,,
+1e0c67f7-cbfc-44b9-ab13-5f7e2d0cbf8b,2026-03-19T09:22:45.084Z,study-user-01-01,put it in my to study list,,,,,,,,,,,,
+3b2e72be-5eee-4e30-87ad-2cbf4dfb3fae,2026-03-19T09:23:02.662Z,study-user-01-01,put it in my to-study list,,,,,,,,,,,,
+7e890a48-286b-4437-9d85-495139362661,2026-03-19T09:23:33.752Z,study-user-01-01,@agent help me come up with a checklist of topics to revise,,,,,,,,,,,,
+30d457a4-f7c7-4c74-a6c7-79e62c2c885f,2026-03-19T09:23:42.177Z,agent,"Here’s a structured **Checklist of Topics to Revise** for BGP and its security:
+
+### **BGP Overview**
+- [ ] What is BGP and its role in the internet?
+- [ ] How BGP exchanges routing information between autonomous systems.
+- [ ] TCP as the transport protocol for BGP.
+
+### **Security Issues**
+- [ ] Understanding prefix hijacking and its consequences.
+- [ ] What are route leaks, and how do they occur?
+- [ ] Vulnerabilities due to the lack of authentication in BGP.
+- [ ] How BGP can be exploited for DDoS amplification.
+
+### **Security Features and Mitigations**
+- [ ] Resource Public Key Infrastructure (RPKI): Purpose and implementation.
+- [ ] BGPsec: How it enhances route authenticity.
+- [ ] Role of monitoring tools like BGPmon and RIPE Atlas.
+- [ ] Importance of filtering, strict policies, and best practices.
+
+### **Practical Tools**
+- [ ] Tools for monitoring BGP anomalies.
+- [ ] Simulating BGP attacks and defenses in a virtual lab environment.
+
+Would you like this checklist added to your study tracker, or do you need help prioritizing the topics?",gpt-4o-2024-11-20,tier2,2112,246,,,,,,,,
+291962e2-9ef3-4cc3-8ad4-a7bb51890011,2026-03-19T09:24:11.564Z,study-user-01-01,can you summarise all the information ive revised today,,,,,,,,,,,,
+ab51be1f-bd48-445c-8371-7301e7abeee6,2026-03-19T09:24:26.899Z,agent,"Here’s a summary of what you’ve revised today:
+
+---
+
+### **BGP Overview**
+- BGP is the protocol responsible for routing information exchange between autonomous systems on the internet.
+- It uses TCP as its transport protocol to establish connections.
+
+### **Key Security Issues**
+- **Prefix Hijacking**: Malicious actors announce IP prefixes they don't own, diverting traffic.
+- **Route Leaks**: Misconfigurations lead to incorrect routing announcements, causing disruptions.
+- **Lack of Authentication**: BGP doesn’t natively authenticate routing data, making it vulnerable to spoofing.
+- **DDoS Amplification**: Exploiting BGP to redirect or overwhelm traffic.
+
+### **Security Features**
+- **RPKI**: Cryptographically validates route origins to prevent hijacking.
+- **BGPsec**: Adds message signing to ensure route authenticity.
+- **Monitoring Tools**: Tools like BGPmon and RIPE Atlas help detect anomalies in routing.
+- **Best Practices**: Filtering, strict policies, and monitoring mitigate risks.
+
+### **Practical Study Tools**
+- Flashcards and quizzes were created to reinforce key concepts.
+- A structured checklist was developed to guide your revision systematically.
+
+---
+
+Let me know if you’d like help diving deeper into any specific topic!",gpt-4o-2024-11-20,tier2,2359,261,859f8303-ac37-4e80-80bd-135302e74308,study-user-01-01,positive,,,,,2026-03-19T09:24:40.926Z
+ab51be1f-bd48-445c-8371-7301e7abeee6,2026-03-19T09:24:26.899Z,agent,"Here’s a summary of what you’ve revised today:
+
+---
+
+### **BGP Overview**
+- BGP is the protocol responsible for routing information exchange between autonomous systems on the internet.
+- It uses TCP as its transport protocol to establish connections.
+
+### **Key Security Issues**
+- **Prefix Hijacking**: Malicious actors announce IP prefixes they don't own, diverting traffic.
+- **Route Leaks**: Misconfigurations lead to incorrect routing announcements, causing disruptions.
+- **Lack of Authentication**: BGP doesn’t natively authenticate routing data, making it vulnerable to spoofing.
+- **DDoS Amplification**: Exploiting BGP to redirect or overwhelm traffic.
+
+### **Security Features**
+- **RPKI**: Cryptographically validates route origins to prevent hijacking.
+- **BGPsec**: Adds message signing to ensure route authenticity.
+- **Monitoring Tools**: Tools like BGPmon and RIPE Atlas help detect anomalies in routing.
+- **Best Practices**: Filtering, strict policies, and monitoring mitigate risks.
+
+### **Practical Study Tools**
+- Flashcards and quizzes were created to reinforce key concepts.
+- A structured checklist was developed to guide your revision systematically.
+
+---
+
+Let me know if you’d like help diving deeper into any specific topic!",gpt-4o-2024-11-20,tier2,2359,261,af6ee710-f11f-40ae-a104-e32a864e5cfb,study-user-01-01,negative,other,Did not enter into context,,,2026-03-19T09:25:06.596Z

@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react'
 import type { AIInsightDTO } from '../../types'
-import { getChipClass } from '@/styles/uiTokens'
-import { getInsightProvenance } from '@/utils/provenance'
 import { emitDraftPromotion, extractDraftExcerpt } from '@/utils/draftComposer'
 
 interface InsightFrameProps {
@@ -25,7 +23,6 @@ export const InsightFrame = ({
   onJumpToSource,
   onJumpToChatMarker,
 }: InsightFrameProps) => {
-  const provenance = getInsightProvenance(insight.metadata)
   const lineageMetadata = insight.metadata as
     | (typeof insight.metadata & {
         sourceInsightId?: string
@@ -65,34 +62,9 @@ export const InsightFrame = ({
         </div>
       </div>
 
-      {(provenance.source || provenance.trigger || provenance.createdBy || provenance.detail) && (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {provenance.source && (
-            <span className={getChipClass('neutral', 'xs')}>
-              Source: {provenance.source}
-            </span>
-          )}
-          {provenance.trigger && (
-            <span className={getChipClass('warning', 'xs')}>
-              Trigger: {provenance.trigger}
-            </span>
-          )}
-          {provenance.createdBy && (
-            <span className={getChipClass('muted', 'xs')}>
-              By: {provenance.createdBy}
-            </span>
-          )}
-          {provenance.detail && (
-            <span className={getChipClass('muted', 'xs')}>
-              Detail: {provenance.detail}
-            </span>
-          )}
-        </div>
-      )}
-
       {insight.metadata?.chimeRuleName && (
         <div className="mb-4">
-          <span className={getChipClass('warning', 'sm')}>
+          <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800">
             ⚙️ Rule: {insight.metadata.chimeRuleName}
           </span>
         </div>

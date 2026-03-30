@@ -18,6 +18,11 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:types": "npm run dev --workspace=@fypai/types",
     "test:backend": "npm run test --workspace=backend",
+    "test:ask-orchestration": "npm run -s test:ask-orchestration --workspace=backend",
+    "test:artifact-contract": "npm run -s test:artifact-contract --workspace=backend",
+    "test:routing-fast": "npm run -s test:routing-fast --workspace=backend",
+    "test:marker-contract": "npm run -s test:marker-contract --workspace=frontend",
+    "test:fast-all": "npm run -s test:routing-fast && npm run -s test:marker-contract",
     "test:frontend": "npm run test --workspace=frontend",
     "clean": "rm -rf node_modules packages/*/node_modules frontend/node_modules backend/node_modules packages/*/dist backend/dist frontend/dist"
   },

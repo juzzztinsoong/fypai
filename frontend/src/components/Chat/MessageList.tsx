@@ -23,9 +23,13 @@ import { FeedbackButtons } from './FeedbackButtons'
 import { getAvatarBackgroundColor, getMessageSurfaceTheme, getUserInitials } from '../../utils/avatarUtils'
 import { getLinkVisuals } from '@/utils/linkVisuals'
 import { emitDraftPromotion, extractDraftExcerpt } from '@/utils/draftComposer'
-import { getMarkerProvenance } from '@/utils/provenance'
+import {
+  computeHiddenMarkerMessageIds,
+  shouldRenderInlineMarker,
+} from '@/utils/markerLinkContracts'
 import { getChipClass, getElevationClass } from '@/styles/uiTokens'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso'
 
 const EMPTY_ARRAY: readonly string[] = Object.freeze([])
@@ -185,6 +189,15 @@ const formatProcessingTargetLabel = (targetType?: AIProcessingTargetType): strin
   return null
 }
 
+const formatInsightTypeLabel = (insightType?: string): string | null => {
+  if (!insightType) return null
+  if (insightType === 'summary') return 'Summary'
+  if (insightType === 'document') return 'Research'
+  if (insightType === 'action') return 'Action'
+  if (insightType === 'suggestion') return 'Help'
+  return 'Insight'
+}
+
 function MarkdownLink({ href, children }: ComponentPropsWithoutRef<'a'>) {
   if (!href) {
     return <span className="underline decoration-slate-400 [overflow-wrap:anywhere]">{children}</span>
@@ -207,6 +220,7 @@ type ReplyPreviewTarget = {
   id: string
   label: string
   excerpt: string
+  insightType?: AIInsightDTO['type']
 }
 
 type MessageFocusSource = 'reply-preview' | 'draft-context' | 'external'
@@ -278,6 +292,20 @@ export const MessageList = () => {
   const axisHoverEvaluatorRef = useRef<((x: number, y: number) => void) | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [unseenMessageCount, setUnseenMessageCount] = useState(0)
+  const [showArchivedMarkers, setShowArchivedMarkers] = useState(false)
+
+  useEffect(() => {
+    const handleArchivedVisibility = (event: Event) => {
+      const customEvent = event as CustomEvent<{ teamId?: string; visible?: boolean }>
+      if (customEvent.detail?.teamId !== currentTeamId) return
+      setShowArchivedMarkers(Boolean(customEvent.detail?.visible))
+    }
+
+    window.addEventListener('fypai:archived-visibility-changed', handleArchivedVisibility as EventListener)
+    return () => {
+      window.removeEventListener('fypai:archived-visibility-changed', handleArchivedVisibility as EventListener)
+    }
+  }, [currentTeamId])
 
   // Map typing user IDs to names (filter out current user)
   const typingUserNames = useMemo(() => {
@@ -368,8 +396,25 @@ export const MessageList = () => {
         indexMap[linkedInsightId] = index
       }
     })
+
+    // When marker cards are folded into agent replies, anchor to the reply card index.
+    messages.forEach((message, index) => {
+      if (message.authorId !== 'agent') return
+      if (message.metadata?.markerType === 'action-insight-link' || message.metadata?.markerType === 'insight-link') return
+
+      const parentMessageId = message.metadata?.parentMessageId
+      if (!parentMessageId) return
+
+      Object.entries(insightsById).forEach(([insightId, insight]) => {
+        if (!Array.isArray(insight.relatedMessageIds)) return
+        if (!insight.relatedMessageIds.includes(parentMessageId)) return
+        if (typeof indexMap[insightId] === 'number' && indexMap[insightId] <= index) return
+        indexMap[insightId] = index
+      })
+    })
+
     return indexMap
-  }, [messages])
+  }, [messages, insightsById])
 
   const markerInsightByMessageIndex = useMemo(() => {
     const indexMap: Record<number, string> = {}
@@ -383,8 +428,141 @@ export const MessageList = () => {
         indexMap[index] = linkedInsightId
       }
     })
+
+    // Add folded marker associations to agent reply rows for timeline sync.
+    messages.forEach((message, index) => {
+      if (message.authorId !== 'agent') return
+      if (message.metadata?.markerType === 'action-insight-link' || message.metadata?.markerType === 'insight-link') return
+
+      const parentMessageId = message.metadata?.parentMessageId
+      if (!parentMessageId) return
+
+      const matchedInsightId = Object.values(insightsById).find((insight) =>
+        Array.isArray(insight.relatedMessageIds) && insight.relatedMessageIds.includes(parentMessageId),
+      )?.id
+
+      if (matchedInsightId) {
+        indexMap[index] = matchedInsightId
+      }
+    })
+
     return indexMap
-  }, [messages])
+  }, [messages, insightsById])
+
+  const triggeredInsightByMessageId = useMemo(() => {
+    const map: Record<string, { insightType?: AIInsightDTO['type']; label: string }> = {}
+
+    messages.forEach((message) => {
+      const linkedInsightId = message.metadata?.linkedInsightId
+      const isMarker =
+        (message.metadata?.markerType === 'action-insight-link' || message.metadata?.markerType === 'insight-link') &&
+        Boolean(linkedInsightId)
+
+      if (!isMarker || !linkedInsightId) return
+
+      const linkedInsight = insightsById[linkedInsightId]
+      if (!showArchivedMarkers && (linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived')) return
+      const inferredType: AIInsightDTO['type'] | undefined =
+        message.metadata?.linkedInsightType ||
+        linkedInsight?.type ||
+        (message.metadata?.markerLabel?.toLowerCase().includes('action')
+          ? 'action'
+          : message.metadata?.markerLabel?.toLowerCase().includes('research') || message.metadata?.markerLabel?.toLowerCase().includes('document')
+          ? 'document'
+          : message.metadata?.markerLabel?.toLowerCase().includes('summary')
+          ? 'summary'
+          : message.metadata?.markerLabel?.toLowerCase().includes('suggestion') || message.metadata?.markerLabel?.toLowerCase().includes('help')
+          ? 'suggestion'
+          : undefined)
+
+      const label = formatInsightTypeLabel(inferredType) || 'Insight'
+      const relatedMessageIds = Array.isArray(linkedInsight?.relatedMessageIds)
+        ? linkedInsight.relatedMessageIds
+        : []
+
+      relatedMessageIds.forEach((relatedMessageId) => {
+        if (!relatedMessageId || map[relatedMessageId]) return
+        map[relatedMessageId] = {
+          insightType: inferredType,
+          label,
+        }
+      })
+    })
+
+    return map
+  }, [messages, insightsById, showArchivedMarkers])
+
+  const markerContextByParentMessageId = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        insightId: string
+        insightType?: AIInsightDTO['type']
+        markerLabel: string
+        markerTitle: string
+        markerPreview: string
+        markerMessageId: string
+      }
+    > = {}
+
+    messages.forEach((message) => {
+      const linkedInsightId = message.metadata?.linkedInsightId
+      const isMarker =
+        (message.metadata?.markerType === 'action-insight-link' || message.metadata?.markerType === 'insight-link') &&
+        Boolean(linkedInsightId)
+
+      if (!isMarker || !linkedInsightId) return
+
+      const markerLabel = message.metadata?.markerLabel?.toLowerCase() || ''
+      const linkedInsight = insightsById[linkedInsightId]
+      if (!showArchivedMarkers && (linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived')) return
+      const insightType =
+        message.metadata?.linkedInsightType ||
+        linkedInsight?.type ||
+        (markerLabel.includes('action')
+          ? 'action'
+          : markerLabel.includes('research') || markerLabel.includes('document') || markerLabel.includes('brief')
+          ? 'document'
+          : markerLabel.includes('summary')
+          ? 'summary'
+          : markerLabel.includes('suggestion') || markerLabel.includes('help')
+          ? 'suggestion'
+          : undefined)
+
+      const markerTitle = resolveMarkerInsightTitle(
+        linkedInsight,
+        message.metadata?.sourceActionTitle,
+        message.content,
+      )
+
+      const markerPreview =
+        typeof message.metadata?.markerPreview === 'string'
+          ? truncateReplyPreview(message.metadata.markerPreview)
+          : ''
+
+      const relatedMessageIds = Array.isArray(linkedInsight?.relatedMessageIds)
+        ? linkedInsight.relatedMessageIds
+        : []
+
+      relatedMessageIds.forEach((relatedMessageId) => {
+        if (!relatedMessageId || map[relatedMessageId]) return
+        map[relatedMessageId] = {
+          insightId: linkedInsightId,
+          insightType,
+          markerLabel: (message.metadata?.markerLabel || 'Insight').replace(/\b\w/g, (character) => character.toUpperCase()),
+          markerTitle,
+          markerPreview,
+          markerMessageId: message.id,
+        }
+      })
+    })
+
+    return map
+  }, [messages, insightsById, showArchivedMarkers])
+
+  const hiddenMarkerMessageIds = useMemo(() => {
+    return computeHiddenMarkerMessageIds(messages, markerContextByParentMessageId)
+  }, [messages, markerContextByParentMessageId])
 
   const messageIndexById = useMemo(() => {
     const indexMap: Record<string, number> = {}
@@ -501,6 +679,7 @@ export const MessageList = () => {
           id: insightId,
           label: `Replying to ${truncateReplyPreview(sourceLabel)}`,
           excerpt: sourceExcerpt,
+          insightType: sourceInsight?.type,
         }
       }
 
@@ -536,16 +715,16 @@ export const MessageList = () => {
 
       const wrapperClass =
         align === 'right'
-          ? 'mb-2 w-full rounded-md border border-indigo-200/90 bg-indigo-50/80 px-2 py-1 text-left text-[11px] leading-4 text-indigo-900 transition hover:border-indigo-300 hover:bg-indigo-100/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300'
+          ? 'mb-2 w-full text-left text-[11px] leading-4 text-indigo-900'
           : align === 'center'
-          ? 'mb-2 w-full rounded-md border border-slate-300/80 bg-white/80 px-2 py-1 text-left text-[11px] leading-4 text-slate-700 transition hover:border-slate-400 hover:bg-slate-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300'
-          : 'mb-2 w-full rounded-md border border-slate-300/80 bg-slate-50/80 px-2 py-1 text-left text-[11px] leading-4 text-slate-700 transition hover:border-slate-400 hover:bg-slate-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300'
+          ? 'mb-2 w-full text-left text-[11px] leading-4 text-slate-700'
+          : 'mb-2 w-full text-left text-[11px] leading-4 text-slate-700'
 
       const jumpClass = align === 'right' ? 'text-indigo-700' : 'text-slate-600'
-      const rowClass =
+      const bubbleClass =
         align === 'right'
-          ? 'w-full rounded px-1.5 py-1 text-left transition hover:bg-indigo-100/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300'
-          : 'w-full rounded px-1.5 py-1 text-left transition hover:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300'
+          ? 'min-w-0 flex-1 basis-[220px] rounded-md border border-indigo-200/90 bg-white/70 px-2 py-1 text-left transition hover:bg-indigo-100/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300'
+          : 'min-w-0 flex-1 basis-[220px] rounded-md border border-slate-300/80 bg-white/90 px-2 py-1 text-left transition hover:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-300'
       const targetTagClass =
         align === 'right'
           ? 'inline-flex items-center rounded border border-indigo-200 bg-indigo-100/80 px-1 py-0 text-[10px] font-semibold text-indigo-700'
@@ -557,14 +736,22 @@ export const MessageList = () => {
       return (
         <div className={wrapperClass} role="group" aria-label={summaryLabel}>
           {targets.length > 1 && (
-            <div className="mb-1 px-1.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
-              {summaryLabel}
-            </div>
+            <div className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">Replying to</div>
           )}
-          <div className="space-y-1">
+          <div className="flex flex-wrap gap-1.5">
             {targets.map((target) => {
-              const jumpLabel = target.kind === 'message' ? 'Jump to message' : 'Jump to insight'
-              const targetKindLabel = target.kind === 'message' ? 'Message' : 'Insight'
+              const insightTypeLabel = formatInsightTypeLabel(target.insightType)
+              const jumpLabel =
+                target.kind === 'message'
+                  ? 'View message'
+                  : `View ${(insightTypeLabel || 'Insight').toLowerCase()}`
+              const targetKindLabel = target.kind === 'message' ? 'Message' : insightTypeLabel || 'Insight'
+              const insightVisuals =
+                target.kind === 'insight' ? getLinkVisuals({ insightType: target.insightType }) : null
+              const targetTypeChipClass =
+                target.kind === 'insight' && insightVisuals
+                  ? `inline-flex items-center rounded border px-1 py-0 text-[10px] font-semibold ${insightVisuals.pill}`
+                  : targetTagClass
               const targetDisplayLabel =
                 targets.length > 1 ? target.label.replace(/^Replying to\s+/i, '') : target.label
 
@@ -582,19 +769,17 @@ export const MessageList = () => {
                   key={`${target.kind}:${target.id}`}
                   type="button"
                   onClick={handleClick}
-                  className={rowClass}
+                  className={bubbleClass}
                   title={`${target.label}: ${target.excerpt}`}
                 >
-                  <div className="mb-0.5 flex items-center justify-between gap-2">
-                    <span className="min-w-0 truncate font-medium">{targetDisplayLabel}</span>
+                  <div className="mb-0.5 flex items-center justify-between gap-1.5">
+                    <span className={targetTypeChipClass}>{targetKindLabel}</span>
                     <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide ${jumpClass}`}>
                       {jumpLabel}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={targetTagClass}>{targetKindLabel}</span>
-                    <span className="min-w-0 truncate">{target.excerpt}</span>
-                  </div>
+                  <div className="truncate font-medium">{targetDisplayLabel}</div>
+                  <div className="truncate opacity-85">{target.excerpt}</div>
                 </button>
               )
             })}
@@ -931,15 +1116,37 @@ export const MessageList = () => {
           // Current user: right - use same per-user palette source as the rest of the app
           const userTheme = getMessageSurfaceTheme(currentUser.id, members)
           const userAvatarBgColor = getAvatarBackgroundColor(currentUser.id, members)
+          const assistRequested = Boolean(
+            message.metadata?.forceAgentReply ||
+              (message.metadata?.routeOverrideUsed && message.metadata?.routeMode === 'ask'),
+          )
+          const triggeredInsight = triggeredInsightByMessageId[message.id]
+          const triggeredInsightVisual = triggeredInsight
+            ? getLinkVisuals({ insightType: triggeredInsight.insightType })
+            : null
           return (
-            <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-end">
-              <div className="group flex items-center space-x-2">
-                <div className="flex flex-col items-end">
+            <div id={`message-${message.id}`} data-message-id={message.id} className="flex w-full justify-end">
+              <div className="group flex w-full items-start justify-end gap-2">
+                <div className="flex max-w-[70%] min-w-0 flex-col items-end">
                   <span className="text-xs text-gray-500 mb-1">You</span>
-                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 ${getElevationClass('surface')} w-fit min-w-[4rem] max-w-[70%] overflow-hidden`}>
+                  <div className={`${userTheme.bubbleBg} border ${userTheme.bubbleBorder} ${userTheme.bubbleText} rounded-xl p-3 ${getElevationClass('surface')} min-w-[4rem] max-w-full overflow-hidden`}>
                     {renderReplyPreview(message, 'right')}
-                    <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
+                  {assistRequested && (
+                    <div className="mt-1 mb-0.5 flex justify-end">
+                      <span className="inline-flex items-center rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                        Assist requested
+                      </span>
+                    </div>
+                  )}
+                  {triggeredInsight && triggeredInsightVisual && (
+                    <div className="mt-1 mb-0.5 flex justify-end">
+                      <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${triggeredInsightVisual.pill}`}>
+                        Triggers {triggeredInsight.label}
+                      </span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => handlePromoteMessageToDraft(message, 'You')}
@@ -948,7 +1155,7 @@ export const MessageList = () => {
                     Reply
                   </button>
                 </div>
-                <div className="relative">
+                <div className="relative mt-5">
                   <div className={`w-8 h-8 rounded-full ${userAvatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
                     {getUserInitials(currentUser.name)}
                   </div>
@@ -960,12 +1167,19 @@ export const MessageList = () => {
             </div>
           )
         } else if (message.authorId === 'agent') {
+          if (hiddenMarkerMessageIds.has(message.id)) {
+            return null
+          }
+
           if (isInsightLinkMarker) {
             const insightId = message.metadata?.linkedInsightId
             const markerLabel = message.metadata?.markerLabel?.toLowerCase() || ''
             const linkedInsight = insightId ? insightsById[insightId] : undefined
             const isHiddenInsightMarker =
               linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived'
+            if (isHiddenInsightMarker && !showArchivedMarkers) {
+              return null
+            }
             const inferredInsightType =
               message.metadata?.linkedInsightType ||
               (markerLabel.includes('action')
@@ -994,7 +1208,6 @@ export const MessageList = () => {
               typeof message.metadata?.markerPreview === 'string'
                 ? truncateReplyPreview(message.metadata.markerPreview)
                 : ''
-            const markerProvenance = getMarkerProvenance(message.metadata, linkedInsight?.metadata)
             const markerSourceToken =
               typeof message.metadata?.markerSource === 'string'
                 ? message.metadata.markerSource.toLowerCase()
@@ -1018,9 +1231,6 @@ export const MessageList = () => {
             const markerTypeChipClass = isHiddenInsightMarker
               ? 'inline-flex items-center rounded border border-slate-300 bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600'
               : `inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${visuals.pill}`
-            const markerMetaChipClass = isHiddenInsightMarker
-              ? 'inline-flex items-center rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600'
-              : 'inline-flex items-center rounded border border-slate-300/80 bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-600'
             return (
               <div
                 id={`marker-${message.id}`}
@@ -1091,30 +1301,48 @@ export const MessageList = () => {
                       {markerPreview}
                     </span>
                   )}
-                  {(markerProvenance.source || markerProvenance.trigger || markerProvenance.createdBy || markerProvenance.detail) && (
-                    <span className="mt-2 flex flex-wrap items-center gap-1.5 leading-4">
-                      {markerProvenance.source && (
-                        <span className={markerMetaChipClass}>Source: {markerProvenance.source}</span>
-                      )}
-                      {markerProvenance.trigger && (
-                        <span className={markerMetaChipClass}>Trigger: {markerProvenance.trigger}</span>
-                      )}
-                      {markerProvenance.createdBy && (
-                        <span className={markerMetaChipClass}>By: {markerProvenance.createdBy}</span>
-                      )}
-                      {markerProvenance.detail && (
-                        <span className={markerMetaChipClass}>Detail: {markerProvenance.detail}</span>
-                      )}
-                    </span>
-                  )}
                 </button>
               </div>
             )
           }
 
           // Agent: center, brand accent
-          const tier = message.agentMetadata?.tier;
           const isAutonomous = Boolean(message.metadata?.chimeRuleName);
+          const parentMessageId = message.metadata?.parentMessageId;
+          const inferredMarkerContext = parentMessageId
+            ? markerContextByParentMessageId[parentMessageId]
+            : undefined;
+          const linkedInsightId =
+            typeof message.metadata?.linkedInsightId === 'string'
+              ? message.metadata.linkedInsightId
+              : inferredMarkerContext?.insightId;
+          const linkedInsightTitle = linkedInsightId
+            ? insightsById[linkedInsightId]?.title || inferredMarkerContext?.markerTitle
+            : undefined;
+          const linkedInsightTypeLabel = formatInsightTypeLabel(
+            inferredMarkerContext?.insightType || (linkedInsightId ? insightsById[linkedInsightId]?.type : undefined),
+          ) || 'Insight'
+          const inlineInsightType =
+            inferredMarkerContext?.insightType ||
+            (typeof message.metadata?.linkedInsightType === 'string'
+              ? (message.metadata.linkedInsightType as AIInsightDTO['type'])
+              : linkedInsightId
+              ? insightsById[linkedInsightId]?.type
+              : undefined)
+          const inlineMarkerVisuals = linkedInsightId
+            ? getLinkVisuals({ insightType: inlineInsightType })
+            : null
+          const inlineMarkerLabel =
+            inferredMarkerContext?.markerLabel ||
+            formatInsightTypeLabel(inlineInsightType) ||
+            (typeof message.metadata?.markerLabel === 'string' ? message.metadata.markerLabel : 'Insight')
+          const inlineMarkerTitle =
+            inferredMarkerContext?.markerTitle ||
+            linkedInsightTitle ||
+            `Open linked ${linkedInsightTypeLabel.toLowerCase()}`
+          const inlineMarkerPreview =
+            inferredMarkerContext?.markerPreview ||
+            (typeof message.metadata?.markerPreview === 'string' ? message.metadata.markerPreview : '')
           const agentCardTheme = isAutonomous
             ? 'border-amber-300/80 bg-amber-50/90 text-amber-950'
             : 'border-violet-200/80 bg-white/95 text-violet-950';
@@ -1126,28 +1354,18 @@ export const MessageList = () => {
           return (
             <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-center px-2 py-2">
               <div
-                className={`relative flex max-w-[80%] flex-col items-center rounded-2xl border p-3 ${getElevationClass('raised')} ${agentCardTheme} overflow-hidden`}
+                className={`relative flex max-w-[80%] flex-col items-start rounded-2xl border p-3 ${getElevationClass('raised')} ${agentCardTheme} overflow-hidden`}
               >
                 <span
                   className={`absolute left-0 top-3 h-8 w-1 rounded-r-full ${agentAccentRail}`}
                   aria-hidden="true"
                 />
-                <div className="flex items-center gap-2 mb-1">
+                <div className="mb-1 flex w-full items-center gap-2">
                   <div className={`relative w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold border ${agentAvatarTheme}`}>
                     AI
                     <span className="absolute -bottom-0.5 -right-0.5 block h-2 w-2 rounded-full bg-emerald-600 ring-1 ring-white"></span>
                   </div>
-                  {tier && (
-                    <span
-                      className={
-                        tier === 'tier1'
-                          ? `inline-flex items-center rounded-md border border-emerald-700 bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white ${getElevationClass('surface')}`
-                          : getChipClass('brand', 'xs')
-                      }
-                    >
-                      {tier === 'tier1' ? 'Fast' : 'Smart'}
-                    </span>
-                  )}
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">AI Reply</span>
                   {isAutonomous && (
                     <span className={getChipClass('warning', 'xs')}>
                       Auto
@@ -1157,18 +1375,83 @@ export const MessageList = () => {
                 <div className="w-full rounded-xl p-2.5">
                   {renderReplyPreview(message, 'center')}
                   <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
                     components={{
-                      p: ({ children }) => <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-medium mb-2 last:mb-0">{children}</p>,
+                      p: ({ children }) => <p className="whitespace-pre-wrap break-words font-medium mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
                       ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
                       ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
-                      li: ({ children }) => <li className="break-words [overflow-wrap:anywhere]">{children}</li>,
+                      li: ({ children }) => <li className="break-words">{children}</li>,
                       a: MarkdownLink,
+                      table: ({ children }) => (
+                        <div className="my-2 overflow-x-auto rounded-md border border-slate-200 bg-white/80">
+                          <table className="min-w-full border-collapse text-xs">{children}</table>
+                        </div>
+                      ),
+                      thead: ({ children }) => <thead className="bg-slate-50">{children}</thead>,
+                      tbody: ({ children }) => <tbody className="divide-y divide-slate-200">{children}</tbody>,
+                      tr: ({ children }) => <tr className="align-top">{children}</tr>,
+                      th: ({ children }) => <th className="border-b border-slate-200 px-2 py-1.5 text-left font-semibold text-slate-700">{children}</th>,
+                      td: ({ children }) => <td className="px-2 py-1.5 text-slate-700">{children}</td>,
                     }}
                   >
                     {message.content}
                   </ReactMarkdown>
+                  {shouldRenderInlineMarker(linkedInsightId) && inlineMarkerVisuals && (
+                    <button
+                      type="button"
+                      data-linked-insight-id={linkedInsightId}
+                      data-linked-insight-type={inlineInsightType}
+                      onMouseEnter={() => {
+                        if (!linkedInsightId) return
+                        window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: linkedInsightId, active: true } }))
+                      }}
+                      onMouseLeave={() => {
+                        if (!linkedInsightId) return
+                        window.dispatchEvent(new CustomEvent('fypai:link-hover', { detail: { insightId: linkedInsightId, active: false } }))
+                      }}
+                      onClick={() => {
+                        if (!linkedInsightId) return
+                        trackSessionEvent({
+                          eventType: 'navigation',
+                          eventName: 'focus_insight_from_agent_message',
+                          teamId: currentTeamId || undefined,
+                          actorUserId: currentUser?.id,
+                          insightId: linkedInsightId,
+                          messageId: message.id,
+                        })
+
+                        window.dispatchEvent(new CustomEvent('fypai:focus-insight', {
+                          detail: {
+                            insightId: linkedInsightId,
+                            preferredTab: 'all',
+                            source: 'agent-message-link',
+                          },
+                        }))
+                      }}
+                      className="mt-2 w-full rounded-lg border border-slate-200/90 bg-slate-50/90 px-2.5 py-2 text-left text-[11px] text-slate-700 transition hover:border-slate-300 hover:bg-slate-100/90"
+                      title={
+                        linkedInsightTitle
+                          ? `Open ${linkedInsightTypeLabel.toLowerCase()}: ${linkedInsightTitle}`
+                          : `Open linked ${linkedInsightTypeLabel.toLowerCase()}`
+                      }
+                    >
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">AI Marker</span>
+                        <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${inlineMarkerVisuals.pill}`}>
+                          {inlineMarkerLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 leading-4 text-slate-700">
+                        <span className={`h-1.5 w-1.5 rounded-full ${inlineMarkerVisuals.dot}`} />
+                        <span className="min-w-0 truncate font-medium">{inlineMarkerTitle}</span>
+                      </div>
+                      {inlineMarkerPreview && (
+                        <div className="mt-1 text-[11px] leading-4 text-slate-600">{inlineMarkerPreview}</div>
+                      )}
+                    </button>
+                  )}
                 </div>
                 
                 {/* Phase 6.5: Agent Metadata Display */}
@@ -1213,9 +1496,9 @@ export const MessageList = () => {
           const userTheme = getMessageSurfaceTheme(message.authorId, members)
           const avatarBgColor = getAvatarBackgroundColor(message.authorId, members)
           return (
-            <div id={`message-${message.id}`} data-message-id={message.id} className="flex justify-start">
-              <div className="group flex items-center space-x-2">
-                <div className="relative">
+            <div id={`message-${message.id}`} data-message-id={message.id} className="flex w-full justify-start">
+              <div className="group flex w-full items-start justify-start gap-2">
+                <div className="relative mt-5">
                   <div className={`w-8 h-8 rounded-full ${avatarBgColor} flex items-center justify-center text-white font-semibold text-xs`}>
                     {getUserInitials(member?.name || 'User')}
                   </div>
@@ -1223,11 +1506,11 @@ export const MessageList = () => {
                     <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
                   )}
                 </div>
-                <div className="flex flex-col items-start">
+                <div className="flex max-w-[70%] min-w-0 flex-col items-start">
                   <span className={`text-xs mb-1 ${userTheme.bubbleMutedText}`}>{member?.name || 'User'}</span>
-                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 w-fit min-w-[4rem] max-w-[70%] ${getElevationClass('surface')} ${userTheme.bubbleBg} ${userTheme.bubbleText} overflow-hidden`}> 
+                  <div className={`border ${userTheme.bubbleBorder} rounded-xl p-3 min-w-[4rem] max-w-full ${getElevationClass('surface')} ${userTheme.bubbleBg} ${userTheme.bubbleText} overflow-hidden`}> 
                     {renderReplyPreview(message, 'left')}
-                    <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                   <button
                     type="button"
@@ -1332,9 +1615,11 @@ export const MessageList = () => {
           )
         }}
         itemContent={(_, message) => (
-          <div className="px-4 py-2">
-            {renderMessage(message)}
-          </div>
+          hiddenMarkerMessageIds.has(message.id) ? null : (
+            <div className="px-4 py-2">
+              {renderMessage(message)}
+            </div>
+          )
         )}
         components={{
           Footer: () =>

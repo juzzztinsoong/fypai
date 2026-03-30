@@ -1,0 +1,22 @@
+session_num,file_key,team_id,participant_id,condition,run_order,total_messages,ask_count,research_count,other_count,ask_pct,research_pct,override_count,override_rate,source_classifier,source_override,source_fallback,slash_command_count,research_job_count,early_ask,early_research,late_ask,late_research,early_override,late_override
+1,1/1 jc/session-study-team-01-timeline.json,study-team-01,study-user-01-01,AI_ON,AB,7,6,1,0,0.8571,0.1429,5,0.7143,2,5,0,0,1,2,1,4,0,1,4
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,study-user-03-01,AI_ON,AB,9,8,1,0,0.8889,0.1111,6,0.6667,3,6,0,1,1,3,1,5,0,1,5
+1,1/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-04-01,AI_ON,BA,21,21,0,0,1.0,0.0,19,0.9048,2,19,0,0,0,10,0,11,0,9,10
+1,1/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-04-02,AI_ON,BA,16,16,0,0,1.0,0.0,15,0.9375,1,15,0,0,0,8,0,8,0,8,7
+1,1/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-05-01,AI_LIGHT,,12,12,0,0,1.0,0.0,0,0.0,12,0,0,0,0,6,0,6,0,0,0
+1,1/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-05-02,AI_LIGHT,,17,17,0,0,1.0,0.0,7,0.4118,10,7,0,0,0,8,0,9,0,0,7
+2,2/1 willson/session-study-team-01-timeline.json,study-team-01,study-user-01,AI_ON,AB,33,31,2,0,0.9394,0.0606,13,0.3939,20,13,0,1,0,16,0,15,2,0,13
+2,2/2 aly/session-study-team-02-timeline.json,study-team-02,study-user-02,AI_ON,AB,10,5,5,0,0.5,0.5,10,1.0,0,10,0,0,0,3,2,2,3,5,5
+2,2/3 roys/session-study-team-03-timeline.json,study-team-03,study-user-03,AI_ON,AB,6,3,3,0,0.5,0.5,6,1.0,0,6,0,0,0,3,0,0,3,3,3
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-01,AI_ON,AB,9,8,1,0,0.8889,0.1111,5,0.5556,4,5,0,0,0,4,0,4,1,1,4
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-02,AI_ON,AB,26,25,1,0,0.9615,0.0385,9,0.3462,17,9,0,0,0,13,0,12,1,4,5
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-03,AI_ON,AB,8,8,0,0,1.0,0.0,3,0.375,5,3,0,0,0,4,0,4,0,1,2
+2,2/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-01,AI_LIGHT,BA,22,22,0,0,1.0,0.0,0,0.0,22,0,0,0,0,11,0,11,0,0,0
+2,2/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-02,AI_LIGHT,BA,25,25,0,0,1.0,0.0,7,0.28,18,7,0,0,0,12,0,13,0,4,3
+2,2/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-03,AI_LIGHT,BA,11,11,0,0,1.0,0.0,3,0.2727,8,3,0,0,0,5,0,6,0,1,2
+3,3/1 aung/session-study-team-01-timeline.json,study-team-01,study-user-01,AI_ON,AB,11,9,2,0,0.8182,0.1818,10,0.9091,1,10,0,0,0,4,1,5,1,5,5
+3,3/2 shanyl/session-study-team-02-timeline.json,study-team-02,study-user-02,AI_ON,AB,10,8,2,0,0.8,0.2,10,1.0,0,10,0,0,0,4,1,4,1,5,5
+3,3/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-01,AI_ON,AB,17,16,1,0,0.9412,0.0588,9,0.5294,8,9,0,0,0,7,1,9,0,3,6
+3,3/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-02,AI_ON,AB,13,13,0,0,1.0,0.0,4,0.3077,9,4,0,0,0,6,0,7,0,0,4
+3,3/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-01,AI_LIGHT,BA,24,24,0,0,1.0,0.0,5,0.2083,19,5,0,0,0,12,0,12,0,2,3
+3,3/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-02,AI_LIGHT,BA,27,27,0,0,1.0,0.0,6,0.2222,21,6,0,0,0,13,0,14,0,3,3

@@ -134,6 +134,9 @@ export interface MessageMetadata {
   routeRationale?: string
   routeSource?: 'manual-override' | 'server-classifier' | 'frontend-fallback'
   routeOverrideUsed?: boolean
+  requestedInsightType?: 'summary' | 'document' | 'action' | 'suggestion'
+  routeExecutionId?: string
+  forceAgentReply?: boolean
   routeArchetype?: AgentPromptArchetype
   // Action ↔ chat marker linkage
   markerType?: 'insight-link' | 'action-insight-link' | 'system-link'
@@ -143,6 +146,7 @@ export interface MessageMetadata {
   sourceActionTitle?: string
   markerLabel?: string
   markerPreview?: string
+  markerCompanionText?: string
   markerSource?: MarkerProvenanceSource
   markerTrigger?: MarkerProvenanceTrigger
   markerCreatedBy?: string

@@ -1,0 +1,2505 @@
+{
+  "teamId": "study-team-05",
+  "exportedAt": "2026-03-27T19:10:51.029Z",
+  "sessionSpec": {
+    "teamId": "study-team-05",
+    "teamName": "Team - AI Light",
+    "conditionFlag": "AI_LIGHT",
+    "runOrder": "BA",
+    "runOneCondition": "AI_LIGHT",
+    "runTwoCondition": "AI_ON"
+  },
+  "participants": [
+    {
+      "userId": "agent",
+      "name": "AI Agent",
+      "role": "agent",
+      "teamRole": null,
+      "isAgent": true
+    },
+    {
+      "userId": "study-user-01",
+      "name": "Study Participant 01",
+      "role": "admin",
+      "teamRole": "owner",
+      "isAgent": false
+    },
+    {
+      "userId": "study-user-02",
+      "name": "Study Participant 02",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "study-user-03",
+      "name": "Study Participant 03",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user1",
+      "name": "Alice",
+      "role": "admin",
+      "teamRole": "admin",
+      "isAgent": false
+    },
+    {
+      "userId": "user2",
+      "name": "Bob",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user3",
+      "name": "Charlie",
+      "role": "admin",
+      "teamRole": "member",
+      "isAgent": false
+    }
+  ],
+  "timeline": [
+    {
+      "id": "3855e975-80de-49c6-92e9-3cfcf43c2c1d",
+      "teamId": "study-team-05",
+      "sessionId": "707f971e-4563-4444-944d-97fd58b01e0d",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-25T18:51:21.348Z"
+    },
+    {
+      "id": "b6955234-db6c-4902-99bd-4837ee211b87",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:22:55.020Z"
+    },
+    {
+      "id": "7e981ff5-e8a9-46e7-b9ad-ab81e27cb814",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:22:58.151Z"
+    },
+    {
+      "id": "c7bab005-35ce-467b-8110-dde7d81ac251",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "a01b876d-1b3e-43ce-aa09-22da9c0d7b02",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:52.353Z"
+    },
+    {
+      "id": "b2877248-6e5e-493b-a69a-c60bd489bf15",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "a01b876d-1b3e-43ce-aa09-22da9c0d7b02",
+      "content": "hiii, welcome to the chat",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:52.353Z"
+    },
+    {
+      "id": "14cd3b4e-0058-43e9-9a33-858f848df551",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:23:55.476Z"
+    },
+    {
+      "id": "5fb6d7f0-5678-4d41-99e0-f715ca538cf4",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "dcbda965-cfbf-4fa3-8c8c-cc82158411cb",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:58.469Z"
+    },
+    {
+      "id": "ea90cd2c-ee89-4839-a3a7-fcf956f2ed18",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "dcbda965-cfbf-4fa3-8c8c-cc82158411cb",
+      "content": "I can set the project context",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:58.469Z"
+    },
+    {
+      "id": "c54717ba-35b8-415c-93fc-7f301ceb92c7",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "5f00df8e-0739-45c3-92fb-574658166b5a",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:59.811Z"
+    },
+    {
+      "id": "85f7eeee-35da-4fbc-a1c3-5560ec2e50f0",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "5f00df8e-0739-45c3-92fb-574658166b5a",
+      "content": "let me add context first",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:59.811Z"
+    },
+    {
+      "id": "c388730b-9c0e-44c4-9504-bd6edfbb604d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "37826867-0e81-4c1a-91f4-22ce98627130",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:59.811Z"
+    },
+    {
+      "id": "1885869e-60f0-4478-863b-c193120a4492",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "37826867-0e81-4c1a-91f4-22ce98627130",
+      "content": "oh",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:23:59.811Z"
+    },
+    {
+      "id": "02fe463f-a601-4cc1-9dcd-791356aadc1f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "54d343d9-ba52-4da7-b81f-5426cc6282dd",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:05.138Z"
+    },
+    {
+      "id": "a42b8fef-d803-4923-820d-48baf23c6a5b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "54d343d9-ba52-4da7-b81f-5426cc6282dd",
+      "content": "hahaha",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:05.138Z"
+    },
+    {
+      "id": "a3e39138-f730-4942-9cff-978e6aa0a19d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:24:05.138Z"
+    },
+    {
+      "id": "cf013a39-5230-4436-894a-eac135369eb0",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "d7ae5c21-9233-4da9-8d66-dc5fda8491a5",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:05.408Z"
+    },
+    {
+      "id": "5a07df01-da70-43c2-8f80-c9d509cc586a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "d7ae5c21-9233-4da9-8d66-dc5fda8491a5",
+      "content": "okay u do haha",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:05.408Z"
+    },
+    {
+      "id": "b1143b6a-ed23-4e7f-923b-c34152a56be4",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:24:23.958Z"
+    },
+    {
+      "id": "1f081194-ec89-4c3c-89e5-d65a89b32e95",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:24:23.958Z"
+    },
+    {
+      "id": "67c3b440-8ef7-48bd-b6b8-e6fc4e620ddc",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:24:23.958Z"
+    },
+    {
+      "id": "8a97dfcb-088c-4b42-8d21-f724aa6a8f10",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "context",
+      "eventName": "task_context_saved",
+      "actorUserId": "study-user-02",
+      "content": "Graduation Trip",
+      "metadata": {
+        "previousLength": 0,
+        "nextLength": 15,
+        "mode": "embedded"
+      },
+      "createdAt": "2026-03-26T08:24:29.604Z"
+    },
+    {
+      "id": "86336293-2f94-4922-9538-300040d9128c",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:24:29.604Z"
+    },
+    {
+      "id": "d6829a4d-c0c4-43ee-8716-d5f88129b533",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:24:33.314Z"
+    },
+    {
+      "id": "c431c6a2-d58b-494a-aec0-dd40149b7269",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:24:33.314Z"
+    },
+    {
+      "id": "1dfc03fc-2d48-4ebc-9425-ab4adbc17833",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:24:33.314Z"
+    },
+    {
+      "id": "13fdb4bc-c80c-40eb-9931-0b2c38bb8bc1",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "c56855db-5a84-4fb0-876e-cfff712ed062",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:38.421Z"
+    },
+    {
+      "id": "77a12c8e-8b86-4ec9-8769-3def5f424f1e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "c56855db-5a84-4fb0-876e-cfff712ed062",
+      "content": "I've just set it to grad trip haha",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:38.421Z"
+    },
+    {
+      "id": "5157a204-f1f5-4ae9-a955-403313900559",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "66fdb06c-4685-4797-bf05-1b1999c04aaf",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:38.421Z"
+    },
+    {
+      "id": "925a0bc3-5477-4b71-a390-7f49b99a3763",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "66fdb06c-4685-4797-bf05-1b1999c04aaf",
+      "content": "hope that's fine",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:38.421Z"
+    },
+    {
+      "id": "faaaf7e3-f71a-4a25-81af-afc6d5ab849a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "bc81f0da-1418-4ab6-949b-a0972135612d",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:47.240Z"
+    },
+    {
+      "id": "aab4237e-b3cb-443a-9dec-3f11c523f59b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "bc81f0da-1418-4ab6-949b-a0972135612d",
+      "content": "oh okay, let me add more information",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:47.240Z"
+    },
+    {
+      "id": "1502f937-3932-4b25-bab5-e4b35199ab9b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "2b5f2def-5ffe-4f67-9476-84b60ee04521",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:47.240Z"
+    },
+    {
+      "id": "79e0935c-ada0-4af5-acb2-4d86d5782d6f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "2b5f2def-5ffe-4f67-9476-84b60ee04521",
+      "content": "give me a minute",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:47.240Z"
+    },
+    {
+      "id": "cb5b3bce-38e8-46c7-95db-eb591bf74d1d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:24:52.605Z"
+    },
+    {
+      "id": "3446e08a-176d-4d5f-b6bb-fdbd35869fc0",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "4de4d18f-beaa-43b3-901f-7aaacb4f90c0",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:59.657Z"
+    },
+    {
+      "id": "c739470d-208c-409d-81c9-0013bee84b17",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "4de4d18f-beaa-43b3-901f-7aaacb4f90c0",
+      "content": "Maybe we can settle on a budget as well?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:24:59.657Z"
+    },
+    {
+      "id": "e61ba079-0847-419f-9051-a4ae5594131f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "9f991a1d-5451-4b40-815d-1cc56ac3228f",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:15.737Z"
+    },
+    {
+      "id": "deaafc41-912b-4e54-befb-3f02ab01e31c",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "9f991a1d-5451-4b40-815d-1cc56ac3228f",
+      "content": "What's a good budget fo a short 3-5 day graduation trip?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:15.737Z"
+    },
+    {
+      "id": "9830da69-9b93-4336-80c0-f9c4ccb3ab44",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "context",
+      "eventName": "task_context_saved",
+      "actorUserId": "study-user-01",
+      "content": "Graduation Trip \nDuration : 3 to 5 days\nBudget : Flexible ($500-$1500 per person)\n4 person trip\nFlying out of Singapore\n",
+      "metadata": {
+        "previousLength": 15,
+        "nextLength": 120,
+        "mode": "embedded"
+      },
+      "createdAt": "2026-03-26T08:25:41.489Z"
+    },
+    {
+      "id": "d2cf9f14-e380-424d-b428-920366c0b5cb",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:25:41.489Z"
+    },
+    {
+      "id": "f63eadb8-9989-44e9-8efd-f9f6ccd47bd5",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "901ab4f8-a429-4e48-816f-a6b62927181e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:49.947Z"
+    },
+    {
+      "id": "24f34c28-6eee-44cb-aefd-fb8a97d92ac7",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "901ab4f8-a429-4e48-816f-a6b62927181e",
+      "content": "Just edited the context a bit more",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:49.947Z"
+    },
+    {
+      "id": "aedf6115-18ea-413b-9591-f8918e30f664",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "8d58e8c3-1928-4166-9524-f42d03499dc1",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:49.947Z"
+    },
+    {
+      "id": "a4aed5b1-979d-4d22-9111-98066b084653",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "8d58e8c3-1928-4166-9524-f42d03499dc1",
+      "content": "hope it is okay",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:49.947Z"
+    },
+    {
+      "id": "4896d2e4-a55e-477f-8e81-89936e5cc284",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "30f9c1de-0d4f-455f-b17b-5d92dd1ad1d9",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:56.947Z"
+    },
+    {
+      "id": "96ebb1d6-a094-42bb-a303-d33d5d0a92ff",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "30f9c1de-0d4f-455f-b17b-5d92dd1ad1d9",
+      "content": "Do you think $750 would be alright? Maybe we could do a short trip to somewhere in SEA?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:25:56.947Z"
+    },
+    {
+      "id": "37a3f697-2ea6-40cf-9b69-f68da382b079",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "63c4eff0-284e-467c-877a-eab4a43afa86",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:26:02.787Z"
+    },
+    {
+      "id": "ca5b018d-0ce5-45e9-b633-30feaf73a536",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "63c4eff0-284e-467c-877a-eab4a43afa86",
+      "content": "Oh yeah that's fine",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:26:02.787Z"
+    },
+    {
+      "id": "a384d50e-dd4a-4119-ac14-360a144a2075",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "6cb1f7b2-c23a-4383-8d04-09de0ae2d652",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:26:09.836Z"
+    },
+    {
+      "id": "715876c2-511f-4cce-babc-04922c685e06",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "4c2440a8-2ba2-472c-abd9-2327f509685c",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:26:43.570Z"
+    },
+    {
+      "id": "4a4626e9-6911-4c01-8fb8-ccb3502dcd86",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "4c2440a8-2ba2-472c-abd9-2327f509685c",
+      "content": "@agent I have been to Vietnam already so it would be nice to go other places, any other suggestions",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:26:43.570Z"
+    },
+    {
+      "id": "8a2a188e-2a60-40d0-82a9-2ee775459c21",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "71712f4a-a91b-4dad-8c67-d92627dbe5db",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.06.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:07.307Z"
+    },
+    {
+      "id": "32d6f012-a371-4977-af55-b7a3382d023e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "71712f4a-a91b-4dad-8c67-d92627dbe5db",
+      "content": "What do you think of Bali?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:07.307Z"
+    },
+    {
+      "id": "42bdea46-6e63-4a76-8f78-1cc43b561cec",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "2669f64c-92b0-44e8-889b-98daf7c66623",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:08.671Z"
+    },
+    {
+      "id": "9984cac8-dd51-44dc-bcec-6a91ed89c6c3",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "2669f64c-92b0-44e8-889b-98daf7c66623",
+      "content": "Hmm these are all great places",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:08.671Z"
+    },
+    {
+      "id": "f41afcb6-a8e6-4c44-bf05-99c86194e29e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "06c4a4a5-f73b-4b21-957e-17b41deae9b8",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:19.469Z"
+    },
+    {
+      "id": "04b8cddf-ef49-4f2d-a432-a5063f80b902",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "06c4a4a5-f73b-4b21-957e-17b41deae9b8",
+      "content": "I'd like to go to Bali but i've been there before",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:19.469Z"
+    },
+    {
+      "id": "7c0c0599-040b-4b5c-8f86-d94727757d24",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "2ed125e1-12de-4495-8348-6e646cca6c63",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.06.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:25.285Z"
+    },
+    {
+      "id": "bbf8887c-c675-4680-8e5b-e82d54ac50fc",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "2ed125e1-12de-4495-8348-6e646cca6c63",
+      "content": "What about the philippines?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:25.285Z"
+    },
+    {
+      "id": "edb15fb4-23ee-4724-a4a3-bc2f2c177ec1",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "focus_chat_message",
+      "actorUserId": "user1",
+      "messageId": "4c2440a8-2ba2-472c-abd9-2327f509685c",
+      "metadata": {
+        "source": "reply-preview"
+      },
+      "createdAt": "2026-03-26T08:27:34.073Z"
+    },
+    {
+      "id": "c0000746-01a3-4d1b-a51c-a4a988cb9cf1",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "a324c038-0003-4ff5-9c21-ce03e2611d3c",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:34.619Z"
+    },
+    {
+      "id": "e1e82772-0332-4d09-b172-87d103237092",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "a324c038-0003-4ff5-9c21-ce03e2611d3c",
+      "content": "Im down for Philippines",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:34.619Z"
+    },
+    {
+      "id": "decaea29-bee5-439a-8ae5-ef74bbb10b56",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "e9f2038d-f427-45e7-9816-52624b34c9c6",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:35.650Z"
+    },
+    {
+      "id": "3179a59d-2e61-4a0a-88e0-4ec68d828f34",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "e9f2038d-f427-45e7-9816-52624b34c9c6",
+      "content": "There's plenty of island, surely we can find one!",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:35.650Z"
+    },
+    {
+      "id": "265db1d6-dce4-4ebd-a651-840e247503ea",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "user1",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:27:38.389Z"
+    },
+    {
+      "id": "478a9079-d72a-454d-894c-3c36c57f5d6e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "user1",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:27:38.389Z"
+    },
+    {
+      "id": "8041c3ef-308f-4fdf-a33f-bfa8f20c97bc",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "edd8bb6e-90e7-4c45-afe2-9aca6bbbbe5f",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:44.185Z"
+    },
+    {
+      "id": "9f7554b3-f542-4956-9ee8-8ed36416c7a0",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "edd8bb6e-90e7-4c45-afe2-9aca6bbbbe5f",
+      "content": "Nice - let's do that then",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:44.185Z"
+    },
+    {
+      "id": "1500c945-5f05-412d-a5dd-b8c2f25fe060",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "57419178-0cc5-467b-a49e-84ba0dfaa0bb",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:58.074Z"
+    },
+    {
+      "id": "551daada-7290-46b1-ae14-46d3b4f4bc4a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "57419178-0cc5-467b-a49e-84ba0dfaa0bb",
+      "content": "Where are some good places to visit in the Philippines?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:27:58.074Z"
+    },
+    {
+      "id": "d5d8841e-1ffb-42d7-8882-8c5bea689b49",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "8813fa16-b3a5-4036-b3da-894e993ea955",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:16.214Z"
+    },
+    {
+      "id": "b24441dc-c2e7-437d-abd2-0c90f76f1330",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "8813fa16-b3a5-4036-b3da-894e993ea955",
+      "content": "would August be an ideal time to visit these places",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:16.214Z"
+    },
+    {
+      "id": "7fbc1f81-1a07-4f45-9c67-4659bf02fda4",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "f526b45f-e23a-4cbc-b413-e71bbb7fc2ce",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:24.625Z"
+    },
+    {
+      "id": "9f3320cd-e417-4be7-a760-434c0aabffa5",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "f526b45f-e23a-4cbc-b413-e71bbb7fc2ce",
+      "content": "Yes - August works for me",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:24.625Z"
+    },
+    {
+      "id": "a3e5dc98-edaf-4888-8ba4-b0223416b6d5",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "2b7a0aec-0048-469f-8437-7e1610be7318",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.06.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:45.789Z"
+    },
+    {
+      "id": "9208eee9-5248-412e-9bd8-e1dda21a9979",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "2b7a0aec-0048-469f-8437-7e1610be7318",
+      "content": "What about Boracay?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:45.789Z"
+    },
+    {
+      "id": "f775b30c-ecb0-4365-b0de-9ec89d925060",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "0de5d7c4-38bc-49fc-83ba-0e0b54f8ce00",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:49.797Z"
+    },
+    {
+      "id": "349972d4-f162-41e3-9560-ab09d7b89135",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "0de5d7c4-38bc-49fc-83ba-0e0b54f8ce00",
+      "content": "Can we visit both Cebu and Palawan",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:28:49.797Z"
+    },
+    {
+      "id": "284927aa-0374-4b06-9b25-13999650623d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "ffc30b1e-947e-4033-8587-11452954ada9",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:01.376Z"
+    },
+    {
+      "id": "4810ef56-95d3-428d-a599-83a6d9b5013f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "ffc30b1e-947e-4033-8587-11452954ada9",
+      "content": "Let's do Cebu and Palawan",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:01.376Z"
+    },
+    {
+      "id": "7f51d8f4-5f4d-4b4f-bfb2-ce1432a7276a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "9c79db53-534b-4fe0-b1df-2d4a0de73712",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:12.316Z"
+    },
+    {
+      "id": "f5bdd68a-8d35-4989-9d3e-5938ec33082d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "9c79db53-534b-4fe0-b1df-2d4a0de73712",
+      "content": "Maybe we can spend the first 2 days in Cebu?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:12.316Z"
+    },
+    {
+      "id": "e532e584-f1b1-4b73-8924-a945f8463438",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "jump_to_latest",
+      "actorUserId": "user1",
+      "createdAt": "2026-03-26T08:29:13.955Z"
+    },
+    {
+      "id": "8c30fb3a-9439-4e20-8117-b925341fa1d2",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "6f2caaeb-e0d6-47d8-ba34-5dcf0792fe09",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:16.688Z"
+    },
+    {
+      "id": "c78f4e81-5e31-4715-b07c-1d3e90a98ee6",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "6f2caaeb-e0d6-47d8-ba34-5dcf0792fe09",
+      "content": "sure!",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:16.688Z"
+    },
+    {
+      "id": "9eb396b3-cda0-4c24-898b-23a824f72c05",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "b187d5c1-b06f-46c4-b960-596f21eb739d",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:26.489Z"
+    },
+    {
+      "id": "0f7891e3-3528-48ad-b3f6-5e71fa8dcabb",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "b187d5c1-b06f-46c4-b960-596f21eb739d",
+      "content": "Help to come up with an itinerary for the first 2 days of our trip in Cebu",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:26.489Z"
+    },
+    {
+      "id": "139c005e-0d14-4b2a-9d16-a519161ca462",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "0bc40ef9-554e-4b1d-bb62-31f5ec2fdc1a",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:29:44.056Z"
+    },
+    {
+      "id": "fbfb5e24-8fde-42cb-b59e-f0dbd2b180a9",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "a2f4fbb3-e2e4-47e6-b420-ec07c2d83ebb",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:46.205Z"
+    },
+    {
+      "id": "c6b2a9f2-b163-483a-90d0-8384173b7555",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "a2f4fbb3-e2e4-47e6-b420-ec07c2d83ebb",
+      "content": "Could you add some timestamps?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:29:46.205Z"
+    },
+    {
+      "id": "9d952bb1-c362-460b-9f0d-358b41a8ab5e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "8f0a72c1-3d09-4de0-b162-4345cf5df123",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:29:59.058Z"
+    },
+    {
+      "id": "4defbc21-6901-4ab5-95be-29cb6ca4bd2f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "8f0a72c1-3d09-4de0-b162-4345cf5df123",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:30:10.122Z"
+    },
+    {
+      "id": "d7328aef-9271-4c5a-806c-ba83588794c3",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "user1",
+      "messageId": "f38e1cb4-8d9c-4822-826b-a660fd15d172",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:16.458Z"
+    },
+    {
+      "id": "6759ceef-2c8c-4d12-a3cf-352640f2ffb6",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "user1",
+      "messageId": "f38e1cb4-8d9c-4822-826b-a660fd15d172",
+      "content": "Hi guys!! Sorry ah but i can only make it for 2 days.. how",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:16.458Z"
+    },
+    {
+      "id": "450d0795-5a26-4152-a198-cbf6612bb118",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "bd05f9a1-e8f9-471a-a1cf-34282b75b138",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "server-classifier",
+        "routeRationale": "Direct @agent mention should route to conversational assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:36.286Z"
+    },
+    {
+      "id": "1d49ff4b-4a36-4e0f-8518-41c23f57242e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "bd05f9a1-e8f9-471a-a1cf-34282b75b138",
+      "content": "@agent oh, do you want to just come with us for Cebu then",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:36.286Z"
+    },
+    {
+      "id": "5f242852-870a-41d6-adb6-b3cf42774aa1",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "c64bd81f-0b14-413b-9838-5a8b68f269c9",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:43.911Z"
+    },
+    {
+      "id": "1ad0215d-df13-4b9d-ab99-1f78dded4ed8",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "c64bd81f-0b14-413b-9838-5a8b68f269c9",
+      "content": "Hmm that's tough... perhaps a 1.5 days?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:43.911Z"
+    },
+    {
+      "id": "bbbaf1f6-b3c0-4d16-bdbe-edf2dabb084f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "focus_chat_message",
+      "actorUserId": "user1",
+      "messageId": "8f0a72c1-3d09-4de0-b162-4345cf5df123",
+      "metadata": {
+        "source": "reply-preview"
+      },
+      "createdAt": "2026-03-26T08:30:49.556Z"
+    },
+    {
+      "id": "c54b8310-4219-430d-ae5e-3d4bf38e5633",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "focus_chat_message",
+      "actorUserId": "user1",
+      "messageId": "0bc40ef9-554e-4b1d-bb62-31f5ec2fdc1a",
+      "metadata": {
+        "source": "reply-preview"
+      },
+      "createdAt": "2026-03-26T08:30:49.556Z"
+    },
+    {
+      "id": "36aaf3a9-38e5-4362-b6d2-111e0c27f23d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "focus_chat_message",
+      "actorUserId": "user1",
+      "messageId": "bd05f9a1-e8f9-471a-a1cf-34282b75b138",
+      "metadata": {
+        "source": "reply-preview"
+      },
+      "createdAt": "2026-03-26T08:30:55.091Z"
+    },
+    {
+      "id": "ed46f8e6-3331-4a68-aa34-3432e6aacdfa",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "e7556e56-f543-43cf-9a53-3a5c7d06e50d",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:59.497Z"
+    },
+    {
+      "id": "eef7962d-e98b-4c1e-8385-7f24e4f5c850",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "e7556e56-f543-43cf-9a53-3a5c7d06e50d",
+      "content": "Alice is this okay for u",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:30:59.497Z"
+    },
+    {
+      "id": "8d8231db-faf7-4c8d-a918-b31b3557170a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "user1",
+      "messageId": "7c7300d6-2f2f-4808-919d-718c0af1752d",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:31:22.939Z"
+    },
+    {
+      "id": "4a376e90-54a5-4674-ab81-b309515ea9bd",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "user1",
+      "messageId": "7c7300d6-2f2f-4808-919d-718c0af1752d",
+      "content": "but the flight is so long.. i cant make it for that",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:31:22.939Z"
+    },
+    {
+      "id": "6c3df37c-a613-4d2b-8a1a-45466bb560e7",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "7c7300d6-2f2f-4808-919d-718c0af1752d",
+        "sourceLabel": "Alice"
+      },
+      "createdAt": "2026-03-26T08:31:28.647Z"
+    },
+    {
+      "id": "8ef10a83-e000-4a15-ac10-5a0eed161a6f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "3c89b164-16a0-46ba-bdda-b1fa3103f2ba",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:31:33.717Z"
+    },
+    {
+      "id": "7ca96b0e-703e-42f8-96f2-c15dcc17400b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "3c89b164-16a0-46ba-bdda-b1fa3103f2ba",
+      "content": "@agent can you make the flight shorter?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:31:33.717Z"
+    },
+    {
+      "id": "aab1e08a-5be6-49d7-9076-714883b955e6",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "aef098a6-31f2-4c9d-80d7-469acf4d43e0",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:31:54.679Z"
+    },
+    {
+      "id": "b7cfdc5a-d146-4d96-bc01-65b7d75f1606",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "aef098a6-31f2-4c9d-80d7-469acf4d43e0",
+      "content": "Does that work for us?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:31:54.679Z"
+    },
+    {
+      "id": "b6d50981-dd7a-42c3-b1d3-487b49f30a9a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "3f1cb948-5a16-47cb-b3b3-f3158cf6a289",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:03.098Z"
+    },
+    {
+      "id": "839c90fe-d2c4-424d-9ad8-9d53b226630e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "3f1cb948-5a16-47cb-b3b3-f3158cf6a289",
+      "content": "okay then we go bali",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:03.098Z"
+    },
+    {
+      "id": "eb6374d5-e2f5-4645-9163-08b33123b1e6",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "e0e57d51-a26f-4a68-8ce2-d75a8c907271",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:03.705Z"
+    },
+    {
+      "id": "b4ba5bac-dbd6-4d04-b9c4-a59e7478d6ae",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "e0e57d51-a26f-4a68-8ce2-d75a8c907271",
+      "content": "I'm cool with that",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:03.705Z"
+    },
+    {
+      "id": "83c532c7-3624-4187-8121-522b2d557b14",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "7bd22d91-25ea-4b75-a1c8-b51c2624d817",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:13.148Z"
+    },
+    {
+      "id": "606388f5-dba1-4f26-a306-50f1913bbc89",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "7bd22d91-25ea-4b75-a1c8-b51c2624d817",
+      "content": "oh",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:13.148Z"
+    },
+    {
+      "id": "341be3ca-8990-4900-b436-a005e7e7893c",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "01cd253b-66f4-4f6c-8ee8-562d9a0acb1a",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:13.148Z"
+    },
+    {
+      "id": "4c28567d-6ff9-46cc-ade8-f8858f767d8e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "01cd253b-66f4-4f6c-8ee8-562d9a0acb1a",
+      "content": "lol",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:13.148Z"
+    },
+    {
+      "id": "ac4a995a-b133-4986-b5d8-e269bef6302f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "af72372b-4541-40ab-8caf-b61312ea1197",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:13.148Z"
+    },
+    {
+      "id": "ed865fd6-b846-433c-a30a-146b1286c8cd",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "af72372b-4541-40ab-8caf-b61312ea1197",
+      "content": "okay cebu",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:13.148Z"
+    },
+    {
+      "id": "0fab4ac1-35bc-4687-9eb5-661efcc3b697",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "2af0cbf1-b6c3-4ccc-9127-ef1479cce3d8",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:16.567Z"
+    },
+    {
+      "id": "33ffaae0-521b-47f8-bcdd-5bccd5f82753",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "2af0cbf1-b6c3-4ccc-9127-ef1479cce3d8",
+      "content": "omg",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:16.567Z"
+    },
+    {
+      "id": "f9a6eba1-a936-4b3e-b2b2-021f8aef908c",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "d449aa67-c792-455e-9102-53a7e19423d5",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:16.567Z"
+    },
+    {
+      "id": "d7c8b118-96f9-47ee-8c76-116826b23d9e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "d449aa67-c792-455e-9102-53a7e19423d5",
+      "content": "did alice leave",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:16.567Z"
+    },
+    {
+      "id": "cd1c842c-a61e-4f49-bc23-bddb8c58bff8",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "308a589b-c3a8-43d3-b39c-cd915c7cbae5",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:24.166Z"
+    },
+    {
+      "id": "3e8bff32-7cfe-48ff-9685-33c314dff561",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "308a589b-c3a8-43d3-b39c-cd915c7cbae5",
+      "content": "she broke",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:24.166Z"
+    },
+    {
+      "id": "0acd7d3b-73f6-4962-b006-24d3fc98af49",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "14c35388-b02d-403f-be15-1cd7b88580cd",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:27.113Z"
+    },
+    {
+      "id": "c2502164-97ea-4ab6-8f68-cda8dec55790",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "14c35388-b02d-403f-be15-1cd7b88580cd",
+      "content": "maybe we can go back to philippines",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:27.113Z"
+    },
+    {
+      "id": "9fe35def-4d41-45c2-adde-82b3917a5cab",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "dbe1df02-c594-4974-99ab-73fba370c60c",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:34.699Z"
+    },
+    {
+      "id": "d7a91f26-c94e-47f7-868e-971bd3fbd33d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "dbe1df02-c594-4974-99ab-73fba370c60c",
+      "content": "yay!",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:34.699Z"
+    },
+    {
+      "id": "fd05017d-7799-4268-ab42-58c191578f43",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "d1533ee5-ed72-40a1-83d5-7bbba256bfd8",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:41.982Z"
+    },
+    {
+      "id": "1218d3e8-f30a-4c6c-9fad-e2b94b6c4ff4",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "d1533ee5-ed72-40a1-83d5-7bbba256bfd8",
+      "content": "Nice - Cebu and Palawan?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:41.982Z"
+    },
+    {
+      "id": "21b93014-c279-482a-a4d6-750da233d83b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "4e7bec10-5b9a-4ee5-bd1f-ad865c803bc3",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:52.313Z"
+    },
+    {
+      "id": "687f18e8-b8f5-49ca-9aff-e76a1b37caf2",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "4e7bec10-5b9a-4ee5-bd1f-ad865c803bc3",
+      "content": "What is the travel time from Cebu and Palawan",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:32:52.313Z"
+    },
+    {
+      "id": "0272681f-259b-4245-87da-644930a638ee",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "jump_to_latest",
+      "actorUserId": "user1",
+      "createdAt": "2026-03-26T08:32:56.417Z"
+    },
+    {
+      "id": "436dc5bc-ff29-4fa9-8763-fed68cdd29d9",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:35:06.150Z"
+    },
+    {
+      "id": "a527c662-16ef-46a5-b673-25436aa812de",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:35:30.293Z"
+    },
+    {
+      "id": "5dd787d0-99c7-466f-a2e2-2727e8792982",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:36:30.092Z"
+    },
+    {
+      "id": "bad15d3d-cdad-4c22-b23d-4639d7daad6b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:37:46.904Z"
+    },
+    {
+      "id": "1e46deb3-723e-4d19-9219-de55a9a3808e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-26T08:41:46.206Z"
+    },
+    {
+      "id": "4de190fd-bd45-43ba-b380-55b4242f1ed8",
+      "teamId": "study-team-05",
+      "sessionId": "1177ac7b-0b17-456b-92ef-ad2b96f64257",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "team1",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-27T19:05:54.043Z"
+    },
+    {
+      "id": "ad130c2b-1ef5-400c-be01-61afea7050fc",
+      "teamId": "study-team-05",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-27T19:10:49.780Z"
+    },
+    {
+      "id": "a4364948-ce27-4ef0-ad49-8c2faf3de9f5",
+      "teamId": "study-team-05",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-27T19:10:49.780Z"
+    },
+    {
+      "id": "ccce364c-d461-45af-b771-d81aa1c1afe5",
+      "teamId": "study-team-05",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "session",
+      "eventName": "session_export_completed",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-27T19:10:50.990Z"
+    },
+    {
+      "id": "fd621819-e8da-49f1-8d83-3752ab46f39c",
+      "teamId": "study-team-05",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "timeline-json"
+      },
+      "createdAt": "2026-03-27T19:10:50.990Z"
+    }
+  ],
+  "metrics": {
+    "teamId": "study-team-05",
+    "windowStart": "2026-03-25T18:51:21.348Z",
+    "windowEnd": "2026-03-27T19:10:50.990Z",
+    "totalEvents": 145,
+    "uniqueUsers": 3,
+    "messageSentCount": 53,
+    "insightStatusChangeCount": 0,
+    "tabSwitchCount": 0,
+    "contextEditCount": 2,
+    "exportCount": 2,
+    "resetCount": 0,
+    "markerJumpCount": 0,
+    "timelineSyncCount": 0,
+    "linkHoverCount": 0,
+    "actionAcceptedCount": 0,
+    "actionDismissedCount": 0,
+    "actionCompletedCount": 0,
+    "avgSecondsBetweenEvents": 1208.12
+  }
+}

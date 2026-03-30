@@ -1,0 +1,2088 @@
+{
+  "teamId": "study-team-04",
+  "exportedAt": "2026-03-27T19:10:44.923Z",
+  "sessionSpec": {
+    "teamId": "study-team-04",
+    "teamName": "Team - AI On",
+    "conditionFlag": "AI_ON",
+    "runOrder": "AB",
+    "runOneCondition": "AI_ON",
+    "runTwoCondition": "AI_LIGHT"
+  },
+  "participants": [
+    {
+      "userId": "agent",
+      "name": "AI Agent",
+      "role": "agent",
+      "teamRole": null,
+      "isAgent": true
+    },
+    {
+      "userId": "study-user-01",
+      "name": "Study Participant 01",
+      "role": "admin",
+      "teamRole": "owner",
+      "isAgent": false
+    },
+    {
+      "userId": "study-user-02",
+      "name": "Study Participant 02",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "study-user-03",
+      "name": "Study Participant 03",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user1",
+      "name": "Alice",
+      "role": "admin",
+      "teamRole": "admin",
+      "isAgent": false
+    },
+    {
+      "userId": "user2",
+      "name": "Bob",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user3",
+      "name": "Charlie",
+      "role": "admin",
+      "teamRole": "member",
+      "isAgent": false
+    }
+  ],
+  "timeline": [
+    {
+      "id": "d6c2eb07-4fc5-4425-aa93-a9e32da2c754",
+      "teamId": "study-team-04",
+      "sessionId": "707f971e-4563-4444-944d-97fd58b01e0d",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-03",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-25T18:51:21.348Z"
+    },
+    {
+      "id": "59407f97-c65f-4642-818d-426a9ada52ac",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:06:37.804Z"
+    },
+    {
+      "id": "9335172c-14b0-48dd-a251-0d70614384bd",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "previousTeamId": "study-team-02",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:06:39.119Z"
+    },
+    {
+      "id": "944298d9-4485-44b2-aa1e-ccc53723016a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_ai_toggle_changed",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "enabled": false
+      },
+      "createdAt": "2026-03-26T08:07:19.911Z"
+    },
+    {
+      "id": "e302e20e-80c0-40c1-9d32-437903ae99d7",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_ai_toggle_changed",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "enabled": true
+      },
+      "createdAt": "2026-03-26T08:07:19.911Z"
+    },
+    {
+      "id": "68b1e3ba-3270-469f-bd35-c51d12626a5b",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_ai_toggle_changed",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "enabled": false
+      },
+      "createdAt": "2026-03-26T08:07:24.677Z"
+    },
+    {
+      "id": "5092f6a3-e7a7-416a-869b-751dc37eeb3f",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_ai_toggle_changed",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "enabled": true
+      },
+      "createdAt": "2026-03-26T08:07:34.097Z"
+    },
+    {
+      "id": "f4a064f2-84c2-4ff7-a881-a8f073245140",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "fa0685a5-e291-4ef9-ba26-818ad295df9e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:07:41.370Z"
+    },
+    {
+      "id": "f7b2152d-272d-452a-a1e6-c2aa9fdd7ef9",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "fa0685a5-e291-4ef9-ba26-818ad295df9e",
+      "content": "hii",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:07:41.370Z"
+    },
+    {
+      "id": "f583aa77-9e99-41f0-bbb9-11c53b59df3d",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "team_ai_toggle_changed",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "enabled": false
+      },
+      "createdAt": "2026-03-26T08:07:42.105Z"
+    },
+    {
+      "id": "141a2020-df37-4ca2-ab2e-fb894772abff",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "team_ai_toggle_changed",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "enabled": true
+      },
+      "createdAt": "2026-03-26T08:07:42.105Z"
+    },
+    {
+      "id": "8b6a1af0-bfa3-45a7-a211-fbe5142b6b12",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "665aceb5-50c2-4932-86a9-e63138f4fa2f",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:07:50.693Z"
+    },
+    {
+      "id": "442f8d35-a376-4d98-95f9-965202909864",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "665aceb5-50c2-4932-86a9-e63138f4fa2f",
+      "content": "lemme add the context",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:07:50.693Z"
+    },
+    {
+      "id": "fae1017b-0de8-4a07-ae73-456b454d2a24",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:07:50.693Z"
+    },
+    {
+      "id": "d0b2ba4e-bf55-437d-81f3-cc223fc006a8",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "team1",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:07:52.172Z"
+    },
+    {
+      "id": "fc1d0d36-9cde-4faf-b4f2-5cb88e61929a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "1a09e016-25dc-46c0-9334-7d8366bf894a",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:07:56.819Z"
+    },
+    {
+      "id": "162d43c9-532e-4ba3-9b0a-901f7666b0ab",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "1a09e016-25dc-46c0-9334-7d8366bf894a",
+      "content": "ok!",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:07:56.819Z"
+    },
+    {
+      "id": "9da8c1c5-23da-41d9-baf6-f96f9a53c548",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:07:59.914Z"
+    },
+    {
+      "id": "3471a6d1-7bae-4b3e-af00-5b1a3114595e",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "66677c37-c2a2-432a-8c57-5f5603e90286",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.06.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:08:05.996Z"
+    },
+    {
+      "id": "1be1ff25-403a-4c44-8ca1-d9b8e38bdb20",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "66677c37-c2a2-432a-8c57-5f5603e90286",
+      "content": "what is this project about again?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:08:05.996Z"
+    },
+    {
+      "id": "782e2971-3c74-48d5-bc6f-e287d7a5ed5e",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:08:11.359Z"
+    },
+    {
+      "id": "200a8e87-6e3f-492e-a3ef-34f5031455f0",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:08:22.209Z"
+    },
+    {
+      "id": "8871ef0d-a8a1-4a98-839a-795ae540d6ad",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "16c773c0-5022-4381-a631-6eecc602e42f",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:08:22.905Z"
+    },
+    {
+      "id": "ce987793-4b3c-4dda-8bd7-8071f48ab724",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "16c773c0-5022-4381-a631-6eecc602e42f",
+      "content": "It's a short-film creation project",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:08:22.905Z"
+    },
+    {
+      "id": "d0d16ac6-813f-4c99-8620-a41f2b773d74",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-26T08:08:26.618Z"
+    },
+    {
+      "id": "2035ce18-eb11-4c24-8a65-377e54d6c217",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "42458ec7-c383-48cf-b817-3bc365771473",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode. Research score=0.08.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:08:39.963Z"
+    },
+    {
+      "id": "16a12c3f-3dfc-4b68-9de2-75c92bc95acd",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "42458ec7-c383-48cf-b817-3bc365771473",
+      "content": "We need to come up with the format, concept and have a workable idea by the end of the week",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:08:39.963Z"
+    },
+    {
+      "id": "fa8b0dcf-45ae-429b-9527-0230ff5e69b2",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "context",
+      "eventName": "task_context_saved",
+      "actorUserId": "study-user-01",
+      "content": "We are creating a short-film creation project for University level course.",
+      "metadata": {
+        "previousLength": 0,
+        "nextLength": 74,
+        "mode": "embedded"
+      },
+      "createdAt": "2026-03-26T08:08:46.038Z"
+    },
+    {
+      "id": "51cfa87a-15ae-4c2d-a36c-98f465bb344e",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-26T08:08:53.989Z"
+    },
+    {
+      "id": "520462d0-139b-454a-99ac-68131df88a32",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "0fbb73b3-d72e-4cf4-ab39-f53c8d38e7cc",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:03.165Z"
+    },
+    {
+      "id": "26011255-9a78-4875-a753-8d1a0b30beaf",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "0fbb73b3-d72e-4cf4-ab39-f53c8d38e7cc",
+      "content": "okay",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:03.165Z"
+    },
+    {
+      "id": "4c937684-620a-4bc0-93a6-fbbcf3b8a78c",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "db512fd7-f2e0-4c40-9c1b-efc49ebeff50",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:17.418Z"
+    },
+    {
+      "id": "e127d6b1-b8ce-463a-991a-7d04511d08fa",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "db512fd7-f2e0-4c40-9c1b-efc49ebeff50",
+      "content": "What are some examples of format we can follow for this project",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:17.418Z"
+    },
+    {
+      "id": "dd526de0-eedd-4344-85c7-8930f700bc84",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "2880c5b0-eb67-40b8-9e47-560d81fc33d9",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.06.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:36.803Z"
+    },
+    {
+      "id": "c311a77d-fd9e-4d59-ac29-fb54930ec466",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "2880c5b0-eb67-40b8-9e47-560d81fc33d9",
+      "content": "Maybe we could do the silent film?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:36.803Z"
+    },
+    {
+      "id": "18a86209-a8b7-40e0-bec2-319c77b1edda",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "032b98cc-46a8-4066-8a25-d60d2523b32e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:44.009Z"
+    },
+    {
+      "id": "eca34afe-15d0-4caa-a5c6-a5362e95d714",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "032b98cc-46a8-4066-8a25-d60d2523b32e",
+      "content": "Won't need to record any lines haha",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:44.009Z"
+    },
+    {
+      "id": "ba70ddd7-154f-450e-b9fc-21fb342505c3",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "team1",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:09:47.295Z"
+    },
+    {
+      "id": "7d2c015a-77ca-4b05-ab21-e5a415262899",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "347e5958-a909-48ad-ac94-44cf9f50c11f",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:51.208Z"
+    },
+    {
+      "id": "f46ad88d-40a3-43af-85df-544c71e47cd8",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "347e5958-a909-48ad-ac94-44cf9f50c11f",
+      "content": "oh okay! sounds good",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:09:51.208Z"
+    },
+    {
+      "id": "920c2761-671a-409e-abc7-682774b151ef",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "cf522b0c-25ce-476c-9aa2-54ed93b396fb",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-26T08:10:04.345Z"
+    },
+    {
+      "id": "7038a883-4e8b-4629-873d-7be6b297e65a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "cf522b0c-25ce-476c-9aa2-54ed93b396fb",
+      "content": "Give me research on silent films",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "research",
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-26T08:10:04.345Z"
+    },
+    {
+      "id": "605eef69-1f31-49bd-b2ca-03f35f058d58",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:10.155Z"
+    },
+    {
+      "id": "df3a543a-29e6-45ce-af54-0f231818b688",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:10.155Z"
+    },
+    {
+      "id": "fcd44818-1759-423f-a822-fdcc0ce1c1f0",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:10.884Z"
+    },
+    {
+      "id": "4d709a93-8762-47e1-bf12-2ff63f2930db",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:10.884Z"
+    },
+    {
+      "id": "114b15f0-a5ae-4edc-af0d-4568307acf42",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:15.193Z"
+    },
+    {
+      "id": "b019ec4e-f1c1-4787-80af-0ae03f738335",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:15.522Z"
+    },
+    {
+      "id": "7c3636da-538d-4b63-b081-4f240d7bbac7",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_marker",
+      "actorUserId": "user1",
+      "messageId": "35dbc507-5741-48b9-b5c0-134b2c1f3620",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "createdAt": "2026-03-26T08:10:15.522Z"
+    },
+    {
+      "id": "6464a034-759b-42c8-891b-af84ef660e42",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:16.202Z"
+    },
+    {
+      "id": "f8cbe1c7-5b99-487a-ae60-4dbd90269972",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "insight",
+      "eventName": "insight_status_changed",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "content": "## Context and Objective\nThe team is engaged in a University-level short-film creation project. The objective is to develop a concept and format for the film, with a deliverable idea ready by the end of the week.\n\n## Discussion Highlights\n- **Project Overview**: The project involves creating a short film. The team is in the initial stages of brainstorming ideas for the film's format and concept.\n- **Format Considerations**: Various short film formats were discussed, including narrative, documentary, experimental, animation, and silent film.\n- **Interest in Silent Film**: The team showed a strong interest in pursuing a silent film format. This was partly due to the perceived simplicity of not having to record dialogue.\n\n## Decisions and Rationale\n- **Chosen Format**: The team decided on creating a silent film. The rationale behind this choice was the simplicity it offers in terms of production, as it eliminates the need for dialogue recording, which can be a complex and time-consuming process.\n\n## Risks and Open Questions\n- **Understanding Silent Film**: There is a need for comprehensive research on silent films to ensure the team fully understands the nuances and techniques involved in effectively conveying a story without spoken dialogue.\n- **Creative Execution**: How will the team ensure that the silent film is engaging and communicates the intended message or emotion to the audience?\n- **Resource Constraints**: Are there any potential challenges related to the resources or skills required to execute a silent film, such as expertise in visual storytelling or music composition?\n\nThe team should focus on conducting thorough research on silent films to address these open questions and mitigate potential risks.",
+      "metadata": {
+        "insightType": "document",
+        "title": "Context and Objective",
+        "fromStatus": "new",
+        "toStatus": "accepted"
+      },
+      "createdAt": "2026-03-26T08:10:19.559Z"
+    },
+    {
+      "id": "1035ef05-b7c8-4740-9eac-161c43f1decd",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:21.421Z"
+    },
+    {
+      "id": "3dad5dfe-deb3-4bf5-808f-9953b3cfb015",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:24.006Z"
+    },
+    {
+      "id": "c073cca2-310d-4b49-bdac-d57994666c45",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "insight",
+        "sourceId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+        "sourceLabel": "Context and Objective"
+      },
+      "createdAt": "2026-03-26T08:10:24.006Z"
+    },
+    {
+      "id": "52c1de82-9559-4d6d-9c25-e0b8c9d6a9d0",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:24.808Z"
+    },
+    {
+      "id": "a7229eb3-9acb-4334-b959-0fd2d4a31fa2",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:24.808Z"
+    },
+    {
+      "id": "69e0e49e-7a86-44df-af4b-42b2fbea8ecf",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:30.127Z"
+    },
+    {
+      "id": "7f7fa501-a2c1-46cd-b52e-c06ae713bbc4",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:31.859Z"
+    },
+    {
+      "id": "d8c6c5d5-74d2-4c3d-a083-53645fa7a098",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:10:31.859Z"
+    },
+    {
+      "id": "0cc70ffa-4a22-4bfc-a4da-0b028941edde",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "6661bef0-72de-4116-b342-376d33f56ef7",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:10:32.070Z"
+    },
+    {
+      "id": "191c05b6-2d79-4ef4-ab8a-d9850b823247",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "6661bef0-72de-4116-b342-376d33f56ef7",
+      "content": "@agent I want examples instead",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:10:32.070Z"
+    },
+    {
+      "id": "f7e6df39-0b56-48fb-8388-73b2b6ede3ca",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "2ffafcbf-9298-4dee-87bc-9e4a21e20cdc",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.08.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:10:57.109Z"
+    },
+    {
+      "id": "0cc6bace-1b55-44af-a071-5de2987c3a19",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "2ffafcbf-9298-4dee-87bc-9e4a21e20cdc",
+      "content": "Shall we split up the work to watch these films first for our research?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:10:57.109Z"
+    },
+    {
+      "id": "876d4028-c839-4f8b-8365-134beaf521f6",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "d1c2f3ff-c416-4046-a506-c9509f43342b",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:11:05.337Z"
+    },
+    {
+      "id": "328213cb-5a5f-46cb-89c3-63dc29f4f2e7",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "d1c2f3ff-c416-4046-a506-c9509f43342b",
+      "content": "Yeah let's do that",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:11:05.337Z"
+    },
+    {
+      "id": "8d0e6f5f-0842-4365-b4da-025ceb716704",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "37a857f5-eca6-4048-b260-78c9cbc0888c",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:11:16.948Z"
+    },
+    {
+      "id": "c3a0ca04-8153-4dc4-9720-b901e7de3272",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "37a857f5-eca6-4048-b260-78c9cbc0888c",
+      "content": "maybe we could do a horror film - but let's keep the budget in mind",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:11:16.948Z"
+    },
+    {
+      "id": "2b93d738-449b-4a39-af40-bb9850c69ec2",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "jump_to_latest",
+      "actorUserId": "study-user-01",
+      "createdAt": "2026-03-26T08:11:25.236Z"
+    },
+    {
+      "id": "7f4be1d2-b377-4558-901c-ae5c2a0aeb7d",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:11:35.750Z"
+    },
+    {
+      "id": "f0c564e7-9690-4a82-8485-369f4ce07161",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "15d06988-4e10-4c32-8d68-845c52f8f10e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:11:58.471Z"
+    },
+    {
+      "id": "c00eb215-9da4-45ea-bd73-0586298a1ddd",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "15d06988-4e10-4c32-8d68-845c52f8f10e",
+      "content": "we have $300 budget right? nice",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:11:58.471Z"
+    },
+    {
+      "id": "00ef0a17-72d7-4f0d-a7bf-2331cccb31a3",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "c227987c-4fe3-477b-bcc6-ab015d3baa91",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:12:09.436Z"
+    },
+    {
+      "id": "ac7aaa91-96df-40c4-a615-df1b9f2e7777",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "c227987c-4fe3-477b-bcc6-ab015d3baa91",
+      "content": "for a short film, how shall we split the budget up",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:12:09.436Z"
+    },
+    {
+      "id": "374aea1c-63a6-4ede-8d5e-61f2e0d9819a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "e69763af-55f0-46d2-bc80-b15f44202059",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:12:17.056Z"
+    },
+    {
+      "id": "fee8185a-29ec-44a6-b420-606ba3bebfc5",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "e71b9af3-0e9d-4eb4-80ed-81c2dfe5fac4",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:13:01.387Z"
+    },
+    {
+      "id": "8eff8925-00e5-490d-a81d-62414c1f6004",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "e71b9af3-0e9d-4eb4-80ed-81c2dfe5fac4",
+      "content": "Where are some good places to film a horror movie?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:13:01.387Z"
+    },
+    {
+      "id": "e430edb3-4ec5-4bef-973f-66a29571cd0d",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "371beb08-a383-4b06-952b-c91e612a053b",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:13:15.404Z"
+    },
+    {
+      "id": "8020a3e2-9920-4d09-b807-edbf82ee859f",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "74f0ff1e-cea8-4488-b3ae-a34618db799b",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:13:21.133Z"
+    },
+    {
+      "id": "ebb7b9a7-7ee1-473e-b582-aa247f8e760e",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "74f0ff1e-cea8-4488-b3ae-a34618db799b",
+      "content": "@agent any specific places in Singapore?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:13:21.133Z"
+    },
+    {
+      "id": "7200294f-a000-4f80-b15d-7ec393bbcf89",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:13:21.133Z"
+    },
+    {
+      "id": "19edef11-d0a1-4792-8da3-15b78561163d",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:13:29.481Z"
+    },
+    {
+      "id": "fb8c74fa-2685-4566-b8fb-37e5802967eb",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:13:46.811Z"
+    },
+    {
+      "id": "a5133c99-3ebd-4306-9e2b-215c2b4d6452",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "68ec5823-da14-4356-9156-b29e7217c578",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:15.648Z"
+    },
+    {
+      "id": "b8560a9b-8f99-4a2a-92d1-f8554f979b30",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "68ec5823-da14-4356-9156-b29e7217c578",
+      "content": "Any special considerations to keep in mind if we plan to film in Changi Hospital?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:15.648Z"
+    },
+    {
+      "id": "fa452916-f072-449c-b79e-b00f39ce49f0",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "01054ac8-a4b5-41e4-a652-f4496b9c7455",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:16.788Z"
+    },
+    {
+      "id": "08a27dd8-e751-4778-8295-0813b705375d",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "01054ac8-a4b5-41e4-a652-f4496b9c7455",
+      "content": "Oh Haw Par Villa is near us",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:16.788Z"
+    },
+    {
+      "id": "219f92e1-1333-4ad4-a8ad-5943e00b7c71",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "684de9d5-8b1e-4713-abde-d9d2949c8091",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:14:31.782Z"
+    },
+    {
+      "id": "b5302181-dcf2-4cea-ade3-f345b6088c36",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "edbd80f1-d5e5-4386-bb10-e34657016996",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:40.197Z"
+    },
+    {
+      "id": "acb53d32-8e94-49c1-97da-03438a26569d",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "edbd80f1-d5e5-4386-bb10-e34657016996",
+      "content": "@agent what are some famous stories about Changi Hospital",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:40.197Z"
+    },
+    {
+      "id": "2bd7fdaa-9701-4753-812f-c778a2f0cc24",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "219dd654-da98-458d-95f5-32229233af7f",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output. Research score=0.06.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:54.621Z"
+    },
+    {
+      "id": "b3d4b5ee-af40-4c89-948b-bebe0d818b37",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "219dd654-da98-458d-95f5-32229233af7f",
+      "content": "Maybe we should do a publicly accessible area?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:14:54.621Z"
+    },
+    {
+      "id": "c5ed1a79-5180-491d-a2bf-34905955ec00",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "219dd654-da98-458d-95f5-32229233af7f",
+        "sourceLabel": "Study Participant 02"
+      },
+      "createdAt": "2026-03-26T08:15:03.217Z"
+    },
+    {
+      "id": "e5921ed2-3ecb-4d6f-9c71-2cf7cfa5ea70",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "92586431-483e-4168-bc9a-63729560b9c7",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:15:12.559Z"
+    },
+    {
+      "id": "9dae1ee2-fff7-494a-9308-c21459e5402f",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "92586431-483e-4168-bc9a-63729560b9c7",
+      "content": "@agent Agreed, what would be the best for us",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:15:12.559Z"
+    },
+    {
+      "id": "9e711f9f-405a-4685-ac2c-d481878aa348",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "77af37db-e150-445b-ba89-010c2413e824",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:15:16.114Z"
+    },
+    {
+      "id": "136cc8d6-25e4-4441-955d-63aac199baf4",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "77af37db-e150-445b-ba89-010c2413e824",
+      "content": "Any special considerations when filming at fort canning?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:15:16.114Z"
+    },
+    {
+      "id": "39cfacd5-8826-42bf-8342-57fff68bf4bb",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "88121435-995b-41e4-9047-309be664eacf",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode. Research score=0.08.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:16:42.317Z"
+    },
+    {
+      "id": "8560e75c-9949-429e-9bbd-3b6d4c4f79d9",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "88121435-995b-41e4-9047-309be664eacf",
+      "content": "Perhaps we can create a horror film in Fort Canning Park. I'm thinking of a WW2 themed horror flick.",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:16:42.317Z"
+    },
+    {
+      "id": "938c960f-d6d2-4a85-ac03-469d82b7d7d8",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:17:12.443Z"
+    },
+    {
+      "id": "9ab58512-0c8c-4026-9069-5ef3de9bf642",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "3b21bf06-4c57-45f2-b2b8-36635037fda2",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:17:20.696Z"
+    },
+    {
+      "id": "62317888-1748-4e17-9b5f-16001d9683ae",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "3b21bf06-4c57-45f2-b2b8-36635037fda2",
+      "content": "What are some characters and costume designs we should come up with for a short horror film in fort canning? I'd like to also come up with a storyline.",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-26T08:17:20.696Z"
+    },
+    {
+      "id": "ef26f9e9-7975-4b23-9e55-c9470edf1ea9",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:17:38.497Z"
+    },
+    {
+      "id": "c531e18d-51f3-4ed2-8c76-bb8d4c6deda1",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510544610-0pcb3nb0",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:17:53.381Z"
+    },
+    {
+      "id": "1b145459-3602-4564-9eb8-4fd2396e7c18",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "e69763af-55f0-46d2-bc80-b15f44202059",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:18:54.621Z"
+    },
+    {
+      "id": "4344f40d-a9fa-46ec-bf36-ef1cf2ff083a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "e69763af-55f0-46d2-bc80-b15f44202059",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:19:02.509Z"
+    },
+    {
+      "id": "97ada98a-b16e-43db-bafc-ddb5a11e9b96",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "2ec2f2e6-5e6b-4ff1-809c-4d63bbfc7971",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Deterministic action category selected.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "execution-coach"
+      },
+      "createdAt": "2026-03-26T08:19:14.534Z"
+    },
+    {
+      "id": "d8f3804b-e28b-422d-aab0-eea45219cb31",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "2ec2f2e6-5e6b-4ff1-809c-4d63bbfc7971",
+      "content": "Can you make a table for us to deligate work",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "action",
+        "routeArchetype": "execution-coach",
+        "selectedCategory": "action"
+      },
+      "createdAt": "2026-03-26T08:19:14.534Z"
+    },
+    {
+      "id": "28ab422c-35de-4816-ba15-0f05e98432a1",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "focus_chat_message",
+      "actorUserId": "study-user-01",
+      "messageId": "e69763af-55f0-46d2-bc80-b15f44202059",
+      "metadata": {
+        "source": "reply-preview"
+      },
+      "createdAt": "2026-03-26T08:20:15.792Z"
+    },
+    {
+      "id": "371e0ac7-49bb-4510-931e-dd16f4d97b92",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "jump_to_latest",
+      "actorUserId": "study-user-01",
+      "createdAt": "2026-03-26T08:20:15.792Z"
+    },
+    {
+      "id": "3be3d853-5bb0-4918-8df1-1a1253bce8fa",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "focus_chat_message",
+      "actorUserId": "study-user-01",
+      "messageId": "e69763af-55f0-46d2-bc80-b15f44202059",
+      "metadata": {
+        "source": "reply-preview"
+      },
+      "createdAt": "2026-03-26T08:20:26.894Z"
+    },
+    {
+      "id": "c119eec6-8cb8-4e51-b341-e789bc6b801f",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "sourceType": "message",
+        "sourceId": "e69763af-55f0-46d2-bc80-b15f44202059",
+        "sourceLabel": "AI Reply"
+      },
+      "createdAt": "2026-03-26T08:20:26.894Z"
+    },
+    {
+      "id": "723b2e69-bf67-4f75-b29d-d9621e31443c",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "b7b11303-2a88-4d30-a432-04181c0d5314",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Deterministic action category selected.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "execution-coach"
+      },
+      "createdAt": "2026-03-26T08:20:37.040Z"
+    },
+    {
+      "id": "79284dd6-c749-418a-8e6b-ab1259773d28",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "b7b11303-2a88-4d30-a432-04181c0d5314",
+      "content": "delegate these movies to the users",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "action",
+        "routeArchetype": "execution-coach",
+        "selectedCategory": "action"
+      },
+      "createdAt": "2026-03-26T08:20:37.040Z"
+    },
+    {
+      "id": "18f7fa2d-49a4-4120-911e-32bf4ba6771c",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:21:11.010Z"
+    },
+    {
+      "id": "eaa1c31d-e125-4213-b246-2fe625cdbfd5",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:21:42.625Z"
+    },
+    {
+      "id": "91eff8fc-6f9f-4abc-ac96-06d6962c72c5",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:21:42.625Z"
+    },
+    {
+      "id": "6f712665-21d0-47c0-980f-1a50f1691f54",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:21:51.029Z"
+    },
+    {
+      "id": "af2b9af1-8872-4bbf-906d-45c3ee87cf3b",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:22:52.120Z"
+    },
+    {
+      "id": "4d40ca49-8d79-494d-9230-405e7950bc9a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-05",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:35:06.150Z"
+    },
+    {
+      "id": "f9f87fb9-8add-476c-9389-2e4e2e86834e",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-05",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:35:30.293Z"
+    },
+    {
+      "id": "50a45344-16da-46e1-acde-dd807f20904c",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-05",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:36:13.263Z"
+    },
+    {
+      "id": "d90ff92d-16cd-4b95-adff-03cfa783bf1e",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510800830-3fyb8bt0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "previousTeamId": "study-team-05",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:37:46.904Z"
+    },
+    {
+      "id": "5fb3a0a5-47a7-4135-b78c-041fdc4dfb2a",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-05",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-26T08:43:19.175Z"
+    },
+    {
+      "id": "3f3ef560-76b6-4881-84ae-07f11f599eed",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:46:58.679Z"
+    },
+    {
+      "id": "35efe15f-9f81-4180-9bd4-efd5eaaa8312",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:46:58.679Z"
+    },
+    {
+      "id": "481d63ac-a3b5-47a9-a0f5-0e9fa0110048",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:46:58.679Z"
+    },
+    {
+      "id": "a5e566df-b8d7-4dc3-b836-0376cf470281",
+      "teamId": "study-team-04",
+      "sessionId": "session-1774510353943-xxpeb11f",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-01",
+      "insightId": "fddc0da8-11a9-43d4-aa06-d645335bd1e7",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-26T08:48:33.154Z"
+    },
+    {
+      "id": "5d489fc4-4569-4210-b26a-fb25d85cee89",
+      "teamId": "study-team-04",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-03",
+        "nextTeamId": "study-team-04"
+      },
+      "createdAt": "2026-03-27T19:10:43.794Z"
+    },
+    {
+      "id": "48bd741f-a8bf-404a-ac3a-539c7109c81f",
+      "teamId": "study-team-04",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-27T19:10:43.794Z"
+    },
+    {
+      "id": "7d6b17c4-9c2b-403e-acbf-dab7bfc02f50",
+      "teamId": "study-team-04",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "session",
+      "eventName": "session_export_completed",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-27T19:10:44.880Z"
+    },
+    {
+      "id": "19bea64a-2c4d-4096-93d6-8461d1344d94",
+      "teamId": "study-team-04",
+      "sessionId": "6c60c891-8d69-47f7-aeb0-b1f7cc8932f7",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "timeline-json"
+      },
+      "createdAt": "2026-03-27T19:10:44.880Z"
+    }
+  ],
+  "metrics": {
+    "teamId": "study-team-04",
+    "windowStart": "2026-03-25T18:51:21.348Z",
+    "windowEnd": "2026-03-27T19:10:44.880Z",
+    "totalEvents": 131,
+    "uniqueUsers": 3,
+    "messageSentCount": 30,
+    "insightStatusChangeCount": 1,
+    "tabSwitchCount": 0,
+    "contextEditCount": 1,
+    "exportCount": 2,
+    "resetCount": 0,
+    "markerJumpCount": 1,
+    "timelineSyncCount": 0,
+    "linkHoverCount": 30,
+    "actionAcceptedCount": 1,
+    "actionDismissedCount": 0,
+    "actionCompletedCount": 0,
+    "avgSecondsBetweenEvents": 1338.18
+  }
+}

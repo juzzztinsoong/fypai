@@ -18,7 +18,12 @@
     "db:seed": "tsx src/seed.ts",
     "seed": "tsx src/seed.ts",
     "seed:study": "tsx src/seedStudy.ts",
-    "test:agent-pipeline": "node tests/test-agent-ingestion-embedding.js"
+    "test:conversational-routing": "tsx tests/test-conversational-routing-guardrails.ts",
+    "test:ask-orchestration": "tsx tests/test-ask-orchestration-regression.ts",
+    "test:artifact-contract": "tsx tests/test-artifact-contract-regression.ts",
+    "test:routing-fast": "npm run -s test:conversational-routing && npm run -s test:ask-orchestration && npm run -s test:artifact-contract && tsx tests/test-routing-taxonomy-regression.ts",
+    "test:agent-pipeline": "node tests/test-agent-ingestion-embedding.js",
+    "test:export-contract": "node tests/test-export-contract.js"
   },
   "keywords": [],
   "author": "",

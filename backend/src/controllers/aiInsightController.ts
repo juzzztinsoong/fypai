@@ -21,10 +21,12 @@ import {
   AIInsightDTO,
   AgentPromptArchetype,
   CreateAIInsightRequest,
+  MessageMetadata,
   UpdateAIInsightRequest,
   UpdateInsightStatusRequest,
   aiInsightToDTO,
   aiInsightsToDTO,
+  messageToDTO,
 } from '../types.js'
 import { GitHubModelsClient } from '../ai/core/llm.js'
 import {
@@ -71,6 +73,26 @@ export class AIInsightController {
     'ai insight',
     'decision made',
   ]);
+
+  private static getInsightMaxTokens(type: 'summary' | 'document' | 'action' | 'suggestion'): number {
+    const defaultValueByType: Record<'summary' | 'document' | 'action' | 'suggestion', number> = {
+      summary: 1200,
+      document: 1400,
+      action: 700,
+      suggestion: 700,
+    };
+
+    const envKeyByType: Record<'summary' | 'document' | 'action' | 'suggestion', string> = {
+      summary: 'AI_SUMMARY_MAX_TOKENS',
+      document: 'AI_REPORT_MAX_TOKENS',
+      action: 'AI_ACTION_MAX_TOKENS',
+      suggestion: 'AI_SUGGESTION_MAX_TOKENS',
+    };
+
+    const raw = parseInt(process.env[envKeyByType[type]] || `${defaultValueByType[type]}`, 10);
+    if (Number.isNaN(raw)) return defaultValueByType[type];
+    return Math.max(240, raw);
+  }
 
   private static sanitizeTitleCandidate(raw: string): string {
     return raw
@@ -499,13 +521,11 @@ export class AIInsightController {
     const markerVerb = markerVerbByType[insight.type] || 'Generated insight'
     const markerSnippet = this.extractInsightSnippet(insight.content)
     const markerProvenance = this.resolveMarkerProvenance(insight)
+    const markerCompanionText = `I generated this ${markerLabel.toLowerCase()} insight and linked it here so you can open the full version.`
     const markerMessage = await MessageController.createMessage({
       teamId,
       authorId: 'agent',
-      content:
-        markerSnippet.length > 0
-          ? `${markerVerb}: ${insight.title}\n\n${markerSnippet}`
-          : `${markerVerb}: ${insight.title}`,
+      content: `${markerVerb}: ${insight.title}`,
       contentType: 'text',
       metadata: {
         markerType: insight.type === 'action' ? 'action-insight-link' : 'insight-link',
@@ -515,6 +535,7 @@ export class AIInsightController {
         sourceActionTitle: insight.title,
         markerLabel,
         markerPreview: markerSnippet || undefined,
+        markerCompanionText,
         markerSource: markerProvenance.source,
         markerTrigger: markerProvenance.trigger,
         markerCreatedBy: markerProvenance.createdBy,
@@ -525,6 +546,54 @@ export class AIInsightController {
     if (this.io) {
       this.io.to(`team:${teamId}`).emit('message:new', markerMessage);
       console.log(`[AIInsightController] 🔗 Broadcasted marker message for insight: ${insight.id}`);
+    }
+  }
+
+  static async mergeCompanionIntoMarker(
+    teamId: string,
+    insightId: string,
+    companionText: string,
+  ): Promise<void> {
+    const normalizedText = companionText.replace(/\s+/g, ' ').trim();
+    if (!normalizedText) return;
+
+    const markerRecord = await prisma.message.findFirst({
+      where: {
+        teamId,
+        authorId: 'agent',
+        metadata: {
+          contains: `\"linkedInsightId\":\"${insightId}\"`,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!markerRecord) {
+      console.log(`[AIInsightController] ⚠️ No marker found to merge companion text for insight: ${insightId}`);
+      return;
+    }
+
+    const metadata: MessageMetadata = markerRecord.metadata
+      ? (JSON.parse(markerRecord.metadata) as MessageMetadata)
+      : {};
+
+    if (metadata.markerCompanionText === normalizedText) {
+      return;
+    }
+
+    const updated = await prisma.message.update({
+      where: { id: markerRecord.id },
+      data: {
+        metadata: JSON.stringify({
+          ...metadata,
+          markerCompanionText: normalizedText,
+        }),
+      },
+    });
+
+    if (this.io) {
+      this.io.to(`team:${teamId}`).emit('message:edited', messageToDTO(updated));
+      console.log(`[AIInsightController] 🧩 Merged companion text into marker ${updated.id} for insight: ${insightId}`);
     }
   }
 
@@ -878,7 +947,7 @@ export class AIInsightController {
           { role: 'user', content: 'Please provide a concise conversation summary focused on discussion highlights, decisions made, rationale, and open questions. Do not include action-item checklists.' },
         ],
         model: process.env.LLM_MODEL_TIER_2, // Use Smart Tier for summaries
-        maxTokens: 4096,
+        maxTokens: this.getInsightMaxTokens('summary'),
         temperature: 0.7,
       });
 
@@ -974,7 +1043,7 @@ export class AIInsightController {
           ...conversationHistory,
           { role: 'user', content: reportPrompt },
         ],
-        maxTokens: 4096,
+        maxTokens: this.getInsightMaxTokens('document'),
         temperature: 0.7,
       });
 
@@ -1074,7 +1143,7 @@ Rules:
           { role: 'user', content: actionPrompt },
         ],
         model: process.env.LLM_MODEL_TIER_2,
-        maxTokens: 1400,
+        maxTokens: this.getInsightMaxTokens('action'),
         temperature: 0.35,
       });
 
@@ -1174,7 +1243,7 @@ Rules:
           { role: 'user', content: suggestionPrompt },
         ],
         model: process.env.LLM_MODEL_TIER_2,
-        maxTokens: 1400,
+        maxTokens: this.getInsightMaxTokens('suggestion'),
         temperature: 0.45,
       });
 

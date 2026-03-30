@@ -147,13 +147,10 @@ export async function generateSummary(teamId: string, archetype?: AgentPromptArc
   const entityStore = useEntityStore.getState()
   const uiStore = useUIStore.getState()
   uiStore.setLoading('insight-generation', true)
-  
+
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/summary', { teamId, archetype })
-    
-    // Add to EntityStore (backend socket will also broadcast)
     entityStore.addInsight(response.data)
-    
     console.log('[InsightService] ✅ Summary generated:', response.data.id)
     return response.data
   } catch (error) {
@@ -179,13 +176,10 @@ export async function generateReport(
   const entityStore = useEntityStore.getState()
   const uiStore = useUIStore.getState()
   uiStore.setLoading('insight-generation', true)
-  
+
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/report', { teamId, prompt, archetype })
-    
-    // Add to EntityStore (backend socket will also broadcast)
     entityStore.addInsight(response.data)
-    
     console.log('[InsightService] ✅ Report generated:', response.data.id)
     return response.data
   } catch (error) {
@@ -213,9 +207,7 @@ export async function generateAction(
 
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/action', { teamId, prompt, archetype })
-
     entityStore.addInsight(response.data)
-
     console.log('[InsightService] ✅ Action insight generated:', response.data.id)
     return response.data
   } catch (error) {
@@ -243,9 +235,7 @@ export async function generateSuggestion(
 
   try {
     const response = await api.post<AIInsightDTO>('/insights/generate/suggestion', { teamId, prompt, archetype })
-
     entityStore.addInsight(response.data)
-
     console.log('[InsightService] ✅ Suggestion insight generated:', response.data.id)
     return response.data
   } catch (error) {

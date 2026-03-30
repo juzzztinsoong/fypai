@@ -11,6 +11,7 @@ import { CodeOutputCard } from './CodeOutputCard';
 import { ReportCard } from './ReportCard';
 import { InsightFrame } from './InsightFrame';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getElevationClass } from '@/styles/uiTokens';
 import { sanitizeInsightContent } from '@/utils/insightContent';
 import { getInsightTypeTheme } from './insightUtils';
@@ -88,6 +89,7 @@ export const LongFormContentViewer = ({ insights, onJumpToSource, onJumpToChatMa
         const content = (
           <div className="prose prose-sm max-w-none text-gray-700">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => <h1 className={`text-xl font-bold mt-4 mb-2 ${theme.title}`}>{children}</h1>,
                 h2: ({ children }) => <h2 className={`text-lg font-bold mt-3 mb-2 ${theme.title}`}>{children}</h2>,
@@ -99,6 +101,16 @@ export const LongFormContentViewer = ({ insights, onJumpToSource, onJumpToChatMa
                 strong: ({ children }) => <strong className={`font-semibold ${theme.title}`}>{children}</strong>,
                 em: ({ children }) => <em className="italic text-gray-600">{children}</em>,
                 code: ({ children }) => <code className="bg-white/80 border border-slate-200 text-slate-800 px-1 py-0.5 rounded text-sm">{children}</code>,
+                table: ({ children }) => (
+                  <div className="my-3 overflow-x-auto rounded-md border border-slate-200">
+                    <table className="min-w-full border-collapse text-xs">{children}</table>
+                  </div>
+                ),
+                thead: ({ children }) => <thead className="bg-slate-50">{children}</thead>,
+                tbody: ({ children }) => <tbody className="divide-y divide-slate-200">{children}</tbody>,
+                tr: ({ children }) => <tr className="align-top">{children}</tr>,
+                th: ({ children }) => <th className="border-b border-slate-200 px-2.5 py-1.5 text-left font-semibold text-slate-700">{children}</th>,
+                td: ({ children }) => <td className="px-2.5 py-1.5 text-slate-700">{children}</td>,
               }}
             >
               {displayContent}

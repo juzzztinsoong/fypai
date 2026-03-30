@@ -84,6 +84,14 @@ async function testExplicitCommands(): Promise<void> {
     !IntentController.hasExplicitInsightCommand('@agent hello there'),
     'hasExplicitInsightCommand ignores generic @agent chat',
   );
+  assert(
+    !IntentController.hasExplicitInsightCommand('@agent help me out'),
+    'hasExplicitInsightCommand ignores conversational @agent help phrasing',
+  );
+
+  const conversationalHelp = await IntentController.decideAgentRoute('@agent help me out');
+  assertEqual(conversationalHelp.channel, 'chat_message', '@agent help me out stays in chat channel');
+  assert(!conversationalHelp.explicit, '@agent help me out is not explicit insight routing');
 }
 
 async function testConfidenceBands(): Promise<void> {

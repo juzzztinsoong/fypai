@@ -162,8 +162,12 @@ function App() {
     <div className="flex min-h-screen bg-gray-50 overflow-hidden">
       <Sidebar />
       <div className={`${sidebarCollapsed ? 'ml-16' : 'ml-60'} flex flex-1 min-w-0 transition-[margin] duration-200`}>
-        <ChatWindow />
-        <RightPanel />
+        <div className="min-w-0 flex-[1.15]">
+          <ChatWindow />
+        </div>
+        <div className="min-w-0 flex-[0.85]">
+          <RightPanel />
+        </div>
       </div>
     </div>
   )

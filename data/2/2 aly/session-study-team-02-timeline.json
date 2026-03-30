@@ -1,0 +1,2173 @@
+{
+  "teamId": "study-team-02",
+  "exportedAt": "2026-03-25T17:31:47.070Z",
+  "sessionSpec": {
+    "teamId": "study-team-02",
+    "teamName": "Solo - Participant 2",
+    "conditionFlag": "AI_ON",
+    "runOrder": "AB",
+    "runOneCondition": "AI_ON",
+    "runTwoCondition": "AI_LIGHT"
+  },
+  "participants": [
+    {
+      "userId": "agent",
+      "name": "AI Agent",
+      "role": "agent",
+      "teamRole": null,
+      "isAgent": true
+    },
+    {
+      "userId": "study-user-02",
+      "name": "Study Participant 02",
+      "role": "member",
+      "teamRole": "owner",
+      "isAgent": false
+    },
+    {
+      "userId": "user1",
+      "name": "Alice",
+      "role": "admin",
+      "teamRole": "admin",
+      "isAgent": false
+    },
+    {
+      "userId": "user2",
+      "name": "Bob",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user3",
+      "name": "Charlie",
+      "role": "admin",
+      "teamRole": "member",
+      "isAgent": false
+    }
+  ],
+  "timeline": [
+    {
+      "id": "c73f9220-26b8-4b12-ad6a-44853195a87e",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:39:56.358Z"
+    },
+    {
+      "id": "c13cef51-8a3c-422c-aa28-81576f9228d2",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-03",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:40:58.712Z"
+    },
+    {
+      "id": "8668f563-3987-4d2e-836d-5aa86d4d253e",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:41:02.788Z"
+    },
+    {
+      "id": "82a82c51-f300-4339-b0b8-bb4d8d0dd327",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "test_user_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "fromUserId": "user1",
+        "toUserId": "study-user-01",
+        "toUserName": "Study Participant 01"
+      },
+      "createdAt": "2026-03-24T14:41:09.985Z"
+    },
+    {
+      "id": "43e7867a-ec8d-4a51-bf22-3edfddf5eb30",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:50:49.915Z"
+    },
+    {
+      "id": "909c1cb2-85a0-4089-93b5-ce66ed443644",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:55:51.629Z"
+    },
+    {
+      "id": "fede1e07-4a23-4e98-80a7-40a2d8f21526",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-03",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:56:30.744Z"
+    },
+    {
+      "id": "58b30e1d-b908-49f1-8ccb-f3b228efec75",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T14:58:36.909Z"
+    },
+    {
+      "id": "bb0914ae-279e-44be-bb85-8dc5b24b402a",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-03",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T15:14:45.220Z"
+    },
+    {
+      "id": "20d5bcef-0dce-40fa-83a2-863023c915e9",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "team1",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T15:41:40.394Z"
+    },
+    {
+      "id": "ca6e91c7-a37b-4d3c-99fc-b52ef843a82f",
+      "teamId": "study-team-02",
+      "sessionId": "bcc50e9e-16fe-41e4-83a9-427dc9fea108",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-03",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-24T15:41:45.397Z"
+    },
+    {
+      "id": "28a01471-15f4-4255-bd5f-65aa1c93ad46",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-25T04:34:07.289Z"
+    },
+    {
+      "id": "dc1a37f0-fb26-48cd-8a9c-0281055b84e6",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "team1",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-25T05:00:21.618Z"
+    },
+    {
+      "id": "5c85122b-d421-497e-9c71-71bae97452ff",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:00:48.174Z"
+    },
+    {
+      "id": "3f7b3272-d5c9-41e3-b29d-551505301299",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:00:52.964Z"
+    },
+    {
+      "id": "c45f54e0-2040-4ca6-b665-d21187ad4796",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_agent_message",
+      "actorUserId": "user1",
+      "messageId": "5b727a36-fb5f-4b13-ab5f-4210733ef018",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "createdAt": "2026-03-25T05:00:52.964Z"
+    },
+    {
+      "id": "cab4835c-e714-4ef5-8f92-8ff57a04b703",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:00:52.964Z"
+    },
+    {
+      "id": "0612ef10-dcae-4dd6-aaf6-118929ffdf87",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_agent_message",
+      "actorUserId": "user1",
+      "messageId": "5b727a36-fb5f-4b13-ab5f-4210733ef018",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "createdAt": "2026-03-25T05:00:59.970Z"
+    },
+    {
+      "id": "865fde8d-e252-4b4d-8beb-65c0f040548d",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:00:59.970Z"
+    },
+    {
+      "id": "de5262aa-56b0-49f0-8df2-5986127703a4",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:00:59.970Z"
+    },
+    {
+      "id": "815ca432-32af-4bde-8fc7-8e596c0cb441",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:01:07.787Z"
+    },
+    {
+      "id": "0b1e851b-3dce-4e93-996e-c0d86949d685",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:01:15.786Z"
+    },
+    {
+      "id": "08ebed43-f69e-4223-ade8-b31ad226bdab",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "insight",
+      "eventName": "draft_context_promoted",
+      "actorUserId": "user1",
+      "metadata": {
+        "sourceType": "insight",
+        "sourceId": "880767c8-7487-4c74-8389-ac65aa029136",
+        "sourceLabel": "Quick Start Help"
+      },
+      "createdAt": "2026-03-25T05:01:15.786Z"
+    },
+    {
+      "id": "6cee9a61-3818-424f-a399-94d523f36124",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:01:15.786Z"
+    },
+    {
+      "id": "94359751-1d8d-4937-a719-ad78f61e62d4",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:01:32.270Z"
+    },
+    {
+      "id": "db4305e3-9b2f-40fd-87b0-a9ff76af259b",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774412953722-ofza7crn",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "user1",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T05:01:32.270Z"
+    },
+    {
+      "id": "e99abd49-0703-4e46-9582-d16ba7f7eb73",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "timeline_sync_toggled",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "enabled": true
+      },
+      "createdAt": "2026-03-25T07:24:07.313Z"
+    },
+    {
+      "id": "727a0e17-932f-4724-89ed-1dd7e253ae14",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:24:56.799Z"
+    },
+    {
+      "id": "bb8d9fe3-d539-47aa-b0af-c03487161f48",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:24:56.799Z"
+    },
+    {
+      "id": "6df55662-6fd5-4d72-97bf-1ed593fa81d9",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:00.926Z"
+    },
+    {
+      "id": "7fe3e1b8-ab6e-4831-ac91-76a8008c8329",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "e155f982-5220-4f00-af52-aac4cb1f8dd4",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:25:21.779Z"
+    },
+    {
+      "id": "03e1da1e-42a8-4066-957f-5e60bd71cd53",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "e155f982-5220-4f00-af52-aac4cb1f8dd4",
+      "content": "how to run an independent samples t test",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "research",
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:25:21.779Z"
+    },
+    {
+      "id": "47e4ece8-50ff-47b7-8631-4df47f63615c",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:33.271Z"
+    },
+    {
+      "id": "874c58c7-d0d7-44af-952b-a3c202e4b1af",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:33.271Z"
+    },
+    {
+      "id": "fd23c344-11f0-4799-900c-bc6e3ea7b57d",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:33.271Z"
+    },
+    {
+      "id": "7466c3ec-65c0-4724-85e9-b01c6a395752",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "right_panel_tab_changed",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "from": "all",
+        "to": "actions"
+      },
+      "createdAt": "2026-03-25T07:25:38.743Z"
+    },
+    {
+      "id": "8dc668ad-f89f-4dbd-8484-41b23ffb4c01",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "right_panel_tab_changed",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "from": "actions",
+        "to": "all"
+      },
+      "createdAt": "2026-03-25T07:25:45.255Z"
+    },
+    {
+      "id": "232957b6-4e56-4c57-a3db-39cdb94e7157",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:45.255Z"
+    },
+    {
+      "id": "a17b4823-4ded-4f42-88cf-110d83f374c6",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:45.255Z"
+    },
+    {
+      "id": "cdc431c7-9318-470b-a8a6-f57f3cba1ad1",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:49.402Z"
+    },
+    {
+      "id": "a1b4a426-9b2d-4b23-a729-0e74cef5aed2",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:49.402Z"
+    },
+    {
+      "id": "647900eb-a52e-4c19-b69f-13f2a1b4c23d",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:49.402Z"
+    },
+    {
+      "id": "c07eb6a2-c2bb-4c07-a1b6-ce42cbf58e22",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:54.945Z"
+    },
+    {
+      "id": "f92db239-2a30-4330-a3c6-59e4ce15b720",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:54.945Z"
+    },
+    {
+      "id": "12ecb5af-1abe-4e68-a376-5f61a6078f1a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:54.945Z"
+    },
+    {
+      "id": "f38f07e2-963b-4f1a-ac06-de1efbc67cf5",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:54.945Z"
+    },
+    {
+      "id": "962f869e-2cfe-43a4-aa13-ccc7d2f5f6b8",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:25:54.945Z"
+    },
+    {
+      "id": "3df9b59f-90f7-4e21-b1cf-6697ea7c4279",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:05.821Z"
+    },
+    {
+      "id": "6a62f665-a80f-4e1f-91ad-8c8321cef858",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:05.821Z"
+    },
+    {
+      "id": "c446569f-f26f-4586-9355-3549115da479",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_marker",
+      "actorUserId": "study-user-02",
+      "messageId": "a66d79bd-c55a-4a09-a601-31d57cc01dbe",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "createdAt": "2026-03-25T07:26:05.821Z"
+    },
+    {
+      "id": "6fe5c197-a20e-403d-968e-8238147c8941",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_marker",
+      "actorUserId": "study-user-02",
+      "messageId": "a66d79bd-c55a-4a09-a601-31d57cc01dbe",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "createdAt": "2026-03-25T07:26:05.821Z"
+    },
+    {
+      "id": "e3981cf0-c429-4220-ac2e-14f20c626a8e",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:05.821Z"
+    },
+    {
+      "id": "f3d3896e-0ab8-4ba4-a350-c3525d675176",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "3df73957-d3b5-4c8b-82fc-fe4a0182843a",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Deterministic action category selected.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "execution-coach"
+      },
+      "createdAt": "2026-03-25T07:26:21.600Z"
+    },
+    {
+      "id": "117e753d-ee3f-40d3-843f-57c437016158",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "3df73957-d3b5-4c8b-82fc-fe4a0182843a",
+      "content": "tell me a joke",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "action",
+        "routeArchetype": "execution-coach",
+        "selectedCategory": "action"
+      },
+      "createdAt": "2026-03-25T07:26:21.600Z"
+    },
+    {
+      "id": "ccc2bc76-79e3-436f-a6ea-26117edbdaec",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:21.600Z"
+    },
+    {
+      "id": "55e64f41-dfef-4c00-8eb0-cea263340821",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:26.981Z"
+    },
+    {
+      "id": "67ade5a7-408b-4254-8def-89c398f17c27",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:27.012Z"
+    },
+    {
+      "id": "25b256e3-1f07-4e79-b3b8-a345354ef3fc",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:27.012Z"
+    },
+    {
+      "id": "72a29b42-ae11-49f6-8ed8-2f1f0b7ca998",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:30.961Z"
+    },
+    {
+      "id": "51ae4cce-3dc4-4edb-b004-b25f8cf3772b",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:30.961Z"
+    },
+    {
+      "id": "0a791b89-c503-4d76-bf36-3e61c3504474",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:40.447Z"
+    },
+    {
+      "id": "06192bf5-2149-49a4-99f4-fa8eb98cf5b1",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:40.447Z"
+    },
+    {
+      "id": "6dc13b3f-6715-4746-b931-4fbf66058adf",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_marker",
+      "actorUserId": "study-user-02",
+      "messageId": "546cde8b-204c-4645-b45d-b13f444219ec",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "createdAt": "2026-03-25T07:26:40.447Z"
+    },
+    {
+      "id": "edd872d4-2fea-4c3b-b1d0-a1fe3ae02bdc",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:40.447Z"
+    },
+    {
+      "id": "ad854ad3-4b89-492c-a03b-79e53de745af",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:50.263Z"
+    },
+    {
+      "id": "9a10bebd-72c5-42d1-aa10-7c3ed21c3cfe",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:50.263Z"
+    },
+    {
+      "id": "d0f2f369-9bfd-4506-97a0-a03ee824c76b",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:26:50.263Z"
+    },
+    {
+      "id": "49f8a504-baff-483b-8ce2-20780fc3dfc8",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "b11735bd-70c5-4468-85b7-1839d2300302",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Deterministic suggestion category selected.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T07:26:57.134Z"
+    },
+    {
+      "id": "7795a700-3b1b-4c72-9b19-58a7bac28750",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "b11735bd-70c5-4468-85b7-1839d2300302",
+      "content": "what is actions",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "suggestion",
+        "routeArchetype": "pragmatic-advisor",
+        "selectedCategory": "suggestion"
+      },
+      "createdAt": "2026-03-25T07:26:57.134Z"
+    },
+    {
+      "id": "2968052a-ebb1-467e-9fbf-1015ffe39655",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:27.737Z"
+    },
+    {
+      "id": "01488188-872e-4cef-bb30-de6e601cf255",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:27.737Z"
+    },
+    {
+      "id": "30316718-73a6-40ce-9ba3-514da1f50bae",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "ed3ef0a5-5fb9-4e1c-b6e5-a5764ba9886f",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "0971832c-353e-442c-b037-dacacd9ccea7",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "c313b4d2-d421-475d-9d94-ed39db654462",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "b6a032ca-0815-41f2-b70b-9581d012138a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "d5d7fcf8-33ce-4638-ad1a-124e5d1e45c9",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "06d1634b-b3e8-4d91-b6c6-cba81258792f",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "e0ff5330-83cf-4cff-b4d9-7217b19ea65b",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:27:54.864Z"
+    },
+    {
+      "id": "58f69d22-7236-4951-b70f-dff7217146f2",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "354a5851-c136-49a3-b92e-d30396a48587",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T07:28:50.739Z"
+    },
+    {
+      "id": "4a105327-54a9-4d9b-bcfb-c033677a0c1e",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "354a5851-c136-49a3-b92e-d30396a48587",
+      "content": "what is a good anniversary present for my boyfriend of 3 years. he likes hockey, hot sauce, cats, and video games. i love him very much hehe",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T07:28:50.739Z"
+    },
+    {
+      "id": "fc28c787-7b05-431b-aef1-ba7114ec1802",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:32:16.949Z"
+    },
+    {
+      "id": "f8c1c32a-394d-4bd7-aadb-54f610c46405",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:32:16.949Z"
+    },
+    {
+      "id": "5382d6bf-6a12-491c-9a77-c65b1e638f03",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:32:16.949Z"
+    },
+    {
+      "id": "d866be11-30a4-430d-b11b-cee80d7a5c11",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "542cc6b6-3272-456a-944a-c8bbaca140ad",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:32:21.594Z"
+    },
+    {
+      "id": "b5f96d33-f453-46fd-957a-7c1cccd0d394",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:32:21.594Z"
+    },
+    {
+      "id": "2e242594-1656-41f7-8d7d-542159649a23",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:35:54.571Z"
+    },
+    {
+      "id": "9dd0f36c-6a2c-4ceb-b93d-659f130a5583",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:35:54.571Z"
+    },
+    {
+      "id": "32a018c2-7204-432a-89df-d904f08c2474",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "15828b73-4646-4ac1-bace-e6c5e0767da4",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:35:54.571Z"
+    },
+    {
+      "id": "32818e3c-e0eb-4fa9-bc53-00b928d54a31",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:35:54.571Z"
+    },
+    {
+      "id": "17b3ebb9-b433-4044-bff3-aeff648ef301",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-25T07:35:54.571Z"
+    },
+    {
+      "id": "bc9c6337-b07a-4595-809b-70b928547c8e",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:36:52.982Z"
+    },
+    {
+      "id": "15c53d91-cdd2-456c-a84a-b0daeb820c70",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "context",
+      "eventName": "task_context_saved",
+      "actorUserId": "study-user-02",
+      "content": "i need to work on a school project. i have to decide on a theme (technology, environmental change, or cultural identity), design a research study, and draft the introduction of the study.",
+      "metadata": {
+        "previousLength": 0,
+        "nextLength": 187,
+        "mode": "embedded"
+      },
+      "createdAt": "2026-03-25T07:36:52.982Z"
+    },
+    {
+      "id": "9bc2c851-79f5-4916-89de-98904f80f6ea",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:36:52.982Z"
+    },
+    {
+      "id": "e1b5bedb-22b2-427c-a9c4-183b29f4f89c",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-25T07:36:53.282Z"
+    },
+    {
+      "id": "a854b3bb-9184-42a1-859a-cdb0b5645739",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423307945-skylyhwo",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-25T07:36:54.316Z"
+    },
+    {
+      "id": "f18a5ef6-257a-448d-920a-8f227a8480c8",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "f42f2f34-7737-4559-9843-79a5c5b11ac1",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:37:08.125Z"
+    },
+    {
+      "id": "65e8b3e4-7bc5-4ed9-90a6-af85c2d77955",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "f42f2f34-7737-4559-9843-79a5c5b11ac1",
+      "content": "what are some cultural issues in singapore related to identity",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "research",
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:37:08.125Z"
+    },
+    {
+      "id": "69d7e404-0023-4189-8581-0d00dc5cc235",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:37:08.125Z"
+    },
+    {
+      "id": "db69c842-76b7-499e-a5c0-0ca80fcb07e3",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "jump_to_latest",
+      "actorUserId": "study-user-02",
+      "createdAt": "2026-03-25T07:37:08.125Z"
+    },
+    {
+      "id": "b49743aa-b336-46d8-86c6-29c1196d07a0",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:37:17.135Z"
+    },
+    {
+      "id": "da4c2f2f-dbac-4f1c-80f3-595e088a7c35",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:37:17.135Z"
+    },
+    {
+      "id": "7e08798f-2cc2-4c5c-8489-1872fc0875ff",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:37:29.312Z"
+    },
+    {
+      "id": "33ee07a9-8404-4d46-b663-1ad3eeb5614e",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "24feab67-9670-4261-8f9b-5f7c851f1e7c",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:38:08.735Z"
+    },
+    {
+      "id": "0452b306-22bd-4f7c-9076-a9f0669df05a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "24feab67-9670-4261-8f9b-5f7c851f1e7c",
+      "content": "i want to focus on government policies and how they influence the individual's perception of their identity. give me some papers that highlight this",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "research",
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:38:08.735Z"
+    },
+    {
+      "id": "8ccec5f4-84ff-49f3-8023-7b10d207d4d0",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:38:08.735Z"
+    },
+    {
+      "id": "b24814b4-40d4-45c9-9da7-5ac2a62d2d2a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "session",
+      "eventName": "session_initialized",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "availableTeamCount": 3,
+        "bootstrapUserId": "study-user-02"
+      },
+      "createdAt": "2026-03-25T07:39:12.659Z"
+    },
+    {
+      "id": "9dfc84d1-1529-47e5-8008-6b78a0964845",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:39:12.659Z"
+    },
+    {
+      "id": "618b1cf4-37d0-4856-9df8-41a022f45e03",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:39:19.511Z"
+    },
+    {
+      "id": "86ff0098-0bb5-4324-a20e-eb476bfc939e",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:39:19.511Z"
+    },
+    {
+      "id": "c2dd41f7-45d7-4ec0-88d7-65b21d22164f",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "a023e623-396c-407b-85bf-e1475898da0e",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:39:26.977Z"
+    },
+    {
+      "id": "4fb808d0-023e-4da2-9298-911079a17056",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "a023e623-396c-407b-85bf-e1475898da0e",
+      "content": "i want to focus on government policies and how they influence the individual's perception of their identity. give me some papers that highlight this",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "research",
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T07:39:26.977Z"
+    },
+    {
+      "id": "1b864e32-9550-471b-bf01-22d3a2d46972",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:39:26.977Z"
+    },
+    {
+      "id": "0644e3fc-0c05-4ea4-a072-faf146a325ef",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:39:26.977Z"
+    },
+    {
+      "id": "dc78a714-02dc-4fe6-a99c-91a01b42820d",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T07:41:19.633Z"
+    },
+    {
+      "id": "7f9b43e4-6e54-45c7-9302-adf7fdbfa211",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "session",
+      "eventName": "session_initialized",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "availableTeamCount": 3,
+        "bootstrapUserId": "study-user-02"
+      },
+      "createdAt": "2026-03-25T08:04:27.772Z"
+    },
+    {
+      "id": "dc5d6a35-2189-4fc2-9d59-023dc601c0a7",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "880767c8-7487-4c74-8389-ac65aa029136",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:04:27.772Z"
+    },
+    {
+      "id": "7b3e9bab-fc68-481a-9a33-001ab7fc9685",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "ad478281-4e63-445e-87ac-0423cf85630f",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:04:27.772Z"
+    },
+    {
+      "id": "d6a38ca1-bb09-48b1-8be2-cb9f3917810b",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:04:27.772Z"
+    },
+    {
+      "id": "c930ee73-2962-4004-8296-f45e48d91f8a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "4c14812d-66dd-4a36-83e7-09f445843f72",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T08:04:35.085Z"
+    },
+    {
+      "id": "eb5ce8aa-4bcc-4277-adfc-4de4a15f7110",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "4c14812d-66dd-4a36-83e7-09f445843f72",
+      "content": "i want to focus on government policies and how they influence the individual's perception of their identity. give me some papers that highlight this",
+      "metadata": {
+        "routeMode": "research",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "research",
+        "routeArchetype": "research-analyst"
+      },
+      "createdAt": "2026-03-25T08:04:35.085Z"
+    },
+    {
+      "id": "2489eb3e-83fb-4a3e-b777-99c3927a0ed0",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:04:46.756Z"
+    },
+    {
+      "id": "caa4bb5d-d6de-4354-96a3-0c4899ba529e",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:05:03.953Z"
+    },
+    {
+      "id": "d5ab9be1-1dac-41e9-8d96-b9d447ad3f62",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:05:55.047Z"
+    },
+    {
+      "id": "ae055da5-6e6c-4750-b326-704cbfca4bc9",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:05:55.047Z"
+    },
+    {
+      "id": "4d850aed-9650-4f30-889d-e56c208beeb3",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:05:55.047Z"
+    },
+    {
+      "id": "b6bd2fe3-d451-45fe-8b02-ea5f6542cc63",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:05:55.047Z"
+    },
+    {
+      "id": "5b81fbaa-909d-42e1-9e09-84a830fc2e75",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:06:03.556Z"
+    },
+    {
+      "id": "5768343e-b0ad-4041-bd6c-ce012b491396",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:06:22.563Z"
+    },
+    {
+      "id": "82799b75-fdab-4258-a4b8-a6874205c90b",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:06:22.563Z"
+    },
+    {
+      "id": "ae5af331-21ad-4e8c-a5c2-555a8342d501",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:06:22.563Z"
+    },
+    {
+      "id": "bcb78bc5-3e5a-4a1c-a378-4680fde719cd",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "9f3a7e99-c7d5-4dd9-a94c-707af89c2da4",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T08:06:42.946Z"
+    },
+    {
+      "id": "a006a991-55a7-4f0e-8f0e-9afbdaaa0233",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "9f3a7e99-c7d5-4dd9-a94c-707af89c2da4",
+      "content": "draft a good introduction for a research paper exploring this topic",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T08:06:42.946Z"
+    },
+    {
+      "id": "a98ce164-81dd-4f03-a135-e213e1377247",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "f950bdc9-9beb-4e3d-9e85-71ad9b92b72e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T08:07:04.846Z"
+    },
+    {
+      "id": "266324e5-533e-4e2d-86d8-37cb4fcd4a6d",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "f950bdc9-9beb-4e3d-9e85-71ad9b92b72e",
+      "content": "draft a study design to investigate the effects of government policies on individual identity and self-perception",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-25T08:07:04.846Z"
+    },
+    {
+      "id": "52e2819a-9a54-45a8-ac82-e06e38db727c",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:07:04.846Z"
+    },
+    {
+      "id": "b69beffd-fdae-47ea-a386-8d5170d60713",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:24.031Z"
+    },
+    {
+      "id": "cb200a23-9f92-43cf-b871-f9270ed80b9a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:24.031Z"
+    },
+    {
+      "id": "7a8d5dba-c49d-4581-b1f8-693e34c62dea",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:28.491Z"
+    },
+    {
+      "id": "95584442-660e-4dfc-bc06-d48604dd43c2",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:28.491Z"
+    },
+    {
+      "id": "32e64e7b-a404-4d7e-aeba-9140b9c87666",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:28.491Z"
+    },
+    {
+      "id": "172f2245-13e0-45e2-8d10-bea167b14ccf",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:33.101Z"
+    },
+    {
+      "id": "d190db7a-9f95-4614-912a-4bd1238985a8",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:33.101Z"
+    },
+    {
+      "id": "c1883c3d-b0d4-45db-b6cc-c1398e4caeec",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:50.851Z"
+    },
+    {
+      "id": "b536f5cc-53d2-4412-99d5-3628553ffe71",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "focus_insight_from_marker",
+      "actorUserId": "study-user-02",
+      "messageId": "6159c65b-90c8-448c-a860-a8fc336a9c9e",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "createdAt": "2026-03-25T08:08:50.851Z"
+    },
+    {
+      "id": "ad3dd532-3dd1-4688-be87-5b93a43183ae",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:08:50.851Z"
+    },
+    {
+      "id": "02d87d30-2c32-4b06-ab80-5e1b13708d89",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "31f5a2b9-0420-4b87-b3e6-0a1c5ea37734",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:09:06.537Z"
+    },
+    {
+      "id": "7209a14a-b3e0-4535-995e-9c79a17f019a",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "6c75aae0-a671-4d4d-9321-8c29cf6ff3a6",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:09:12.862Z"
+    },
+    {
+      "id": "e5b83c7a-160f-4db8-9000-4a5519809c43",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:09:12.862Z"
+    },
+    {
+      "id": "32f3a35d-c7f1-4e74-8b83-a38ca20980e4",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:09:12.862Z"
+    },
+    {
+      "id": "89dc9b9e-8a01-4992-b8e3-d5f1192e2934",
+      "teamId": "study-team-02",
+      "sessionId": "session-1774423145554-io7twprp",
+      "eventType": "navigation",
+      "eventName": "link_hover",
+      "actorUserId": "study-user-02",
+      "insightId": "4c50944b-21c1-4277-8527-2a8e0fa662ff",
+      "metadata": {
+        "source": "right-panel"
+      },
+      "createdAt": "2026-03-25T08:09:19.079Z"
+    },
+    {
+      "id": "a086c06a-6d60-4b3b-ae37-c1374ded23bc",
+      "teamId": "study-team-02",
+      "sessionId": "f435407a-e305-47ef-a985-6e178ce826c9",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "user1",
+      "metadata": {
+        "previousTeamId": "study-team-01",
+        "nextTeamId": "study-team-02"
+      },
+      "createdAt": "2026-03-25T17:31:46.075Z"
+    },
+    {
+      "id": "22460d9c-1771-4feb-8b20-5ed15c629f93",
+      "teamId": "study-team-02",
+      "sessionId": "f435407a-e305-47ef-a985-6e178ce826c9",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-25T17:31:46.075Z"
+    },
+    {
+      "id": "ec1271ac-0a9b-43e2-82bc-05ba43f79f62",
+      "teamId": "study-team-02",
+      "sessionId": "f435407a-e305-47ef-a985-6e178ce826c9",
+      "eventType": "session",
+      "eventName": "session_export_completed",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-25T17:31:47.053Z"
+    },
+    {
+      "id": "554ee443-be06-4f7c-8ad7-a87e5ee8bcac",
+      "teamId": "study-team-02",
+      "sessionId": "f435407a-e305-47ef-a985-6e178ce826c9",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "user1",
+      "metadata": {
+        "format": "timeline-json"
+      },
+      "createdAt": "2026-03-25T17:31:47.053Z"
+    }
+  ],
+  "metrics": {
+    "teamId": "study-team-02",
+    "windowStart": "2026-03-24T14:39:56.358Z",
+    "windowEnd": "2026-03-25T17:31:47.053Z",
+    "totalEvents": 155,
+    "uniqueUsers": 2,
+    "messageSentCount": 10,
+    "insightStatusChangeCount": 0,
+    "tabSwitchCount": 2,
+    "contextEditCount": 1,
+    "exportCount": 2,
+    "resetCount": 0,
+    "markerJumpCount": 4,
+    "timelineSyncCount": 1,
+    "linkHoverCount": 101,
+    "actionAcceptedCount": 0,
+    "actionDismissedCount": 0,
+    "actionCompletedCount": 0,
+    "avgSecondsBetweenEvents": 627.99
+  }
+}

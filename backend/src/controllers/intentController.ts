@@ -89,6 +89,31 @@ const SUGGESTION_PATTERNS: RegExp[] = [
   /\bwhat\s+do\s+you\s+think\b/i,
 ]
 
+const EXPLICIT_REQUEST_CUE_PATTERNS: RegExp[] = [
+  /\bplease\b/i,
+  /\bcan\s+you\b/i,
+  /\bcould\s+you\b/i,
+  /\bwould\s+you\b/i,
+  /\b(need|want)\s+you\s+to\b/i,
+  /\b(summarize|summarise|research|analyze|analyse|generate|create|draft|prepare|produce|extract|list|compile|suggest|recommend)\b/i,
+]
+
+const EXPLICIT_SUGGESTION_REQUEST_PATTERNS: RegExp[] = [
+  /\bsuggest(?:ions?)?\b/i,
+  /\brecommend(?:ation|ations)?\b/i,
+  /\bwhat\s+do\s+you\s+recommend\b/i,
+  /\bpossible\s+approach(?:es)?\b/i,
+  /\boptions?\b/i,
+]
+
+const BRAINSTORM_PATTERNS: RegExp[] = [
+  /\bbrainstorm(?:ing)?\b/i,
+  /\bexplor(e|ing|ation)\b/i,
+  /\bidea\s+generation\b/i,
+  /\bpossible\s+directions\b/i,
+  /\bhelp\s+me\s+out\b/i,
+]
+
 const MIN_INFERRED_INSIGHT_CONFIDENCE = clamp(
   Number(process.env.MIN_INFERRED_INSIGHT_CONFIDENCE || '0.72'),
 )
@@ -165,6 +190,10 @@ function hasPattern(patterns: RegExp[], value: string): boolean {
   return patterns.some((pattern) => pattern.test(value))
 }
 
+function hasExplicitRequestCue(value: string): boolean {
+  return hasPattern(EXPLICIT_REQUEST_CUE_PATTERNS, value)
+}
+
 function parseExplicitInsightCommand(content: string): ExplicitInsightCommand | null {
   const trimmed = content.trim()
   if (!trimmed) return null
@@ -185,6 +214,10 @@ function parseExplicitInsightCommand(content: string): ExplicitInsightCommand | 
   const lower = trimmed.toLowerCase()
   if (!lower.includes('@agent')) return null
 
+  // Keep @agent conversational by default unless request phrasing clearly asks
+  // for a generated long-form insight artifact.
+  if (!hasExplicitRequestCue(trimmed)) return null
+
   if (hasPattern(SUMMARY_PATTERNS, trimmed)) {
     return { insightType: 'summary', source: 'explicit-request' }
   }
@@ -194,7 +227,7 @@ function parseExplicitInsightCommand(content: string): ExplicitInsightCommand | 
   if (hasPattern(ACTION_PATTERNS, trimmed)) {
     return { insightType: 'action', source: 'explicit-request' }
   }
-  if (hasPattern(SUGGESTION_PATTERNS, trimmed)) {
+  if (hasPattern(EXPLICIT_SUGGESTION_REQUEST_PATTERNS, trimmed)) {
     return { insightType: 'suggestion', source: 'explicit-request' }
   }
 
@@ -252,10 +285,16 @@ function scoreSuggestionSignal(
     reasons.push('Question intent can map to recommendations')
   }
 
+  if (hasPattern(BRAINSTORM_PATTERNS, content)) {
+    score += 0.18
+    reasons.push('Brainstorm/exploration language maps to Help recommendations')
+  }
+
   return { score: clamp(score), reasons }
 }
 
 function scoreDocumentSignal(
+  content: string,
   classifierIntent: IntentType,
   researchSignal: { score: number; reasons: string[] },
 ): { score: number; reasons: string[] } {
@@ -269,6 +308,11 @@ function scoreDocumentSignal(
   if (classifierIntent === 'question' && researchSignal.score >= 0.55) {
     score += 0.05
     reasons.push('Question intent reinforced research score')
+  }
+
+  if (hasPattern(BRAINSTORM_PATTERNS, content) && score < 0.9) {
+    score = Math.max(0, score - 0.12)
+    reasons.push('Brainstorm intent reduced pure research routing confidence')
   }
 
   return { score: clamp(score), reasons }
@@ -382,7 +426,7 @@ export class IntentController {
     const summarySignal = scoreSummarySignal(trimmedContent, syncClassification.intent)
     const actionSignal = scoreActionSignal(trimmedContent, syncClassification.intent)
     const suggestionSignal = scoreSuggestionSignal(trimmedContent, syncClassification.intent)
-    const documentSignal = scoreDocumentSignal(syncClassification.intent, researchSignal)
+    const documentSignal = scoreDocumentSignal(trimmedContent, syncClassification.intent, researchSignal)
 
     const categoryScores: Array<{
       type: InsightGenerationType

@@ -1,0 +1,99 @@
+messageId,messageCreatedAt,messageAuthorId,messageContent,agentModel,agentTier,agentTokensInput,agentTokensOutput,feedbackId,feedbackUserId,feedbackType,feedbackReason,feedbackComment,feedbackRuleId,feedbackRuleAction,feedbackCreatedAt
+0c2827de-bad8-4133-b9db-6c0ac31f5a89,2026-03-18T18:51:01.980Z,agent,"# Team Workspace
+
+Use this quick start to begin.
+
+## Start
+1. (Optional) Open **Edit Context** and set goal, constraints, timeline, and success criteria.
+2. Use center chat to align on direction and decisions.
+3. Use composer modes or slash commands as needed: `/summary`, `/research`, `/actions`, `/help`.
+
+## Workspace
+- Insights are shown in the right panel.
+- Marker links connect each insight back to source chat context.
+
+Begin with a short team intro in chat.",,,,,,,,,,,,
+46dc22ca-9ea7-485f-9f3f-6a437ffaae4d,2026-03-18T18:51:01.986Z,agent,📌 Summary available: Demo: Conversation Snapshot,,,,,,,,,,,,
+c846cf4d-386a-45a8-ae5f-2f298a3af602,2026-03-18T18:51:01.991Z,agent,📌 Research available: Demo: Research,,,,,,,,,,,,
+8db850f5-85b8-4814-954f-15405f4e0dec,2026-03-18T18:51:01.997Z,agent,📌 Action Item available: Demo: Action Item,,,,,,,,,,,,
+d4cf8673-9f55-439b-911e-26251bed1516,2026-03-18T18:51:02.003Z,agent,📌 Help available: Demo: Help Card,,,,,,,,,,,,
+7422f887-3f17-4a04-bb51-900120454954,2026-03-19T09:37:57.225Z,study-user-04-01,where's a fun destination we can go,,,,,,,,,,,,
+ad4b43a6-56a3-401a-81f8-c0230fc26ff3,2026-03-19T09:38:37.961Z,agent,"Generated help recommendations: *Visit Johor Bahru, Malaysia**
+
+Help Recommendations Visit Johor Bahru, Malaysia - Why it helps: Johor Bahru is close to Singapore, making it a convenient and affordable weekend destination",,,,,,,,,,,,
+c65c69a5-d625-405d-bd77-beb20663c2ed,2026-03-19T09:39:18.564Z,agent,"Generated research: Context and Objective
+
+Context and Objective The team is planning a weekend trip from Singapore for two people, with a middling budget of $200 for the entire trip",,,,,,,,,,,,
+83f0eb6d-af60-4882-9fda-ac05458ca1bf,2026-03-19T09:40:10.951Z,agent,"Generated research: Context and Objective
+
+Context and Objective The team is planning a weekend trip from Singapore for two people, aiming to keep the total trip cost within a middling budget of $200",,,,,,,,,,,,
+de20286e-eb90-47c7-ac20-627bbeb49876,2026-03-19T09:40:23.617Z,agent,"Generated help recommendations: *1. Johor Bahru, Malaysia**
+
+For a weekend trip from Singapore with a budget of $200 for two people, here are a few fun and budget-friendly destinations to consider: 1",,,,,,,,,,,,
+059bd224-4607-43b3-a190-077ec0c3dea0,2026-03-19T09:41:11.122Z,study-user-04-01,"we are foodies and want to do nature hikes, which location works best for this",,,,,,,,,,,,
+9b10dba0-b21f-42a7-a736-5f415d63ed68,2026-03-19T09:41:19.117Z,study-user-04-01,"@agent we are foodies and want to do nature hikes, which location works best for this",,,,,,,,,,,,
+48588dc8-e490-45d9-b037-f38bd5881874,2026-03-19T09:41:24.966Z,agent,"For foodies who enjoy nature hikes, **Johor Bahru, Malaysia** is an excellent choice. It offers a variety of local food experiences, including popular street food and restaurants. Additionally, you can explore nature trails at locations like **Gunung Pulai** and **Endau-Rompin National Park**. Both spots provide opportunities for hiking while enjoying the natural scenery.
+
+Would you like suggestions for specific food spots or hiking trails in Johor Bahru?",gpt-4o-mini-2024-07-18,tier1,1414,94,,,,,,,,
+c4144221-8eac-499a-867e-8fe7dcbb0665,2026-03-19T09:43:32.842Z,agent,"Generated research: 1. Johor Bahru, Malaysia
+
+Here are some great destinations for a weekend trip from Singapore, keeping in mind your $200 budget and interests in food and nature hikes: Johor Bahru, Malaysia - Why It Works...",,,,,,,,,,,,
+fdd8d89a-87f2-4582-9ec5-c299c3c3d43d,2026-03-19T09:47:29.451Z,study-user-04-02,i dont like nature hikes,,,,,,,,,,,,
+0984bd63-4e45-46a9-a449-083523c00003,2026-03-19T09:47:35.201Z,study-user-04-01,oh okay,,,,,,,,,,,,
+b337e3a2-8df4-43f9-bdba-2ed79b395591,2026-03-19T09:47:42.243Z,study-user-04-01,we can do something else,,,,,,,,,,,,
+6cf3bca3-1065-4e2e-8de2-0d203bb9be00,2026-03-19T09:48:00.652Z,study-user-04-01,what do you want to do,,,,,,,,,,,,
+f08412fe-774f-428a-a9db-be762c4469dc,2026-03-19T09:48:07.430Z,study-user-04-02,err,,,,,,,,,,,,
+52693111-2f54-4a13-aff5-4ab9fcd17a63,2026-03-19T09:48:13.568Z,study-user-04-02,food,,,,,,,,,,,,
+f26d5560-246d-423e-bbfb-40aec95153d9,2026-03-19T09:48:17.931Z,study-user-04-02,food sounds good,,,,,,,,,,,,
+acf22c20-520b-4abd-bbfb-9f5aa41cd60f,2026-03-19T09:48:22.197Z,study-user-04-01,wow that's literally the other thing i put,,,,,,,,,,,,
+c1721b8f-43e8-4301-bd32-96d0dc77ba5a,2026-03-19T09:48:26.749Z,study-user-04-02,truee,,,,,,,,,,,,
+9f424faf-9933-49e5-bf19-e41913e2204f,2026-03-19T09:48:26.913Z,study-user-04-01,i said we like food and nature,,,,,,,,,,,,
+e5ccca1a-907e-4db7-a30e-6476c679b54f,2026-03-19T09:48:36.214Z,study-user-04-01,@grok,,,,,,,,,,,,
+bd07ce29-8129-471e-ac9b-1f3e2c84e329,2026-03-19T09:48:38.711Z,study-user-04-02,i mean theres nothing else to do around asia,,,,,,,,,,,,
+8daa109b-c6ef-4062-9544-90ad71c20a22,2026-03-19T09:48:54.265Z,study-user-04-02,perhaps thrifting,,,,,,,,,,,,
+6babf305-9894-4712-a313-9ea228585a9c,2026-03-19T09:48:54.370Z,study-user-04-01,@agent where should we go for good food in KL,,,,,,,,,,,,
+99ad8c38-d484-4b3d-be0c-c28923016869,2026-03-19T09:48:59.667Z,agent,"For good food in Kuala Lumpur (KL), consider these popular areas and dishes:
+
+- **Jalan Alor**: A famous food street offering a variety of local delicacies, from satay to grilled seafood.
+- **Petaling Street (Chinatown)**: Known for its hawker stalls and the iconic Hokkien mee.
+- **Kampung Baru**: A traditional Malay village where you can find authentic Malay dishes like nasi lemak and rendang.
+- **Brickfields**: Explore Little India for delicious Indian cuisine, including roti canai and biryani.
+
+These locations provide a vibrant food scene that should satisfy your foodie cravings. Would you like help finding specific restaurants or dishes at any of these spots?",gpt-4o-mini-2024-07-18,tier1,1534,148,,,,,,,,
+4e7fa31a-daba-4b1b-a847-a9aacbfe52ee,2026-03-19T09:49:18.359Z,study-user-04-01,what do you think,,,,,,,,,,,,
+9061d4f1-4efd-47d3-aa73-3993aef8fc72,2026-03-19T09:49:41.307Z,study-user-04-02,i like hokkien mee,,,,,,,,,,,,
+ddcc3100-b58d-43e5-924c-caf5b018bdd6,2026-03-19T09:49:53.053Z,study-user-04-01,that sounds yummy,,,,,,,,,,,,
+49dc65f6-24a2-4dac-8720-0c4f45c90b4a,2026-03-19T09:49:53.137Z,study-user-04-02,airbnb?,,,,,,,,,,,,
+19d97c2c-96f4-4840-b9e8-9609ba146e12,2026-03-19T09:49:55.547Z,study-user-04-01,yeah sure,,,,,,,,,,,,
+50b5eec0-d74a-4f6c-98b2-6d67e1e87387,2026-03-19T09:50:12.700Z,study-user-04-01,um,,,,,,,,,,,,
+0cd8fc77-4863-4feb-af4b-8c8f47943168,2026-03-19T09:50:17.966Z,study-user-04-01,when should we leave,,,,,,,,,,,,
+041716f4-d213-45de-9cc6-218b9a9b5a90,2026-03-19T09:50:20.064Z,study-user-04-01,like 10am ?,,,,,,,,,,,,
+7dd68c04-219e-4170-b985-661e1e3fed3b,2026-03-19T09:50:28.783Z,study-user-04-02,dpeends on the bus timing,,,,,,,,,,,,
+d306f69f-bf2c-4f50-8cb6-f6aac1017ae6,2026-03-19T09:50:32.503Z,study-user-04-02,or how about the train,,,,,,,,,,,,
+f3674f5c-cb3f-4d81-80c7-fb1048da579e,2026-03-19T09:50:35.728Z,study-user-04-01,not sure,,,,,,,,,,,,
+015374fd-dc82-4aa1-bd12-ef05bbcad7a0,2026-03-19T09:50:36.660Z,study-user-04-01,@agent,,,,,,,,,,,,
+a39920f4-8609-4047-be6f-d407b57fb198,2026-03-19T09:50:41.706Z,agent,"To plan your departure from Singapore to Kuala Lumpur, you can consider the following options:
+
+- **Bus**: Buses from Singapore to KL usually take about 5-7 hours. Check schedules from operators like Transtar or Grassland for morning departures around 10 AM.
+- **Train**: The KTM train service from Woodlands to KL Sentral takes about 6-7 hours. Be sure to check the train schedule on the KTM website for morning departures.
+
+Both options might require some flexibility based on the exact timing. Would you like assistance with specific bus or train schedules?",gpt-4o-mini-2024-07-18,tier1,1436,118,,,,,,,,
+5e65d161-716b-4ca6-977d-d004552ce92f,2026-03-19T09:51:54.799Z,study-user-04-02,@agent can you pull up reputable bus operator suggestions for us to use to get to KL,,,,,,,,,,,,
+92ceaf36-9826-498a-a67d-db342361615b,2026-03-19T09:52:08.816Z,agent,"Here are some reputable bus operators you can consider for your trip from Singapore to Kuala Lumpur:
+
+- **Transtar Travel**: Known for comfortable buses and good service. They have multiple daily departures.
+- **Grassland Express**: Offers a range of schedules and competitive prices.
+- **KTM (KTM Intercity)**: While primarily a train service, they also operate bus services that connect to their train routes.
+- **SBS Transit**: Provides an efficient service and reliable schedules.
+
+Make sure to check their websites for the latest schedules and prices. Would you like links to their booking pages?",gpt-4o-mini-2024-07-18,tier1,1579,122,,,,,,,,
+b9e69365-0c26-4ddc-95e8-f45621781702,2026-03-19T09:52:43.477Z,agent,"Generated research: Here’s a detailed comparison of bus operators and train services for your trip from Singapore to...
+
+Here’s a detailed comparison of bus operators and train services for your trip from Singapore to Kuala Lumpur: | Operator | Mode | Approx",,,,,,,,,,,,
+9f8c7aae-2632-498e-95b5-23cc6eec8e79,2026-03-19T09:53:29.854Z,study-user-04-01,shall we go with the train?,,,,,,,,,,,,
+9f13e976-6691-4151-a354-767b714fe386,2026-03-19T09:53:33.851Z,study-user-04-02,yes,,,,,,,,,,,,
+38230406-7c14-4ed1-b680-e42ca2f51851,2026-03-19T09:53:36.898Z,study-user-04-01,i like trains,,,,,,,,,,,,
+06b38924-17fe-4eb7-8eaf-f2340827ee17,2026-03-19T09:53:37.097Z,study-user-04-02,yess,,,,,,,,,,,,
+cc445445-868a-41bd-9554-d07ed14b7f44,2026-03-19T09:53:57.814Z,study-user-04-02,@agent what time does the train leave,,,,,,,,,,,,
+9238d486-09fb-413e-9705-0b23ec87b223,2026-03-19T09:54:53.533Z,study-user-04-02,@agent what time does the train leave,,,,,,,,,,,,
+e79c403b-b50e-4dd1-8d54-124ad960d6fb,2026-03-19T09:54:54.830Z,study-user-04-01,@agent what time does the train leave,,,,,,,,,,,,

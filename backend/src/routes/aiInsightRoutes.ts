@@ -17,6 +17,7 @@
 import { Router } from 'express'
 import { AIInsightController } from '../controllers/aiInsightController.js'
 import { Request, Response, NextFunction } from 'express'
+import { prisma } from '../db.js'
 
 const router = Router()
 
@@ -46,6 +47,28 @@ function applyGenerateRateLimit(req: Request, res: Response, next: NextFunction)
   next()
 }
 
+async function denyIfAiLight(teamId: string, res: Response): Promise<boolean> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { id: true, isChimeEnabled: true },
+  })
+
+  if (!team) {
+    res.status(404).json({ error: 'Team not found' })
+    return true
+  }
+
+  if (!team.isChimeEnabled) {
+    res.status(403).json({
+      error: 'This study condition supports explicit @agent chat only. AI insight generation is disabled.',
+      code: 'AI_LIGHT_RESTRICTED',
+    })
+    return true
+  }
+
+  return false
+}
+
 /**
  * GET /api/insights?teamId=:id
  * Get all AI insights for a team
@@ -69,6 +92,14 @@ router.get('/', async (req, res, next) => {
  */
 router.post('/', async (req, res, next) => {
   try {
+    const { teamId } = req.body || {}
+    if (!teamId || typeof teamId !== 'string') {
+      return res.status(400).json({ error: 'teamId is required' })
+    }
+    if (await denyIfAiLight(teamId, res)) {
+      return
+    }
+
     const insight = await AIInsightController.createInsight(req.body)
     res.status(201).json(insight)
   } catch (error) {
@@ -154,6 +185,9 @@ router.post('/generate/summary', applyGenerateRateLimit, async (req, res, next) 
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
     }
+    if (await denyIfAiLight(teamId, res)) {
+      return
+    }
     const insight = await AIInsightController.generateSummary(teamId, archetype)
     res.status(201).json(insight)
   } catch (error) {
@@ -170,6 +204,9 @@ router.post('/generate/report', applyGenerateRateLimit, async (req, res, next) =
     const { teamId, prompt, archetype } = req.body
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
+    }
+    if (await denyIfAiLight(teamId, res)) {
+      return
     }
     const insight = await AIInsightController.generateReport(teamId, prompt, archetype)
     res.status(201).json(insight)
@@ -188,6 +225,9 @@ router.post('/generate/action', async (req, res, next) => {
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
     }
+    if (await denyIfAiLight(teamId, res)) {
+      return
+    }
     const insight = await AIInsightController.generateAction(teamId, prompt, archetype)
     res.status(201).json(insight)
   } catch (error) {
@@ -204,6 +244,9 @@ router.post('/generate/suggestion', async (req, res, next) => {
     const { teamId, prompt, archetype } = req.body
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' })
+    }
+    if (await denyIfAiLight(teamId, res)) {
+      return
     }
     const insight = await AIInsightController.generateSuggestion(teamId, prompt, archetype)
     res.status(201).json(insight)

@@ -1,0 +1,74 @@
+participant 1 jc
+sometimes 
+always research 5
+research source 3
+confidence 5
+chstbot, hedged I guess
+
+demo cards confusing
+different 
+contextual clues not there? incorporated properly?
+choosing when you're talking to chat or with ai? not sure when you're triggering? 
+cintextual or interface cue not there
+verbose research answer 
+length not expected? tuning of context? asking questions again is annoying 
+dismissed? shouldn't appear anymore 
+deciding category is cognitive load
+
+participant 2 samuel
+rarely
+4 deep
+4 rather important to know, 
+5 
+research, team
+
+center chat? onboarding app?
+meeting tool
+ask assistant bug?
+help works the same as any other chatbot, not very useful as a lighter research load tool
+
+group test
+Samuel doesn't like to go on hikes
+users get stuck in ask assistant mode? expect more fluidity with the agent to know more better
+
+minimum toollines
+/research deletes message though
+md formatting
+very unfortunate
+
+
+a testing
+sam
+provide adequate information, query internet searches
+hide bottom, sizing, markers useful
+
+jc
+even cleaner, don't want to query in group chat
+collaborative aspects, long is disruptive
+shorter feels better
+
+
+b testing
+not much to say here, comparing to the other one it's more structured? cleaner?
+
+must be very very tuned before people will appreciate
+middle ground for tuning? or middle ground for preference
+content in each text keeps conversation distracted
+
+
+overall comments
+sam
+integrated ai agent? answers?
+
+jc
+limited stuff, clutter, context, responses across the board should be shorter and more useful, concise
+just interacting with the main chat, don't have to click on the right at all
+
+
+final survey results
+no
+replying to stuff isn't useful? because level of discussion not that deep
+regenerating stuff from previously
+kl one faster than plain research
+confidence in final output? sourcing? for information
+information sourcing not 

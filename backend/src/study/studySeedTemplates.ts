@@ -6,6 +6,7 @@ export interface StudyTeamTemplate {
   id: string
   name: string
   participantCount: number
+  participantIds?: string[]
   scenarioVariant: 'A' | 'B'
   runOrder: StudyRunOrder
   taskContext: string
@@ -55,24 +56,24 @@ function buildTeams(
       participantCount: entry.count,
       scenarioVariant: entry.variant,
       runOrder: entry.order,
-      taskContext: `${variantContext} Include at least one source-verifiable decision and keep scope realistic for a student team.`,
+      taskContext: `${variantContext}`,
     }
   })
 }
 
 const SOFTWARE_CONTEXTS: ScenarioContextPair = {
-  A: 'Hackathon launch planning. Produce a clear plan, ownership map, and validation checklist for demo readiness.',
-  B: 'Assignment workflow redesign. Produce prioritized workflow improvements, ownership map, and evaluation criteria.',
+  A: 'Facilitator will provide Scenario A verbally at run start. Keep app-seeded context neutral before briefing.',
+  B: 'Facilitator will provide Scenario B verbally at run start. Keep app-seeded context neutral before briefing.',
 }
 
 const CAMPUS_SERVICES_CONTEXTS: ScenarioContextPair = {
-  A: 'Campus wellness fair operations planning. Produce an execution plan for booths, volunteers, and disruption handling.',
-  B: 'Peer tutoring program coordination. Produce a scheduling and assignment workflow with clear handoffs and demand coverage.',
+  A: 'Facilitator will provide Scenario A verbally at run start. Keep app-seeded context neutral before briefing.',
+  B: 'Facilitator will provide Scenario B verbally at run start. Keep app-seeded context neutral before briefing.',
 }
 
 const COMMUNITY_IMPACT_CONTEXTS: ScenarioContextPair = {
-  A: 'Student food pantry distribution planning. Produce a fair allocation workflow with volunteer handoffs and shortage contingencies.',
-  B: 'Campus e-waste collection campaign. Produce outreach and collection logistics with clear routing and ownership decisions.',
+  A: 'Facilitator will provide Scenario A verbally at run start. Keep app-seeded context neutral before briefing.',
+  B: 'Facilitator will provide Scenario B verbally at run start. Keep app-seeded context neutral before briefing.',
 }
 
 const SHARED_PROFILES: Record<StudyCondition, ConditionProfile> = {
@@ -103,6 +104,65 @@ const SHARED_PROFILES: Record<StudyCondition, ConditionProfile> = {
 }
 
 export const STUDY_SEED_TEMPLATES: Record<string, StudySeedTemplate> = {
+  'cohort-3-solo3-team2': {
+    id: 'cohort-3-solo3-team2',
+    title: '3 participants, 3 solo chats + 2 team chats',
+    description:
+      'Primary study seed for onboarding-first flow: three participant solo chats, one shared AI-on team chat, and one shared AI-light team chat.',
+    teams: [
+      {
+        id: 'study-team-01',
+        name: 'Solo - Participant 1',
+        participantCount: 1,
+        participantIds: ['study-user-01'],
+        scenarioVariant: 'A',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.A,
+      },
+      {
+        id: 'study-team-02',
+        name: 'Solo - Participant 2',
+        participantCount: 1,
+        participantIds: ['study-user-02'],
+        scenarioVariant: 'A',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.A,
+      },
+      {
+        id: 'study-team-03',
+        name: 'Solo - Participant 3',
+        participantCount: 1,
+        participantIds: ['study-user-03'],
+        scenarioVariant: 'A',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.A,
+      },
+      {
+        id: 'study-team-04',
+        name: 'Team - AI On',
+        participantCount: 3,
+        participantIds: ['study-user-01', 'study-user-02', 'study-user-03'],
+        scenarioVariant: 'B',
+        runOrder: 'AB',
+        taskContext: SOFTWARE_CONTEXTS.B,
+      },
+      {
+        id: 'study-team-05',
+        name: 'Team - AI Light',
+        participantCount: 3,
+        participantIds: ['study-user-01', 'study-user-02', 'study-user-03'],
+        scenarioVariant: 'B',
+        runOrder: 'BA',
+        taskContext: SOFTWARE_CONTEXTS.B,
+      },
+    ],
+    profiles: SHARED_PROFILES,
+    instructions: [
+      'Run onboarding in each solo chat first, then continue in the two shared team chats.',
+      'Use Team - AI On for full-support condition and Team - AI Light for reduced-side-output condition.',
+      'Collect Full JSON, Timeline JSON, and Metrics CSV after each condition.',
+    ],
+  },
   'trio-abba-6': {
     id: 'trio-abba-6',
     title: '6 teams, 3 participants each, AB/BA counterbalance',
@@ -201,7 +261,7 @@ export const STUDY_SEED_TEMPLATES: Record<string, StudySeedTemplate> = {
   },
 }
 
-export const DEFAULT_STUDY_TEMPLATE_ID = 'trio-abba-6'
+export const DEFAULT_STUDY_TEMPLATE_ID = 'cohort-3-solo3-team2'
 
 export function getRunOneCondition(order: StudyRunOrder): StudyCondition {
   return order === 'AB' ? 'AI_ON' : 'AI_LIGHT'
