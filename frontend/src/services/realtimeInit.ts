@@ -88,6 +88,18 @@ export async function initializeRealtime(userId: string): Promise<void> {
       socket.on('ai:insight:new', (insight: AIInsightDTO) => {
         console.log('[RealtimeInit] 🤖 Socket: ai:insight:new ->', insight.id)
         useEntityStore.getState().addInsight(insight)
+        trackSessionEvent({
+          eventType: 'insight',
+          eventName: 'insight_generate_completed',
+          teamId: insight.teamId,
+          insightId: insight.id,
+          metadata: {
+            insightType: insight.type,
+            source: 'agent_backend',
+            promptArchetype: insight.metadata?.promptArchetype ?? null,
+          },
+          flushImmediately: true,
+        })
       })
       
       socket.on('insight:deleted', (data: { id: string; teamId: string }) => {

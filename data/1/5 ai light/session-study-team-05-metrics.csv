@@ -1,0 +1,2 @@
+teamId,teamName,sessionId,conditionFlag,runOrder,runOneCondition,runTwoCondition,participantCount,humanParticipantCount,windowStart,windowEnd,totalEvents,uniqueUsers,messageSentCount,insightStatusChangeCount,tabSwitchCount,contextEditCount,exportCount,resetCount,markerJumpCount,timelineSyncCount,linkHoverCount,actionAcceptedCount,actionDismissedCount,actionCompletedCount,avgSecondsBetweenEvents
+study-team-05,Study Team 05,,AI_LIGHT,,,,7,6,2026-03-19T09:53:55.111Z,2026-03-22T10:41:51.834Z,97,4,29,0,0,0,4,1,0,0,15,0,0,0,2729.97

@@ -1,0 +1,24 @@
+session_num,file_key,team_id,session_id,participant_id,condition,run_order,timestamp,from_tab,to_tab
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:18.203Z,all,summaries
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:18.203Z,summaries,research
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:24.581Z,research,suggestions
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:24.581Z,suggestions,actions
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:24.581Z,actions,research
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:24.581Z,research,summaries
+1,1/3 sam/session-study-team-03-timeline.json,study-team-03,session-1773912267195-y6grf9u3,study-user-03-01,AI_ON,AB,2026-03-19T09:37:24.581Z,summaries,all
+1,1/4 ai on/session-study-team-04-timeline.json,study-team-04,0f54578d-f9a0-4a58-bfbe-17df9611f2e5,study-user-04-01,AI_ON,BA,2026-03-19T09:43:43.408Z,all,research
+2,2/2 aly/session-study-team-02-timeline.json,study-team-02,session-1774423145554-io7twprp,study-user-02,AI_ON,AB,2026-03-25T07:25:38.743Z,all,actions
+2,2/2 aly/session-study-team-02-timeline.json,study-team-02,session-1774423145554-io7twprp,study-user-02,AI_ON,AB,2026-03-25T07:25:45.255Z,actions,all
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:20:39.777Z,all,summaries
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:20:39.777Z,summaries,research
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:20:50.369Z,research,suggestions
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:20:50.369Z,suggestions,summaries
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:21:01.752Z,all,summaries
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:21:06.483Z,summaries,all
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:21:55.080Z,all,summaries
+2,2/4 ai on/session-study-team-04-timeline.json,study-team-04,bcc50e9e-16fe-41e4-83a9-427dc9fea108,study-user-01,AI_ON,AB,2026-03-25T08:22:35.994Z,all,suggestions
+3,3/1 aung/session-study-team-01-timeline.json,study-team-01,session-1774510353943-xxpeb11f,study-user-01,AI_ON,AB,2026-03-26T08:00:44.114Z,all,suggestions
+3,3/1 aung/session-study-team-01-timeline.json,study-team-01,session-1774510353943-xxpeb11f,study-user-01,AI_ON,AB,2026-03-26T08:00:44.114Z,suggestions,actions
+3,3/1 aung/session-study-team-01-timeline.json,study-team-01,session-1774510353943-xxpeb11f,study-user-01,AI_ON,AB,2026-03-26T08:00:44.114Z,actions,research
+3,3/1 aung/session-study-team-01-timeline.json,study-team-01,session-1774510353943-xxpeb11f,study-user-01,AI_ON,AB,2026-03-26T08:00:48.330Z,research,all
+3,3/2 shanyl/session-study-team-02-timeline.json,study-team-02,session-1774510800830-3fyb8bt0,study-user-02,AI_ON,AB,2026-03-26T08:01:23.068Z,all,actions

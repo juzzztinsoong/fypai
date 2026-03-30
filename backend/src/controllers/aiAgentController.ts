@@ -1049,6 +1049,7 @@ export class AIAgentController {
               message,
               routeDecision,
               isExplicitMentionOnlyMode,
+              parentMessageId,
             );
             const responseContent = typeof response.content === 'string' ? response.content.trim() : '';
 
@@ -1180,6 +1181,7 @@ export class AIAgentController {
     triggerMessage: MessageDTO,
     routeDecision?: Pick<RouteDecision, 'insightType' | 'suggestedInsightType'>,
     isExplicitMentionOnlyMode = false,
+    parentMessageId?: string,
   ): Promise<{
     content: string;
     model: string;
@@ -1191,7 +1193,10 @@ export class AIAgentController {
     promptArchetypeSource: 'request' | 'route' | 'default' | 'none';
     promptArchetypeFlagEnabled: boolean;
   }> {
-    const conversationHistory = buildConversationContext(messages, team, 20);
+    const repliedToMessage = parentMessageId
+      ? messages.find((m) => m.id === parentMessageId)
+      : undefined;
+    const conversationHistory = buildConversationContext(messages, team, 20, repliedToMessage?.id);
 
     // Phase 6.5.2: Load team agent preferences
     let preferences = null;
@@ -1334,6 +1339,10 @@ export class AIAgentController {
         ...(ragContext ? [{ role: 'system' as const, content: ragContext }] : []),
         ...(focusDirective ? [{ role: 'system' as const, content: focusDirective }] : []),
         { role: 'system' as const, content: conversationalConciseDirective },
+        ...(repliedToMessage ? [{
+          role: 'system' as const,
+          content: `REPLY CONTEXT: The user is replying to the following earlier message. Address it directly in your response.\n\n"${repliedToMessage.content}"`,
+        }] : []),
         ...conversationHistory,
       ],
       model, // Use preference-based model selection

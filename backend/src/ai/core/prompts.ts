@@ -267,26 +267,28 @@ export function applyPromptArchetype(
 export function buildConversationContext(
   messages: MessageDTO[],
   team: TeamWithMembersDTO,
-  maxMessages: number = 20
+  maxMessages: number = 20,
+  repliedToMessageId?: string,
 ): Array<{ role: 'user' | 'assistant' | 'system'; content: string }> {
   const recentMessages = messages.slice(-maxMessages);
 
   return recentMessages.map((msg) => {
     const author = team.members.find((m) => m.userId === msg.authorId);
     const authorName = author?.name || 'User';
+    const replyMarker = repliedToMessageId && msg.id === repliedToMessageId ? ' [REPLIED-TO]' : '';
 
     // Agent messages are 'assistant', others are 'user'
     if (msg.authorId === 'agent') {
       return {
         role: 'assistant' as const,
-        content: msg.content,
+        content: replyMarker ? `${msg.content}${replyMarker}` : msg.content,
       };
     }
 
     // Format user messages with name for context
     return {
       role: 'user' as const,
-      content: `${authorName}: ${msg.content}`,
+      content: `${authorName}${replyMarker}: ${msg.content}`,
     };
   });
 }
