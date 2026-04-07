@@ -36,6 +36,8 @@ npm run build:types
 
 ### 3. Configure environment variables
 
+**Backend:**
+
 ```bash
 cd backend
 cp .env.example .env
@@ -49,6 +51,15 @@ GITHUB_TOKEN="ghp_your_token_here"   # get one at github.com/settings/tokens
 ```
 
 For RAG (semantic search), also add `PINECONE_API_KEY` and `PINECONE_INDEX_NAME` (see `.env.example` for full details).
+
+**Frontend:**
+
+```bash
+cd ../frontend
+cp .env.example .env
+```
+
+The defaults point to `localhost:5000` and work out of the box for local development. Only change them if running the backend on a different host or port (e.g. LAN testing).
 
 ### 4. Set up the database
 
