@@ -74,6 +74,7 @@ SESSION_DATES = {
     "1": "2026-03-19",
     "2": "2026-03-25",
     "3": "2026-03-26",
+    "4": "2026-03-29",
 }
 
 
@@ -113,7 +114,7 @@ COLUMNS = [
 
 
 def find_timeline_files():
-    for session_dir in sorted(DATA_DIR.glob("[123]")):
+    for session_dir in sorted(DATA_DIR.glob("[1234]")):
         for f in sorted(session_dir.rglob("*-timeline.json")):
             yield session_dir.name, f
 

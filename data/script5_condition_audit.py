@@ -59,7 +59,7 @@ COLUMNS = [
 
 
 def find_timeline_files():
-    for session_dir in sorted(DATA_DIR.glob("[123]")):
+    for session_dir in sorted(DATA_DIR.glob("[1234]")):
         for f in sorted(session_dir.rglob("*-timeline.json")):
             yield session_dir.name, f
 

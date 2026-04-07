@@ -4,12 +4,12 @@ Script 1 — Routing Table
 Extracts every message sent by study participants, with full routing metadata.
 One row per message_sent event.
 
-Input:  All *-timeline.json files under data/1/, data/2/, data/3/
+Input:  All *-timeline.json files under data/1/, data/2/, data/3/, data/4/
 Output: output/routing_table.csv
 
 Columns
 -------
-session_num          Study session number (1, 2, or 3 — from directory name)
+session_num          Study session number (1, 2, 3, or 4 — from directory name)
 file_key             Relative path, e.g. "1/1 jc/session-study-team-01-timeline.json"
 team_id              teamId from the export root
 session_id           Study session ID (derived from first study-user event; see DATA_QUALITY.md)
@@ -70,7 +70,7 @@ COLUMNS = [
 
 def find_timeline_files():
     """Yield (session_num, Path) for every *-timeline.json under data/1/, /2/, /3/."""
-    for session_dir in sorted(DATA_DIR.glob("[123]")):
+    for session_dir in sorted(DATA_DIR.glob("[1234]")):
         for f in sorted(session_dir.rglob("*-timeline.json")):
             yield session_dir.name, f
 

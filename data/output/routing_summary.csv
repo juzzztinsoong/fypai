@@ -20,3 +20,9 @@ session_num,file_key,team_id,participant_id,condition,run_order,total_messages,a
 3,3/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-02,AI_ON,AB,13,13,0,0,1.0,0.0,4,0.3077,9,4,0,0,0,6,0,7,0,0,4
 3,3/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-01,AI_LIGHT,BA,24,24,0,0,1.0,0.0,5,0.2083,19,5,0,0,0,12,0,12,0,2,3
 3,3/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-02,AI_LIGHT,BA,27,27,0,0,1.0,0.0,6,0.2222,21,6,0,0,0,13,0,14,0,3,3
+4,4/1 val/session-study-team-01-timeline.json,study-team-01,study-user-01,AI_ON,AB,11,7,4,0,0.6364,0.3636,8,0.7273,3,8,0,0,0,2,3,5,1,3,5
+4,4/2 jen/session-study-team-02-timeline.json,study-team-02,study-user-02,AI_ON,AB,10,9,1,0,0.9,0.1,9,0.9,1,9,0,0,0,5,0,4,1,4,5
+4,4/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-01,AI_ON,AB,10,9,1,0,0.9,0.1,4,0.4,6,4,0,0,0,4,1,5,0,2,2
+4,4/4 ai on/session-study-team-04-timeline.json,study-team-04,study-user-02,AI_ON,AB,20,18,2,0,0.9,0.1,7,0.35,13,7,0,0,0,10,0,8,2,2,5
+4,4/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-01,AI_LIGHT,BA,7,7,0,0,1.0,0.0,6,0.8571,1,6,0,0,0,3,0,4,0,2,4
+4,4/5 ai light/session-study-team-05-timeline.json,study-team-05,study-user-02,AI_LIGHT,BA,13,13,0,0,1.0,0.0,7,0.5385,6,7,0,0,0,6,0,7,0,3,4

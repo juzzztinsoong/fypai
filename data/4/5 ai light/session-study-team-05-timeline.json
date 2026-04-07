@@ -1,0 +1,947 @@
+{
+  "teamId": "study-team-05",
+  "exportedAt": "2026-03-29T08:58:41.204Z",
+  "sessionSpec": {
+    "teamId": "study-team-05",
+    "teamName": "Team - AI Light",
+    "conditionFlag": "AI_LIGHT",
+    "runOrder": "BA",
+    "runOneCondition": "AI_LIGHT",
+    "runTwoCondition": "AI_ON"
+  },
+  "participants": [
+    {
+      "userId": "agent",
+      "name": "AI Agent",
+      "role": "agent",
+      "teamRole": null,
+      "isAgent": true
+    },
+    {
+      "userId": "study-user-01",
+      "name": "Study Participant 01",
+      "role": "admin",
+      "teamRole": "owner",
+      "isAgent": false
+    },
+    {
+      "userId": "study-user-02",
+      "name": "Study Participant 02",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "study-user-03",
+      "name": "Study Participant 03",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user1",
+      "name": "Alice",
+      "role": "admin",
+      "teamRole": "admin",
+      "isAgent": false
+    },
+    {
+      "userId": "user2",
+      "name": "Bob",
+      "role": "member",
+      "teamRole": "member",
+      "isAgent": false
+    },
+    {
+      "userId": "user3",
+      "name": "Charlie",
+      "role": "admin",
+      "teamRole": "member",
+      "isAgent": false
+    }
+  ],
+  "timeline": [
+    {
+      "id": "c2af6978-d419-48d8-ad6c-222cb5a97954",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-29T08:45:21.278Z"
+    },
+    {
+      "id": "d541a772-797d-4c00-9eaa-4700104442fb",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-29T08:45:26.012Z"
+    },
+    {
+      "id": "dad8fc03-6561-4b5d-b4c7-495e60b4eaa4",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-29T08:45:28.936Z"
+    },
+    {
+      "id": "69a4d614-4a73-4577-aeb7-51f9f6cf99a9",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-29T08:45:56.081Z"
+    },
+    {
+      "id": "1be11583-9883-4512-9860-8e043826866e",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-29T08:45:56.081Z"
+    },
+    {
+      "id": "d3e9a961-9cea-4dd3-b6ae-e8a24a57f0a1",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "navigation",
+      "eventName": "team_switched",
+      "actorUserId": "study-user-02",
+      "metadata": {
+        "previousTeamId": "study-team-04",
+        "nextTeamId": "study-team-05"
+      },
+      "createdAt": "2026-03-29T08:46:06.406Z"
+    },
+    {
+      "id": "7608e389-c298-492e-bed1-0d288b1b3366",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": true,
+        "source": "header-edit-button",
+        "editMode": true
+      },
+      "createdAt": "2026-03-29T08:47:01.846Z"
+    },
+    {
+      "id": "518271ed-3b89-4fa8-8ba0-e3df7e667c3c",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "navigation",
+      "eventName": "task_context_panel_toggled",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "visible": false,
+        "source": "popover-close"
+      },
+      "createdAt": "2026-03-29T08:47:16.977Z"
+    },
+    {
+      "id": "0bf60e2f-e0c0-4287-bd33-fbf0a2db81b8",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "b3b80111-8187-46db-a6a5-be0a406d3eb9",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:47:45.736Z"
+    },
+    {
+      "id": "ad8a0d59-9d07-4566-a8d5-9c21e10c4a24",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "b3b80111-8187-46db-a6a5-be0a406d3eb9",
+      "content": "HAIIII",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:47:45.736Z"
+    },
+    {
+      "id": "abc06d1b-34e8-4dcb-9001-bd19bcff280b",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "a2c44672-f64f-491d-b6be-a6fa50de8235",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "routeRationale": "General question does not require long-form research output.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:47:47.306Z"
+    },
+    {
+      "id": "5582194c-5f97-4d21-8fce-6b43b726d53d",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "a2c44672-f64f-491d-b6be-a6fa50de8235",
+      "content": "where shld we go? yayy",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.7,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:47:47.306Z"
+    },
+    {
+      "id": "cea06c74-632d-43ba-8f97-c68974217550",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "6538f193-9964-43d4-8f4b-4fde6bbb67f0",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:04.781Z"
+    },
+    {
+      "id": "61e972ab-5f07-47c7-ad86-e53c237ec17b",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "6538f193-9964-43d4-8f4b-4fde6bbb67f0",
+      "content": "LETS LIST DOWN SOME OF OUR DREAM TRAVEL DESTINATIONS",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:04.781Z"
+    },
+    {
+      "id": "343cddde-a791-41fe-916e-7561e9b76219",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "6787dfa5-b9ea-4a12-a568-5106499f92d3",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:15.979Z"
+    },
+    {
+      "id": "a50a52e6-2e38-49c1-9b0e-86ba0818e8f3",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "6787dfa5-b9ea-4a12-a568-5106499f92d3",
+      "content": "where is the safest country to go right now with the war going on",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:15.979Z"
+    },
+    {
+      "id": "3790a68a-9839-4e69-a242-23d067b1d72f",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "392b97ce-ff57-4522-8c85-d88f15c927b8",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:40.597Z"
+    },
+    {
+      "id": "4b610013-d877-4ede-9a16-e44f5a490282",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "392b97ce-ff57-4522-8c85-d88f15c927b8",
+      "content": "greenland is fine huh",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:40.597Z"
+    },
+    {
+      "id": "3943fed5-c4ad-4f21-9d43-49d300e3a72e",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "6d0bb64d-8cb1-4108-838e-26c544246559",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:56.807Z"
+    },
+    {
+      "id": "abd01cf3-6b34-4e59-8fbf-54b06f5bd6d2",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "6d0bb64d-8cb1-4108-838e-26c544246559",
+      "content": "have u considered the US greenland conflict or nah",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:48:56.807Z"
+    },
+    {
+      "id": "3faf9479-90bb-4815-8992-531f4a8eef9d",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "dc835804-cb75-49b3-bd34-ab38dcfc7e5d",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:49:25.472Z"
+    },
+    {
+      "id": "63308676-f9b1-4dd8-9678-71fc45a1aa83",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "dc835804-cb75-49b3-bd34-ab38dcfc7e5d",
+      "content": "iceland sounds great!",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:49:25.472Z"
+    },
+    {
+      "id": "9a9528b8-162d-41ac-9b15-13beb8ef6d9b",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "27ec557a-b20c-41e2-a81a-114522b0c098",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:49:50.217Z"
+    },
+    {
+      "id": "04b0768c-d47b-4c0c-bb3a-464a494e34f3",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "27ec557a-b20c-41e2-a81a-114522b0c098",
+      "content": "how many days wld u suggest to go iceland for for the full tourist experience there",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:49:50.217Z"
+    },
+    {
+      "id": "0f31565e-76e9-41e8-9aaf-8ebb5e4bd3ae",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "93de0149-6015-42ad-a2d4-48ac9c01c325",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:50:31.107Z"
+    },
+    {
+      "id": "36472b44-7cb1-481e-8bcf-51643cc02abb",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "93de0149-6015-42ad-a2d4-48ac9c01c325",
+      "content": "give us a 3-5 day itinerary covering all the best spots",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:50:31.107Z"
+    },
+    {
+      "id": "8115bae5-90a9-4897-b301-e75674b556f6",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "5ce4df2d-12a0-4b23-be99-05d031455517",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:50:58.860Z"
+    },
+    {
+      "id": "252810b0-e88d-4f88-819d-95e622069162",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "5ce4df2d-12a0-4b23-be99-05d031455517",
+      "content": "whats the estimated budget",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:50:58.860Z"
+    },
+    {
+      "id": "64635328-2486-49e3-b057-4d1824bd8df4",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "040cf99b-d23c-4e89-919b-3bbc509a0c94",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:51:48.055Z"
+    },
+    {
+      "id": "843f2e9e-45fe-4814-8858-435b7f20d7ef",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "040cf99b-d23c-4e89-919b-3bbc509a0c94",
+      "content": "lets plan for a full day of day 4 from 9am to 9pm",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:51:48.055Z"
+    },
+    {
+      "id": "b05aa3a9-a190-419b-a6aa-eac11860c8d1",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "f60659e2-ad79-4dd9-82c0-853757439d6a",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:52:13.307Z"
+    },
+    {
+      "id": "48b1481a-7fde-4088-9c9a-2d3a7c072781",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "f60659e2-ad79-4dd9-82c0-853757439d6a",
+      "content": "are u sure all these places are close to each other?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:52:13.307Z"
+    },
+    {
+      "id": "802492e4-9815-4495-be04-4a8e570ff3c4",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "88428699-2a3c-4974-95a2-fd3542fd6e8a",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:52:41.464Z"
+    },
+    {
+      "id": "f394f0c3-b48f-495f-a2c1-2740d8613fac",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "88428699-2a3c-4974-95a2-fd3542fd6e8a",
+      "content": "whats the weather like",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:52:41.464Z"
+    },
+    {
+      "id": "24e1bbf0-7303-4533-a86b-f0c432f097a1",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "87c7f896-6758-4bf8-915b-2ca8b3748d95",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:56:12.021Z"
+    },
+    {
+      "id": "af93125c-80b2-4f66-af97-b508870e1cb2",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "87c7f896-6758-4bf8-915b-2ca8b3748d95",
+      "content": "bruh stella said that she doesnt like nature.. we might need to replan the whole entire trip without nature or hiking...... where tf do u go shopping in iceland",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:56:12.021Z"
+    },
+    {
+      "id": "2822daee-f2e1-4bd0-8ae5-9125c1062bce",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "25fe664b-9286-449c-b45a-261735549d5b",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "routeRationale": "Single-word non-explicit input stays in ask mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:56:18.757Z"
+    },
+    {
+      "id": "cc8bec2e-a76b-4d09-8903-09905406df13",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "25fe664b-9286-449c-b45a-261735549d5b",
+      "content": ":0000000",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.2,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:56:18.757Z"
+    },
+    {
+      "id": "0a2c73d1-5564-4890-9a61-1e7cf2dbf031",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "23656845-08f1-4462-b0e1-21dbedba0bd1",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:56:35.855Z"
+    },
+    {
+      "id": "6f02b716-702d-4b32-a346-754ccb2dbe51",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "23656845-08f1-4462-b0e1-21dbedba0bd1",
+      "content": "NOOOO I HATE STELLA",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:56:35.855Z"
+    },
+    {
+      "id": "5be21fd5-8889-4902-aa25-c95aa8a22308",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "41b2e155-58b7-43d1-8e2e-64359674752e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "routeRationale": "No strong research signal detected; defaulting to assistant mode.",
+        "routeOverrideUsed": false,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:57:20.302Z"
+    },
+    {
+      "id": "2ae9317a-2264-46f4-8a96-0ebc1444bf98",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "41b2e155-58b7-43d1-8e2e-64359674752e",
+      "content": "oh no, we need to rethink our plan",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 0.5,
+        "routeSource": "server-classifier",
+        "overrideMode": "auto",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:57:20.302Z"
+    },
+    {
+      "id": "08f4e31e-afae-434c-8698-f286b544c38a",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "e84dcad0-b2c2-4c44-8bf0-f687e973676e",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:58:01.867Z"
+    },
+    {
+      "id": "c75dceed-f440-4379-b791-8462a054fac2",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "e84dcad0-b2c2-4c44-8bf0-f687e973676e",
+      "content": "would these spots you recommended fit in our day 4 itinerary?",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:58:01.867Z"
+    },
+    {
+      "id": "259f7e87-06d4-483a-8fcb-1fb9d1cdae33",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-01",
+      "messageId": "d19ab390-233f-4bc3-bd59-0a1769b180ab",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:58:08.505Z"
+    },
+    {
+      "id": "0e99a2a2-0d70-4471-8e88-b407fb553584",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-01",
+      "messageId": "d19ab390-233f-4bc3-bd59-0a1769b180ab",
+      "content": "okay replan a trip with only hiking for 2 days and shopping for the rest of the 3 days. during the 2 days of hiking, give me 2 locations stella could go for shopping while we hike.",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:58:08.505Z"
+    },
+    {
+      "id": "eb521957-eb4e-4b6f-ae22-66c0ff68f6d0",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_route_decision",
+      "actorUserId": "study-user-02",
+      "messageId": "a217fee0-1dae-49af-a8f6-0df365a342e6",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "routeRationale": "Manual override selected by user.",
+        "routeOverrideUsed": true,
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:58:33.925Z"
+    },
+    {
+      "id": "06774942-4c0b-490a-843d-24a67f6badbe",
+      "teamId": "study-team-05",
+      "sessionId": "session-1774769913841-p49unok0",
+      "eventType": "chat",
+      "eventName": "message_sent",
+      "actorUserId": "study-user-02",
+      "messageId": "a217fee0-1dae-49af-a8f6-0df365a342e6",
+      "content": "ummarise",
+      "metadata": {
+        "routeMode": "ask",
+        "routeConfidence": 1,
+        "routeSource": "manual-override",
+        "overrideMode": "ask",
+        "routeArchetype": "pragmatic-advisor"
+      },
+      "createdAt": "2026-03-29T08:58:33.925Z"
+    },
+    {
+      "id": "3e54457d-92c2-496f-8ce8-358e5ade2f03",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-29T08:58:40.040Z"
+    },
+    {
+      "id": "9f1ed929-55e6-44cb-93c1-09dd68774152",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "session",
+      "eventName": "session_export_completed",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "format": "json"
+      },
+      "createdAt": "2026-03-29T08:58:41.164Z"
+    },
+    {
+      "id": "1952b560-97ce-4b13-8015-1a183f3e78c8",
+      "teamId": "study-team-05",
+      "sessionId": "19db981e-6dcf-41ec-9603-ac582a3bb767",
+      "eventType": "session",
+      "eventName": "session_export_requested",
+      "actorUserId": "study-user-01",
+      "metadata": {
+        "format": "timeline-json"
+      },
+      "createdAt": "2026-03-29T08:58:41.164Z"
+    }
+  ],
+  "metrics": {
+    "teamId": "study-team-05",
+    "windowStart": "2026-03-29T08:45:21.278Z",
+    "windowEnd": "2026-03-29T08:58:41.164Z",
+    "totalEvents": 51,
+    "uniqueUsers": 2,
+    "messageSentCount": 20,
+    "insightStatusChangeCount": 0,
+    "tabSwitchCount": 0,
+    "contextEditCount": 0,
+    "exportCount": 2,
+    "resetCount": 0,
+    "markerJumpCount": 0,
+    "timelineSyncCount": 0,
+    "linkHoverCount": 0,
+    "actionAcceptedCount": 0,
+    "actionDismissedCount": 0,
+    "actionCompletedCount": 0,
+    "avgSecondsBetweenEvents": 16
+  }
+}

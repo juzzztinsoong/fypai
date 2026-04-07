@@ -1,0 +1,222 @@
+﻿=== PARA 0 [Heading 1] ===
+6. Results and Analysis
+
+=== PARA 2 [Heading 2] ===
+6.1 Session Overview
+
+=== PARA 3 [None] ===
+Four sessions were conducted across nine participants between March 2026. Sessions progressed from solo to team modes, with each session including an AI-On and an AI-Light phase. Participants are identified by session-prefixed codes throughout: P1a and P1b for Session 1, P2a through P2c for Session 2, P3a and P3b for Session 3, and P4a and P4b for Session 4. Table 5 provides a session-level overview of message volumes and primary telemetry counts.
+
+=== PARA 5 [None] ===
+Table 5: Session Overview
+
+=== PARA 7 [None] ===
+*S1 group-phase traceability data is low-confidence due to an instrumentation gap: 10 of 13 clicks in the group AI-On phase reached insights with dismissed status, and actor attribution on dismiss events is unreliable due to a confirmed userId bug in the InsightActions component. S1 group traceability data is noted where relevant but not used as a primary finding.
+
+=== PARA 8 [None] ===
+All sessions ran conditions in the same order: Solo AI-On, Group AI-On, Group AI-Light. There was no counterbalancing across sessions. Where AI-Light preference findings are discussed, this ordering should be held in mind as a potential contributing factor alongside the condition itself.
+
+=== PARA 9 [None] ===
+Two instrumentation notes affect specific findings and are flagged in context. The reply-context bug ù where parentMessageId was extracted but not passed to the LLM, causing the agent to infer reply targets from recency ù was present in S1 through S3 and fixed before S4. The insight generation pipeline changed between S1 and S2: S1 used the ResearchJobController async pathway for research-type insights; S2 through S4 used the AIInsightController synchronous pathway with a research-analyst archetype modifier. Research insight counts are comparable across sessions after this distinction is noted; output quality ceiling and mechanism differ.
+
+=== PARA 11 [Heading 2] ===
+6.2 AQ1 ù AI Routing Behaviour
+
+=== PARA 12 [None] ===
+AQ1 asks whether users distinguish between the available AI interaction modes in ways that reflect their intended use, and whether mode-appropriate usage changes over the course of a session. The routing telemetry across 405 messages provides a clear and consistent picture.
+
+=== PARA 13 [Heading 3] ===
+6.2.1 Manual Override as the Dominant Routing Behaviour
+
+=== PARA 14 [None] ===
+The study-wide mean solo override rate was 81% ù participants manually selected a routing mode rather than deferring to the auto-classifier in four out of every five messages they sent. The distribution was not uniform: four participants (P2b, P2c, P3b, and P3a at 91%) overrode at 91% or above, while P2a was the clear outlier at 39%. P1b and P1a fell in the mid-range at 67% and 71% respectively.
+
+=== PARA 15 [None] ===
+High override rates do not straightforwardly indicate routing comprehension. The telemetry reveals a sticky-mode pattern in S1: P1a and P1b set Ask mode early in their solo phases and left it locked for the remainder, producing high override counts from mode inertia rather than deliberate per-message routing decisions. In S2 through S4, where participants encountered the interface fresh without this early lock-in, overrides were still high but reflected active mode selection rather than lock-in.
+
+=== PARA 16 [None] ===
+Group AI-On phases showed a consistent and marked drop in override rates in three of four sessions: S2 (80% solo to 43% group), S3 (96% to 42%), and S4 (82% to 37%). S1's group rate anomalously rose to 92%, explained by the sticky-mode artefact. The group drop reflects the nature of group messages ù shorter, more conversational, better matched to the auto-classifier's Ask default ù rather than a change in routing comprehension. Participants were not making more deliberate routing decisions in group phases; they were sending messages the classifier could handle acceptably.
+
+=== PARA 17 [Heading 3] ===
+6.2.2 Research Mode ù A Design Finding
+
+=== PARA 18 [None] ===
+The most consistent routing finding across all four sessions is the gap between Research mode's label and its functional output. Every participant who used Research mode evaluated it critically, and the criticism converged on the same mechanism: the mode generates outputs that feel like structured opinions rather than retrieval-backed research.
+
+=== PARA 19 [None] ===
+P3b stated this most directly: "Research is not researching." P2b described Research outputs as feeling like "opinion not fact." P2c found outputs diverged from the question asked. P4b found the output "not thorough or deep enough." P4a offered the most nuanced assessment: Research mode was useful for generating structured sub-task outputs ù risk lists, open question sets ù but became limiting for open-ended investigative queries. P3a developed a workaround, using the Reply function to inject contextual specificity into Research prompts that the template structure would not otherwise accommodate ù a participant-generated adaptation confirmed by 21 draft_context_promoted events in the solo phase.
+
+=== PARA 20 [None] ===
+The mechanism is traceable to the system's routing and generation architecture, and is better understood as a design finding than a usability observation. Research mode in S2 through S4 routes to generateReport with the research-analyst archetype modifier, operating on the same conversation-history context as Ask mode with no external retrieval. The mode label creates a retrieval expectation the system does not meet ù participants expected depth and citation, the system delivered structured synthesis. This gap is compounded by the auto-classifier's Ask bias: zero autonomous Research classifications were recorded across all sessions, meaning the system never proactively identified a message as research-appropriate and escalated it. Together, the label-expectation mismatch and the Ask-biased classifier produced a system that presents Research as a first-class mode while functionally delivering it as a structured Ask variant. The implication for design is direct: either the mode's capabilities need to match its label through genuine retrieval augmentation at query time, or the mode distinction needs to be reframed around output structure rather than information depth.
+
+=== PARA 21 [Heading 3] ===
+6.2.3 Mode Distinction Clarity and Learning
+
+=== PARA 22 [None] ===
+Post-session survey Q4 measured participants' self-assessed mode distinction clarity. S2 participants all reported understanding the distinction and changing their use accordingly ù the highest clarity scores in the study. S3 participants both reported only a rough idea despite having the highest prior AI familiarity of any session. S4 was split: P4a reported clear understanding, P4b a rough idea.
+
+=== PARA 23 [None] ===
+The determining factor was not general AI literacy but depth of Research mode engagement. P4a front-loaded four manual Research messages in her first six messages, building an experiential contrast with Ask mode that gave her a clear basis for comparison. P3b avoided Research after finding it non-functional early in her session, preventing the contrast from forming. General AI familiarity did not transfer to product-specific mode understanding ù S3's result confirms this directly. Mode distinction clarity is earned through use, not prior experience.
+
+=== PARA 24 [None] ===
+Ask Assistant was the de facto primary mode across every participant and session. Research was attempted by all participants but abandoned as a primary strategy by all except P4a, who front-loaded it before shifting to Ask. The workspace design assumed deliberate mode selection as a core interaction pattern; in practice, participants converged on Ask as a defaulting strategy, with Research used for occasional structured sub-tasks and increasingly avoided as session length increased.
+
+=== PARA 26 [Heading 2] ===
+6.3 AQ2 ù Traceability and Trust
+
+=== PARA 27 [None] ===
+AQ2 asks whether users can navigate from a saved insight back to its source, and whether access to provenance affects how they engage with AI outputs. The traceability telemetry ù 55 genuine click events across nine participants ù establishes that the mechanism is discoverable and used across multiple navigation strategies. The trust dimension, by contrast, was not strongly activated within the study's task context, a finding that is itself informative about the conditions under which provenance matters to users.
+
+=== PARA 28 [Heading 3] ===
+6.3.1 Traceability as a Solo Behaviour
+
+=== PARA 29 [None] ===
+Traceability engagement was consistently higher in solo phases than in group phases. Excluding S1's group data, every participant who engaged with traceability in solo reduced or eliminated that engagement in the group AI-On phase. P4b was the highest traceability user in the study at 21 solo clicks, dropping to 1 in the group phase. P2b recorded 4 solo clicks and 0 in the group; P3a recorded 7 and 0; P3b recorded 5 and 0.
+
+=== PARA 30 [None] ===
+Two factors explain the drop. First, insight density was lower in group phases: solo phases generated 1 to 6 insights per participant through individual prompting, while group AI-On phases generated 1 to 6 total for the entire group. Fewer insights produced fewer natural traceability triggers. Second, the collaborative context shifted attention from the right panel to the conversational stream. The insights panel became a peripheral resource rather than a primary workspace surface once a second participant was present.
+
+=== PARA 31 [Heading 3] ===
+6.3.2 Three Navigation Strategies
+
+=== PARA 32 [None] ===
+A notable finding within AQ2 is that three distinct traceability navigation strategies emerged independently across participants, without any scaffolding from the facilitator. This variety suggests the traceability affordance is flexible enough to support different working styles rather than prescribing a single interaction pattern.
+
+=== PARA 33 [None] ===
+The designed pathway ù using chat markers to navigate from a conversation message to the corresponding insight panel card ù was the most common, used by the majority of participants who engaged with traceability at all. P4b was the only participant to use the reverse pathway consistently: navigating from the insights panel to the originating chat message, treating the right panel as the primary navigation surface rather than the chat. P3b and P4a independently described using chat history scroll as a provenance fallback ù bypassing the traceability UI entirely in favour of manual scroll. P3b used this strategy in parallel with genuine traceability clicks (5 confirmed), indicating dual-strategy use.
+
+=== PARA 34 [None] ===
+The scroll fallback is a meaningful usability signal. Both participants who described it did so not as a workaround but as a natural first instinct, suggesting the traceability affordance was not consistently surfaced as the expected navigation mechanism. P4a explicitly noted that not everything in the chat log linked to an insight ù which is accurate, only AI-generated insights carry markers ù and reflects a mental model gap about what the system tracks.
+
+=== PARA 35 [Heading 3] ===
+6.3.3 Source Legibility versus Epistemic Provenance
+
+=== PARA 36 [None] ===
+Post-session Q1 asked how easy it was to understand where the AI's suggestions came from. The responses surface a framing ambiguity that recurs across sessions. P4a rated the question Easy but verbally stated she was "not sure where facts came from" ù the sharpest confirmation of the ambiguity. P2a rated Easy; P2b rated Difficult; P2c rated Very easy ù despite entering the session with identical provenance concern scores on the pre-session survey.
+
+=== PARA 37 [None] ===
+The Q1 question is interpreted differently by different participants. Those who rated Easy generally meant they could identify AI-generated content visually ù the interface made the source clear in terms of which panel it came from. Those who rated Difficult generally meant they could not determine the epistemic basis of the content ù where the AI's claims were grounded. These are two distinct dimensions: interface legibility and epistemic provenance. The traceability mechanism addresses the first but not the second. Linking an insight to the conversation that generated it tells a participant when and in what context the AI produced something; it does not tell them what the AI's claim was based on.
+
+=== PARA 38 [None] ===
+This distinction was not critical within the study's task context. Participants were engaged in collaborative planning exercises with no high-stakes decision consequences, and several explicitly indicated they did not feel the need to verify AI output sources in this context. The trust dimension of AQ2, as originally framed, requires higher-stakes task contexts to surface meaningfully. What the study does establish is a usage pattern: traceability was adopted, used in multiple strategies, and valued for interface legibility ù a foundation on which epistemic provenance features could be built.
+
+=== PARA 39 [Heading 3] ===
+6.3.4 Source Legibility Divergence
+
+=== PARA 40 [None] ===
+Across sessions, Q1 scores did not correlate with pre-session provenance concern, prior AI experience, or general AI literacy. They correlated most closely with mode engagement depth. Participants who used Ask mode predominantly experienced clearer apparent attribution ù Ask mode responses are conversational and feel more directly responsive to the message sent. Participants who engaged more deeply with Research mode encountered the epistemic provenance problem ù Research outputs lack source citation and feel opinion-based. P4a's verbal statement of source uncertainty despite a high Q1 rating maps exactly onto her Research-first session arc.
+
+=== PARA 42 [Heading 2] ===
+6.4 AQ3 ù Shared Understanding and Contextual Catch-Up
+
+=== PARA 43 [None] ===
+AQ3 asks whether the shared project context mechanism supports a common frame of reference across team members, how participants notice and respond to context changes, and whether the system's accumulated artifacts serve as catch-up resources for participants joining or rejoining mid-session.
+
+=== PARA 44 [Heading 3] ===
+6.4.1 Context Engagement Onset and Variability
+
+=== PARA 45 [None] ===
+Seven of nine participants used at least one context affordance during their sessions. Two distinct context management pathways were observed. The formal panel save pathway ù opening the context panel, editing it directly, and saving ù was used by seven participants at least once. The draft context promote pathway ù promoting AI-generated content as context material without opening the panel ù was used by five participants. P2c and P1b (minimally) did not engage with either pathway meaningfully.
+
+=== PARA 46 [None] ===
+The most striking within-session divergence was between P3a and P3b in S3. P3a recorded 34 draft_context_promoted events across all phases ù the highest in the study by a wide margin ù treating AI outputs as raw material for context and building a working context object iteratively through AI interaction. P3b recorded zero promotes, using the formal panel save pathway exclusively. Both were operating in the same session on the same scenario. The divergence reveals that the promote pathway, while designed to support exactly P3a's workflow, requires a cognitive model that most participants did not arrive at spontaneously. P1a, P2b, and P4a each used 2 to 4 promotes, suggesting occasional discovery without sustained adoption.
+
+=== PARA 47 [None] ===
+S2 produced the fastest and most purposeful group context-setting in the study ù P2b opened and saved the context panel within 70 seconds of the group phase starting. The task's concrete parameter structure (flat-finding has obvious shared criteria: location, budget, commute) likely made the rationale for shared context immediately apparent. S4 had the latest group context onset, with neither participant editing the context panel at the start of the group task.
+
+=== PARA 48 [Heading 3] ===
+6.4.2 Context Bypass as the Default for Mid-Session Constraints
+
+=== PARA 49 [None] ===
+The most consistent AQ3 finding is that participants communicated mid-session constraints conversationally rather than recording them in the shared context panel. Three direct bypass observations were confirmed by telemetry.
+
+=== PARA 50 [None] ===
+The clearest was P1b, who opened the context panel at 09:47:14, closed it without saving nine seconds later at 09:47:24, and typed a hiking dislike constraint in chat nine seconds after that. The sequence is unambiguous: they considered the panel, rejected it, and defaulted to verbal communication. The constraint did not persist through the shared context mechanism. P2a stated a west-side commute requirement in the group chat; the AI incorporated the constraint within 31 seconds without a context panel update. The S4 east-commute constraint, introduced as a facilitator prompt, was treated by both participants as a conversational planning parameter with no panel response.
+
+=== PARA 51 [None] ===
+The bypass pattern points to a design gap. The context panel is presented as a space for standing framing information set at the start of a task. Mid-session constraint introduction ù a natural product of collaborative negotiation ù does not map onto this interaction model. Participants defaulted to the channel they were already in: the conversation. The AI's Ask mode, drawing on working memory, incorporated verbally stated constraints in the short term; the context panel did not update to reflect them, so the shared framing fell out of sync with the conversation state.
+
+=== PARA 52 [Heading 3] ===
+6.4.3 Context Management as Single-Owner in Groups
+
+=== PARA 53 [None] ===
+Only S2 produced bilateral context management ù two participants independently updating the shared context during a live group task. P2a promoted at 08:19:46 and 08:19:57; P2b promoted at 08:22:44 and 08:23:06. In every other group session, context management was driven by a single participant or not engaged with at all. This is consistent with observed patterns in shared document editing, where collaborative contexts tend to produce a de facto owner rather than symmetric contribution. The design affords bilateral management, but the natural social dynamic did not produce it in most sessions.
+
+=== PARA 54 [Heading 3] ===
+6.4.4 Contextual Catch-Up ù Supporting Evidence
+
+=== PARA 55 [None] ===
+Formal testing of the contextual catch-up function was limited to S2, where P2a left and rejoined the group session with a new constraint. The AI incorporated the verbally stated constraint within 31 seconds of its introduction, and both AI-generated summaries produced after the constraint was stated referenced it explicitly. The constraint persisted in all subsequent agent responses across the remaining 10 minutes of the session, demonstrating that AI-generated artefacts produced during a group session retain mid-session context updates through the working memory window.
+
+=== PARA 56 [None] ===
+Two participants independently identified the summary function as a catch-up resource without prompting. P3b stated during debrief that a new joiner could use the summary function to get up to speed without reading the full conversation history ù the clearest participant-generated design validation in the study. This observation is significant precisely because it arose unprompted during a session with no formal new-joiner scenario: P3b identified a use case the design anticipated, arrived at it independently through use, and articulated it in terms that map directly onto AQ3's catch-up framing. The summary function was also used by participants within ongoing sessions for personal recalibration after extended exchanges ù not onboarding specifically, but the same functional pattern applied to an individual rather than a new participant. Together, the S2 constraint uptake result and P3b's unprompted observation provide convergent evidence that the system's accumulated artefacts function as a shared state record usable for catch-up, even in the absence of formal testing at scale.
+
+=== PARA 58 [Heading 2] ===
+6.5 AQ4 ù Coordination Support
+
+=== PARA 59 [None] ===
+AQ4 asks how working within the collaborative workspace differs from participants' expectations of a standard group chat with AI, and where the workspace shapes coordination behaviour. This was the most consistently evidenced question across sessions, drawing on both the AI-Light comparison condition and a set of recurring behavioural patterns in the group AI-On phases.
+
+=== PARA 60 [Heading 3] ===
+6.5.1 AI-Light Preference Pattern
+
+=== PARA 61 [None] ===
+Every session that collected post-condition feedback produced a preference for AI-Light or an acknowledgement that AI-Light was simpler and more usable. S1 and S2 produced clear preferences ù both S1 participants described AI-Light as more structured and cleaner, and S2 produced unanimous preference across all three participants, with P2a citing information overload, P2c citing focus, and P2b citing excessive function complexity in the full AI-On version. S3 and S4 produced more conditional responses. P3a proposed tandem use ù deploying both conditions for different sub-tasks ù the most analytically mature coordination strategy articulated in the study. P4a found specific AI-On features (Research mode's structured output, action item generation) genuinely useful for particular sub-tasks. P4b suggested the scenarios should have been swapped between conditions, indicating she felt AI-On would have been more useful on a task requiring structured research output.
+
+=== PARA 62 [None] ===
+The preference progression from S1 to S4 is notable. Earlier sessions produced clear AI-Light preference; later sessions produced conditional framings. This may reflect increasing participant sophistication, iterative improvement of the tool between sessions, or different task designs. Since all sessions ran AI-On before AI-Light without counterbalancing, a familiarity effect ù where AI-Light benefited from participants already oriented to the task ù cannot be ruled out as a contributing factor.
+
+=== PARA 63 [Heading 3] ===
+6.5.2 The Depth-First Individual AI Tangent Pattern
+
+=== PARA 64 [None] ===
+A consistent coordination pattern in the group AI-On phases was the depth-first individual AI tangent: participants pursued individual AI interactions ù asking questions or generating insights for their own planning thread ù rather than building shared reasoning through the AI. The AI kept the group loosely coordinated by generating uncontroversial, facilitative outputs, but this was an emergent property of the AI's prompt structure rather than a product of the shared context mechanism.
+
+=== PARA 65 [None] ===
+P2b named this directly: the AI was behaving like a teammate giving feedback and making decisions ù a social role she found inappropriate when three people were already present. The AI's coordination contribution was social (maintaining group momentum through safe, consensus-oriented outputs) rather than structural (facilitating shared decision-making through context management and insight linkage). The distinction matters for understanding where the workspace design succeeds and where it does not: it creates a shared space for AI output, but it does not yet create a shared reasoning process.
+
+=== PARA 66 [Heading 3] ===
+6.5.3 AI as Compromise Generator, Not Divergence Handler
+
+=== PARA 67 [None] ===
+S4 produced the clearest demonstration of a structural limitation in the AI's coordination role. The trip planning scenario introduced a hiking constraint ù one participant wanted hiking activities, the other did not. The AI generated a compromise incorporating both into a single itinerary. P4b identified this as the AI treating the group as a single entity with a single plan rather than managing divergent stakeholder needs.
+
+=== PARA 68 [None] ===
+The pattern was not unique to S4. In S2, the AI made largely uncontroversial decisions that kept the group on task without driving convergence on substantive disagreements. In S3, AI outputs were insufficiently specific to resolve genuine creative disagreement in the divergent project reconciliation task. In each case, the AI's default behaviour in the face of divergence was to find the least controversial synthesis rather than to surface the disagreement as something requiring explicit resolution. This is a structural property of the prompt architecture ù the AI's teammate persona defaults to consensus ù and is distinguishable from a usability issue.
+
+=== PARA 69 [Heading 3] ===
+6.5.4 Mental Model Mismatch
+
+=== PARA 70 [None] ===
+No participant across any session arrived with a mental model that matched the workspace's actual interaction paradigm. Pre-session spoken responses produced a range of frames: P1a anticipated a chatbot-like tool; P2a anticipated a Notion-style organiser; P4a anticipated a delegation and sub-process task assignment system; P4b anticipated a moderator for team dynamics. S3 participants came closest ù P3a anticipated a multi-format output aggregation workspace and P3b anticipated an AI transparency indicator ù but neither felt the tool delivered on those models.
+
+=== PARA 71 [None] ===
+The mismatch is not a first-impression phenomenon that resolves with use. Post-session reflections retained the same frame mismatches. Participants adapted to the tool within sessions ù learning to use specific features instrumentally ù but did not reconceptualise the workspace as a whole in a way that matched its design intent. This is consistent with the mode distinction clarity findings in AQ1: the workspace's interaction paradigm requires deliberate exploration to understand, and session-length exposure was insufficient for most participants to fully map it.
+
+=== PARA 73 [Heading 2] ===
+6.6 Cross-Cutting Findings
+
+=== PARA 74 [Heading 3] ===
+6.6.1 Telemetry and Qualitative Alignment
+
+=== PARA 75 [None] ===
+A strength of this study's data collection is the degree to which behavioral log data and qualitative observations converge. Across all four sessions, ten qualitative observations were directly confirmed by telemetry: P1a's routing confusion (confirmed by 71% override rate and sticky-mode pattern), P2b's self-directed onboarding (confirmed by 100% override rate), P3a's reply-as-context workaround (confirmed by 21 draft_context_promoted events in solo), P1b's context panel bypass (confirmed by the open-close-chat timestamp sequence), S2's bilateral context management (confirmed by timestamped promote events from two participants within four minutes), P3b's scroll-based provenance strategy (confirmed by five genuine clicks coexisting with verbal scroll description), P4b's panel-to-chat navigation (confirmed by jump_to_chat_marker event direction dominance), P4a's Research-first arc (confirmed by messages 3 through 6 being manual-research overrides), P2a's constraint uptake (confirmed by 31-second gap), and P4b's AI toggle exploration (confirmed by four team_ai_toggle_changed events in 18 seconds). No unresolved disparities between the log data and cleaned observational notes were identified.
+
+=== PARA 76 [Heading 3] ===
+6.6.2 The Accept/Dismiss Workflow ù Adoption Without Scaffolding
+
+=== PARA 77 [None] ===
+The insight status workflow ù Accept, Dismiss, and Mark Complete on right-panel insight cards ù was used in three of four sessions, with 20 insight_status_changed events recorded in total. Due to a confirmed instrumentation bug (the InsightActions component defaulted userId to user1 rather than the session participant's actual ID), actor attribution on these events is unreliable. In solo phases, however, the participant is the presumptive operator. P3b accepted two action items and explored Quick Start Help statuses; P3a accepted two insights, dismissed one suggestion, and archived one; P4a accepted two insights; P4b accepted four insights across multiple types. At least four of nine participants adopted the insight lifecycle mechanism without explicit instruction, suggesting the workflow is discoverable within a session. S2 recorded zero insight_status_changed events ù the only session where no workflow adoption was observed.
+
+=== PARA 78 [Heading 3] ===
+6.6.3 Auto-Classification ù Ask Bias and Its Implications
+
+=== PARA 79 [None] ===
+The auto-classifier recorded zero autonomous Research classifications across all sessions captured in the routing pipeline. The classifier was active in every session, returning confidence scores across the full range, but its Ask default ù requiring explicit research-intent keywords and a high confidence threshold to trigger Research ù meant that typical participant messages never crossed the Research routing threshold without manual override. Participants experienced the system as a gated tool requiring explicit invocation. P4b articulated the desired alternative: the AI should read context passively and generate suggestions without explicit invocation. This describes an ambient classification model that the current routing architecture does not provide. The gap between the participant-desired model and the implemented one is a design finding as much as a usability observation, and connects directly to the Research mode depth gap identified in AQ1.
+
+=== PARA 80 [Heading 3] ===
+6.6.4 Instrumentation Limitations
+
+=== PARA 81 [None] ===
+Three instrumentation issues affected specific findings during the study period. The insight status userId bug rendered actor attribution unreliable on all insight_status_changed events; this is accounted for per-session above. The reply-context bug ù where parentMessageId was not passed to the LLM ù was active in S1 through S3 and resulted in the agent inferring reply targets from recency rather than explicit linkage. P3b directly flagged misleading suggestions arising from this behaviour; these observations are valid study-period data reflecting the tool's state at time of testing. The bug was fixed before S4. Insight generation data uses two different reconstruction mechanisms across sessions ù timeline events for S1 and S4, export fallback for S2 and S3 ù producing comparable counts after seed filtering but with a heterogeneous underlying data source. These issues are documented and do not materially affect the primary findings across AQ1 through AQ4.
+

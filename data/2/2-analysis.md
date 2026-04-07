@@ -16,7 +16,7 @@
 | Aly Solo (AI_ON) | 10 | 0 | 0 | 5 | 5 | 100% | 6 | 4 | 1 | 0 |
 | Royston Solo (AI_ON) | 6 | 0 | 0 | 3 | 3 | 100% | 2 | 5* | 0 | 0 |
 | Group AI_ON — Willson | 9 | 4 | 0 | 4 | 1 | 55.6% | — | 3 | — | 2 |
-| Group AI_ON — Aly | 26 | 17 | 0 | 9 | 0 | 34.6% | — | 0 | 1 | 2 |
+| Group AI_ON — Aly | 26 | 17 | 0 | 8 | 1 | 34.6% | — | 0 | 1 | 2 |
 | Group AI_ON — Royston | 8 | 5 | 0 | 3 | 0 | 37.5% | 6 total | 0 | 0 | 0 |
 | Group AI_LIGHT — Willson | 22 | 22 | 0 | 0 | 0 | 0% | — | 0† | 2 | 0 |
 | Group AI_LIGHT — Aly | 25 | 18 | 0 | 7 | 0 | 28% | 0† | 0† | — | 2 |
@@ -53,7 +53,7 @@
 
 **Post-session Q4:** All three reached mode distinction understanding by session end; Willson and Aly reported it changed their use. Royston understood clearly but did not report changed behaviour — consistent with his Ask-dominant pattern and explicit preference for familiar affordances.
 
-**D3 flag — Royston insight count of 2:** Royston generated 2 genuine insights across a 6-message, ~42-minute solo session. Willson and Aly each generated 6 insights with far greater message volume. The low count most likely reflects his minimal message volume and feature-avoidance stance (explicitly did not touch features he did not understand) rather than a data quality gap. His export is structurally intact; the 2 remaining insights after seed removal are `document` type.
+**D3 flag — Royston insight count of 2:** Royston generated 2 genuine insights across a 6-message, ~42-minute solo session. Willson and Aly each generated 6 insights with far greater message volume. The low count most likely reflects his minimal message volume and feature-avoidance stance (explicitly did not touch features he did not understand) rather than a data quality gap. His export is structurally intact; the 2 remaining insights after seed removal are research type.
 
 ---
 
@@ -67,11 +67,32 @@ Royston registered 5 genuine traceability clicks with 0 tab changes — the high
 
 Willson registered only 1 traceability click but rated source legibility "Easy" and found attribution clear from the inline UI. His limited click count alongside a positive legibility rating suggests the chat-inline display was sufficient for his needs — he did not need to navigate the traceability links because the AI attribution in the chat view was clear enough. This points to the chat-inline attribution as the more effective legibility surface for users who do not naturally explore panel navigation.
 
-**Willson's 8 tab changes and 3 traceability clicks in Group AI_ON** (versus 0 tab changes and 1 click in solo) is the sharpest intra-participant engagement shift in Session 2. The 3 clicks were all to fresh content (ages 6s, 2s, 7s — all `final_status=new`) and reached three different insight types (document, action, suggestion), consistent with him systematically sampling the right panel rather than following up on a specific output. Combined with the 8 tab changes, this is a qualitatively different right-panel engagement pattern than any other participant in Group AI_ON — Aly and Royston each registered 0 traceability clicks in that phase. He was the only participant to actively navigate the right panel in the group context, which may reflect his role as the designated flat-search driver.
+**Willson's 8 tab changes and 3 traceability clicks in Group AI_ON** (versus 0 tab changes and 1 click in solo) is the sharpest intra-participant engagement shift in Session 2. The 3 clicks were all to fresh content (ages 6s, 2s, 7s — all `final_status=new`) and reached three different insight types (research, action, suggestion), consistent with him systematically sampling the right panel rather than following up on a specific output. Combined with the 8 tab changes, this is a qualitatively different right-panel engagement pattern than any other participant in Group AI_ON — Aly and Royston each registered 0 traceability clicks in that phase. He was the only participant to actively navigate the right panel in the group context, which may reflect his role as the designated flat-search driver.
 
 **Cross-participant pattern (AQ2 key finding):** All three entered with identical provenance concern (Q3 uniform: "moderately important"). They exited with substantially different experienced legibility: Willson easy, Royston very easy, Aly difficult. The divergence originated in depth of mode engagement, not in traceability feature access. Aly's Research mode use (5/10 messages) exposed her to templated, opinion-framed outputs; Willson's Ask-dominant use produced more conversational, apparently attributable responses. The traceability feature was equally accessible to all three, but the legibility outcome was shaped by what was being traced rather than whether tracing was possible.
 
-**No dismissed-content confound in Session 2.** All genuine traceability clicks in Session 2 reached insights with `final_status=new` — there is no equivalent to the Session 1 B3 confound where clicks reached facilitator-dismissed content. Aly's 4th click reached a document insight with age 31.6 minutes — a backward reference to content generated significantly earlier in the session, suggesting cross-checking rather than immediate follow-up. All other genuine clicks were to fresh content (age <6 minutes at click time).
+**No dismissed-content concern in Session 2.** All genuine traceability clicks in Session 2 reached insights with `final_status=new` — no status changes occurred in S2 (zero `insight_status_changed` events from anyone). Aly's 4th click reached a research insight with age 31.6 minutes — a backward reference to content generated significantly earlier in the session, suggesting cross-checking rather than immediate follow-up. All other genuine clicks were to fresh content (age <6 minutes at click time).
+
+**S2 traceability click evidence (from `traceability_with_status.csv`):**
+
+| Time | Participant | Phase | Event | Type | Age | Status@Click | Title |
+|---|---|---|---|---|---|---|---|
+| 07:26:05 ×2 | Aly | Solo | focus_insight_from_marker | research | 37s | new | Research Analysis Report: Independent Samples t-Test |
+| 07:26:40 | Aly | Solo | focus_insight_from_marker | action | 21s | new | Research how to run an independent samples t-test |
+| 07:34:04 | Royston | Solo | focus_insight_from_agent_message | — | ~1015m† | new | (no insight metadata — Quick Start Help seed) |
+| 08:05:22 | Royston | Solo | focus_insight_from_marker | research | 7s | new | Context and Objective |
+| 08:07:41 | Willson | Solo | focus_insight_from_agent_message | summary | 38s | new | Key Discussion Points |
+| 08:08:50 | Aly | Solo | focus_insight_from_marker | research | 1898s | new | Research Analysis Report: Cultural Issues in Singapore |
+| 08:10:24 ×2 | Royston | Solo | focus_insight_from_marker | research | 126–309s | new | Context and Objective |
+| 08:10:33 | Royston | Solo | focus_insight_from_marker | research | 318s | new | Context and Objective |
+| 08:11:00 | Royston | Solo | focus_insight_from_marker | research | 162s | new | Context and Objective |
+| 08:20:34 | Willson | Group AI_ON | focus_insight_from_marker | research | 6s | new | Context and Objective |
+| 08:20:57 | Willson | Group AI_ON | focus_insight_from_marker | action | 2s | new | Explore rental listings in Bugis |
+| 08:22:35 | Willson | Group AI_ON | focus_insight_from_marker | suggestion | 7s | new | *Explore Queenstown Housing Options |
+
+†Seed: Quick Start Help created 2026-03-24T14:39:17 (day before session); clicked ~17 hours later at 07:34:04. `focus_insight_from_agent_message` events carry no insight metadata in the traceability export — identification as seed based on timing and absence of any participant-generated insight at that point in Royston's session. Excluded from the genuine count (5 genuine, not 6).
+
+**Facilitator event scope — S2:** 183 raw facilitator (user1) events across S2 timeline files, of which 37 are substantive (excluding `link_hover`, `team_switched`). These include setup activities (`test_user_switched`, `task_context_panel_toggled`), pre-session navigation (`focus_insight_from_agent_message`, `right_panel_tab_changed`), and session exports (17:31:39–17:31:59). **Zero `insight_status_changed` events** in S2 from anyone — no accept/dismiss workflow activity occurred. All 22 S2 insights have `status_transitions=[]`. One facilitator `focus_insight_from_marker` event at 08:22:32 in Group AI_ON occurred 3s before Willson's 08:22:35 click to the same "*Explore Queenstown" suggestion — temporal proximity but `focus_insight_from_marker` is a navigation event, not a status change; the facilitator viewed but did not modify the insight. No status-change concern in Session 2.
 
 ---
 
@@ -119,7 +140,7 @@ This unanimous direction — three independent participants converging on the si
 
 **Context pathway diversity:** Three distinct context management pathways were observed in Session 2: formal panel save (Willson and Aly solo, Aly group AI_ON), draft context promote (Willson and Aly group AI_ON, Aly group AI_LIGHT), and zero engagement (Royston, all phases). The diversity suggests the promote pathway is a genuine alternative affordance for participants who engage with the right panel, not a fallback for those who cannot find the save button.
 
-**Insight workflow — all insights remained `new` throughout Session 2:** Unlike Sessions 1 and 3, no workflow events (accept/dismiss/archive) were recorded for any S2 insight by anyone — facilitator or participant. All 22 S2 insights have `final_status=new` and `status_transitions=[]`. The workflow feature was present and functional; the absence of participant-driven status events is consistent with Sessions 1 and 3 (issue A4). The absence of *facilitator* events is specific to Session 2 — unlike Session 3 where facilitator-operated accepts, dismisses, and archives are recorded.
+**Insight workflow — all insights remained `new` throughout Session 2:** No `insight_status_changed` events were recorded for any S2 insight. All 22 S2 insights have `final_status=new` and `status_transitions=[]`. The workflow feature was present and functional; nobody used the accept/dismiss mechanism in this session. S2 is the only session with zero workflow events.
 
 **No bugs to caveat:** Session 2 ran on the fixed codebase (dismissed items, `/research` deletion, and verbosity fixed before this session). Findings are not contaminated by known Session 1 confounds.
 
@@ -129,7 +150,7 @@ This unanimous direction — three independent participants converging on the si
 
 | Ref | Item | Needed for |
 |---|---|---|
-| B3 equivalent | ✅ Confirmed clean — no `user1` actor in any S2 context event; all 22 S2 insights have `status_transitions=[]` (no workflow events by anyone). No facilitator confound in this session. | — |
+| B3 equivalent | ✅ Confirmed clean — zero `insight_status_changed` events in S2; all 22 insights have `status_transitions=[]`. No workflow operations by anyone. | — |
 
 ---
 

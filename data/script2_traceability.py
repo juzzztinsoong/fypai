@@ -5,7 +5,7 @@ Captures all navigation events where users followed insight-to-message links
 or message-to-insight links (traceability interactions), and all right-panel
 tab change events.
 
-Input:  All *-timeline.json files under data/1/, data/2/, data/3/
+Input:  All *-timeline.json files under data/1/, data/2/, data/3/, data/4/
 Output:
   output/traceability_clicks.csv  — marker/insight link navigation events
   output/panel_navigation.csv     — right-panel tab change events
@@ -67,7 +67,7 @@ PANEL_COLUMNS = [
 
 
 def find_timeline_files():
-    for session_dir in sorted(DATA_DIR.glob("[123]")):
+    for session_dir in sorted(DATA_DIR.glob("[1234]")):
         for f in sorted(session_dir.rglob("*-timeline.json")):
             yield session_dir.name, f
 

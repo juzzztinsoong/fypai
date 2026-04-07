@@ -12,7 +12,7 @@ You are continuing a research data analysis project for a thesis study on AI-ass
 - **AI_ON**: Full feature set — right panel active, insights generated, traceability markers linking chat messages to insights, context panel for setting team task scope
 - **AI_LIGHT**: Stripped-down mode — center chat only, no right-panel insights, minimal AI surface
 
-**Study structure:** 3 sessions × (2 solo participants + 2 group conditions). Each session has:
+**Study structure:** 4 sessions, 9 participants total (S1: 2, S2: 3, S3: 2, S4: 2). Run order: S1 AB, S2 BA, S3 AB, S4 AB. Each session has:
 - Solo tasks (individual AI_ON use — project scoping type tasks)
 - Group task A: AI_ON condition (team-04)
 - Group task B: AI_LIGHT condition (team-05)
@@ -48,7 +48,7 @@ data/
 
   2/                        Session 2 (Willson, Aly, Roys — solo; team-04 AI_ON, team-05 AI_LIGHT)
     2.txt                   Raw facilitator notes
-    2-cleaned.md            ← TO BE CREATED (not yet written)
+    2-cleaned.md            ← CANONICAL cleaned record for Session 2
     1 willson/
     2 aly/
     3 roys/
@@ -56,20 +56,29 @@ data/
     5 ai light/             ← Was cleaned (tangent trimmed); backups at *.bak
 
   3/                        Session 3 (Aung, Shanyl — solo; team-04 AI_ON, team-05 AI_LIGHT)
-    [notes file TBD]
+    3-cleaned.md            ← CANONICAL cleaned record for Session 3
     1 aung/
     2 shanyl/
     4 ai on/
     5 ai light/
 
+  4/                        Session 4 (Val, Jen — solo; team-04 AI_ON, team-05 AI_LIGHT)
+    4.txt                   Raw facilitator notes
+    4-cleaned.md            ← CANONICAL cleaned record for Session 4
+    4-analysis.md           ← Session 4 compiled analysis
+    1 val/
+    2 jen/
+    4 ai on/
+    5 ai light/
+
   output/                   Generated CSVs from analysis scripts
-    routing_table.csv       334 rows — per-message routing data across all sessions
-    traceability_clicks.csv 52 rows — traceability/marker interaction events
-    panel_navigation.csv    23 rows — right-panel tab change events
-    insight_generations.csv 18 rows — insight generation events
-    insight_status_changes.csv  0 rows — accept/dismiss workflow (empty; not captured in sessions 1–2)
-    context_events.csv      76 rows — context panel opens/saves, AI toggles
-    condition_audit.csv     13 rows — per-file condition/message/override/insight summary
+    routing_table.csv       414 rows — per-message routing data across all sessions (S4: +71)
+    traceability_clicks.csv 77 rows — traceability/marker interaction events (S4: +25)
+    panel_navigation.csv    23 rows — right-panel tab change events (S4: +0)
+    insight_generations.csv 66 rows — insight generation events, post-seed-filter (S4: +18)
+    insight_status_changes.csv  6 rows — accept/dismiss workflow (S4: +6, all facilitator)
+    context_events.csv      147 rows — context panel opens/saves, AI toggles, draft promotes (S4: +19)
+    condition_audit.csv     17 rows — per-file condition/message/override/insight summary (S4: +4)
 
   script1_routing_table.py    → routing_table.csv
   script2_traceability.py     → traceability_clicks.csv + panel_navigation.csv
@@ -77,10 +86,21 @@ data/
   script4_context_events.py   → context_events.csv
   script5_condition_audit.py  → condition_audit.csv
   script6_session_metrics.py  → Terminal summary output (no file written)
+  script7_routing_summary.py  → routing_summary.csv (per-participant summary with override rates)
+  script8_traceability_with_status.py → traceability_with_status.csv (clicks with insight age/status)
+  script9_context_timeline.py → context_timeline.csv (chronological context events)
+  script10_insight_workflow.py → insight_workflow.csv (insight lifecycle events)
   clean_team05.py             → One-time cleaner for Session 2 team-05 tangent (already run)
+  verify_analysis.py          → Comprehensive CSV verification tool
   README.md
+  DATA_ISSUES.md              ← Cross-session instrumentation issues reference
   DATA_QUALITY.md
-  SYSTEM_DESIGN_NOTES.md
+  ANALYSIS_HANDOFF.md         ← This file
+
+  1/1-analysis.md             ← Session 1 compiled analysis (verified against CSVs)
+  2/2-analysis.md             ← Session 2 compiled analysis (verified against CSVs)
+  3/3-analysis.md             ← Session 3 compiled analysis (verified against CSVs)
+  4/4-analysis.md             ← Session 4 compiled analysis
 ```
 
 Each session folder's `4 ai on/` and `5 ai light/` subfolders contain:
@@ -139,22 +159,35 @@ python script6_session_metrics.py   # all sessions
 
 ### Session 1
 - **Participants:** JC (P1), Samuel (P2)
-- **Canonical notes:** `data/1/1-cleaned.md` ← read this first, it is the authoritative cleaned record
+- **Canonical notes:** `data/1/1-cleaned.md`
+- **Compiled analysis:** `data/1/1-analysis.md` ← verified against CSV data
 - **Telemetry:** Run `python script6_session_metrics.py 1` to generate
-- **Analysis status:** Not yet compiled in this thread — start fresh from the cleaned notes and telemetry
+- **Analysis status:** Complete. All telemetry table values verified against CSV ground truth.
 
 ### Session 2
 - **Participants:** Willson (P1), Aly (P2), Royston (P3)
 - **Raw notes:** `data/2/2.txt`
-- **Canonical notes:** `data/2/2-cleaned.md` — not yet created
+- **Canonical notes:** `data/2/2-cleaned.md`
+- **Compiled analysis:** `data/2/2-analysis.md` ← verified against CSV data
+- **Data cleaning:** team-05 tangent trimmed (see cleaning status section)
 - **Telemetry:** Run `python script6_session_metrics.py 2` to generate
-- **Analysis status:** Not yet started
+- **Analysis status:** Complete. All telemetry table values verified against CSV ground truth.
 
 ### Session 3
 - **Participants:** Aung (P1), Shanyl (P2)
-- **Raw notes:** check `data/3/` for notes file
+- **Canonical notes:** `data/3/3-cleaned.md`
+- **Compiled analysis:** `data/3/3-analysis.md` ← verified against CSV data
 - **Telemetry:** Run `python script6_session_metrics.py 3` to generate
-- **Analysis status:** Not yet started
+- **Analysis status:** Complete. All telemetry table values verified against CSV ground truth.
+
+### Session 4
+- **Participants:** Val (P1), Jen (P2)
+- **Raw notes:** `data/4/4.txt`
+- **Canonical notes:** `data/4/4-cleaned.md`
+- **Compiled analysis:** `data/4/4-analysis.md`
+- **Telemetry:** Run `python script6_session_metrics.py 4` to generate
+- **Instrumentation note:** `insight_generate_completed` events restored (present in S1, absent S2–S3, back in S4). Direct generation telemetry — no export_fallback needed.
+- **Analysis status:** Complete. Facilitator events catalogued (6 insight_status_changed, all `new→accepted` by user1). Seed events identified and filtered (Quick Start Help, created same day at 07:33:22, ~21 min before session).
 
 ---
 
@@ -177,4 +210,5 @@ For each session, in order:
 - AI_LIGHT produces no right-panel insights by design — zero traceability/tab metrics are expected, not missing data
 - Override rate differences between conditions partly reflect condition design (AI_LIGHT has fewer override affordances), not purely user behaviour
 - Bugs fixed after Session 1: `/research` message-loss, dismiss-persistence. Both present in Session 1 only.
-- `insight_status_changed` rows are 0 across all sessions — accept/dismiss workflow was not captured in any export; this metric is unavailable for all rounds
+- `insight_status_changed` events were captured in Sessions 3 and 4 (all by facilitator — issue A4). Sessions 1–2 have no workflow events. Use `traceability_with_status.csv` (script8) and `insight_workflow.csv` (script10) for the available data.
+- **Script updates for S4:** All upstream scripts (1–5, 8–10) updated glob from `[123]` to `[1234]`. Scripts 3, 8, 10 had `SESSION_DATES` dict — added `"4": "2026-03-29"` (critical: without this, all S4 insight events were silently filtered). `deep_audit.py` also updated with S4 subfolders.

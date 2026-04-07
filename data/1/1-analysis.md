@@ -12,12 +12,12 @@
 
 | Context | Total Msgs | Auto-Ask | Auto-Research | Manual-Ask | Manual-Research | Override Rate | Insight Requests | Traceability Clicks | Context Saves | Draft Promoted |
 |---|---|---|---|---|---|---|---|---|---|---|
-| JC Solo (AI_ON) | 7 | 1 | 1 | 5 | 0 | 71% | 1 | 0 | 0 | 4 |
+| JC Solo (AI_ON) | 7 | 1 | 1 | 5 | 0 | 71% | 1 | 2 | 0 | 4 |
 | Samuel Solo (AI_ON) | 9 | 3 | 0 | 5 | 1 | 67% | 3 | 6 | 1 | 0 |
 | Group AI_ON | 37 | 3 | 0 | 34 | 0 | 92% | 6 | 14 | 2 | 1 |
 | Group AI_LIGHT | 29 | 22 | 0 | 7 | 0 | 24% | 0 | 0 | 0 | 1 |
 
-**Telemetry notes:** JC solo insight count is 1 (export_fallback, the BGP document) — the original 0 reflected a timeline-event instrumentation gap, not absence of generation. Sam solo and Group AI_ON insight counts come from timeline events (`insight_generate_requested` + `insight_generate_completed` pairs = 2 rows per generation); sessions 2–3 use export_fallback (1 row per insight). Do not compare raw row counts cross-session. JC solo and Group AI_ON share `session_id = 0f54578d...` — discriminate by `file_key` or `team_id` in any join.
+**Telemetry notes:** JC solo insight count is 1 (export_fallback, the BGP research insight) — the original 0 reflected a timeline-event instrumentation gap, not absence of generation. Sam solo and Group AI_ON insight counts come from timeline events (`insight_generate_requested` + `insight_generate_completed` pairs = 2 rows per generation); sessions 2–3 use export_fallback (1 row per insight). Do not compare raw row counts cross-session. JC solo and Group AI_ON share `session_id = 0f54578d...` — discriminate by `file_key` or `team_id` in any join.
 
 ---
 
@@ -45,22 +45,22 @@ JC explicitly noted that deciding which category to assign added cognitive load.
 
 - **JC solo:** 2 events — both on the same insight, a bidirectional pair (`jump_to_chat_marker` + `focus_chat_marker_from_insight`). JC navigated from the right panel back to the originating chat message once. No further traceability engagement.
 - **Samuel solo:** 6 events — all `focus_insight_from_marker` (chat → right panel direction), on 4 distinct insights. Samuel actively cross-referenced research insights from the chat view.
-- **Group AI_ON:** 14 events nominally, but a cross-reference of clicked insight IDs against facilitator `insight_status_changed` events (B3 resolved) reveals a significant confound. All 4 insight IDs that received clicks were also operated on by the facilitator. The merged event sequence:
+- **Group AI_ON:** 14 events nominally, but a cross-reference of clicked insight IDs against `insight_status_changed` events reveals a data quality concern. All 4 insight IDs that received clicks also had status transitions. The actor who triggered the status changes is unknown due to the A4 instrumentation bug (all `insight_status_changed` events are misattributed to `user1`). In the group phase, JC, Samuel, or the facilitator could have triggered the dismissals. The merged event sequence:
 
   | Time | Actor | Action | Insight |
   |---|---|---|---|
-  | 09:38:56 | Facilitator | dismissed | JB suggestion |
+  | 09:38:56 | Unknown (A4 bug) | dismissed | JB suggestion |
   | 09:39:22 | P1 | click | Context+Obj #2 (live ✓) |
   | 09:39:42 ×6 | P1 | click | JB suggestion (dismissed 46s earlier ✗) |
-  | 09:40:10 | Facilitator | dismissed | Context+Obj #1 |
-  | 09:40:20 | Facilitator | dismissed | Context+Obj #2 |
+  | 09:40:10 | Unknown (A4 bug) | dismissed | Context+Obj #1 |
+  | 09:40:20 | Unknown (A4 bug) | dismissed | Context+Obj #2 |
   | 09:43:54 ×4 | P1 | click | JB suggestion + both Context+Obj docs (all dismissed ✗) |
   | 09:52:47 | P1 | click | Bus operators doc (live ✓) |
   | 09:52:53 | P2 | click | Bus operators doc (live ✓) |
-  | 09:55:21 | Facilitator | accepted | Bus operators doc |
+  | 09:55:21 | Unknown (A4 bug) | accepted | Bus operators doc |
   | 09:57:27 | P1 | click | Bus operators doc (accepted ✓) |
 
-  Result: **10 of 14 clicks were to already-dismissed insights; only 4 were to live/accepted content.** Whether the UI hid dismissed insights at the time is not recoverable from the export — if dismissed items were hidden, most of the 09:39–09:43 traceability activity would have failed silently. If they remained visible, clicks still represent engagement with invalidated content. Either way, the group AI_ON traceability count is not reliable evidence of functional traceability use. The two solo contexts (JC 2 events, Samuel 6 events) are unaffected by this confound.
+  Result: **10 of 14 clicks were to already-dismissed insights; only 4 were to live/accepted content.** Whether the UI hid dismissed insights at the time is not recoverable from the export — if dismissed items were hidden, most of the 09:39–09:43 traceability activity would have failed silently. If they remained visible, clicks still represent engagement with invalidated content. The group AI_ON traceability count should be treated with caution. If a participant dismissed the insights themselves and then continued clicking them, this reflects an unusual but genuine interaction pattern rather than a confound. The two solo contexts (JC 2 events, Samuel 6 events) are unaffected.
 
 **However, trust remained low — and the driver was not the traceability design.** Explicit debrief feedback linked low confidence in AI output to the absence of live internet search access. Participants expected web-grounded responses and did not receive them. The traceability feature was visible and functional, but the underlying provenance concern ("where does this information actually come from?") was about internet access, not insight-to-message linkage. These are distinct concerns and should be kept separate in the AQ2 analysis: traceability was engaged with, but trust problems this session are a search-access confound rather than a traceability design signal.
 
@@ -96,7 +96,7 @@ The group AI_LIGHT condition reinforced this: both participants described it as 
 
 This is a classic onboarding/mental model mismatch pattern. The workspace paradigm assumes users will recognise the value of structured, persistent, linked AI artefacts — but both participants arrived with a group-chat-with-embedded-AI mental model, and the tool did not resolve that mismatch through onboarding or progressive disclosure. The onboarding cards were noted as confusing and were subsequently revised before Session 2.
 
-**Important caveat:** Session 1 bugs (verbosity, deleted messages, disappearing dismissed items) amplified frustration. The AQ4 signals are directionally reliable but their magnitude may be inflated by the rough first-session UX. Additionally, the facilitator (`user1`) dismissed 3 insights and accepted 1 in the Group AI_ON session (`09:38–09:55`), with confirmed overlap with participant traceability activity (see AQ2, B3 resolved). The facilitator dismissed the JB suggestion 46 seconds before P1 attempted to click it 6 times, and dismissed both Context and Objective documents before the main 09:43:54 traceability burst. The right-panel state visible to participants during the session was being actively modified by the facilitator. This is a confirmed confound for both AQ2 group data and AQ4 first-impression perception of the right panel.
+**Important caveat:** Session 1 bugs (verbosity, deleted messages, disappearing dismissed items) amplified frustration. The AQ4 signals are directionally reliable but their magnitude may be inflated by the rough first-session UX. Additionally, the facilitator (`user1`) dismissed 3 insights and accepted 1 in the Group AI_ON session (`09:38–09:55`), with confirmed overlap with participant traceability activity (see AQ2, B3 resolved). The facilitator dismissed the JB suggestion 46 seconds before P1 attempted to click it 6 times, and dismissed both Context and Objective research insights before the main 09:43:54 traceability burst. The right-panel state visible to participants during the session was being actively modified by the facilitator. This is a confirmed confound for both AQ2 group data and AQ4 first-impression perception of the right panel.
 
 ---
 

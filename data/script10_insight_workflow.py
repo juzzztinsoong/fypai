@@ -84,6 +84,7 @@ SESSION_DATES = {
     "1": "2026-03-19",
     "2": "2026-03-25",
     "3": "2026-03-26",
+    "4": "2026-03-29",
 }
 
 
@@ -120,7 +121,7 @@ SUMMARY_COLUMNS = [
 
 def find_full_exports():
     """Yield (session_num, path) for every full export *.json (not timeline/metrics)."""
-    for session_dir in sorted(DATA_DIR.glob("[123]")):
+    for session_dir in sorted(DATA_DIR.glob("[1234]")):
         for f in sorted(session_dir.rglob("*.json")):
             if "timeline" in f.name or "metrics" in f.name:
                 continue
