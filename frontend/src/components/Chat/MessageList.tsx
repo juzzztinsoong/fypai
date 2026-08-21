@@ -292,20 +292,6 @@ export const MessageList = () => {
   const axisHoverEvaluatorRef = useRef<((x: number, y: number) => void) | null>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [unseenMessageCount, setUnseenMessageCount] = useState(0)
-  const [showArchivedMarkers, setShowArchivedMarkers] = useState(false)
-
-  useEffect(() => {
-    const handleArchivedVisibility = (event: Event) => {
-      const customEvent = event as CustomEvent<{ teamId?: string; visible?: boolean }>
-      if (customEvent.detail?.teamId !== currentTeamId) return
-      setShowArchivedMarkers(Boolean(customEvent.detail?.visible))
-    }
-
-    window.addEventListener('fypai:archived-visibility-changed', handleArchivedVisibility as EventListener)
-    return () => {
-      window.removeEventListener('fypai:archived-visibility-changed', handleArchivedVisibility as EventListener)
-    }
-  }, [currentTeamId])
 
   // Map typing user IDs to names (filter out current user)
   const typingUserNames = useMemo(() => {
@@ -461,7 +447,7 @@ export const MessageList = () => {
       if (!isMarker || !linkedInsightId) return
 
       const linkedInsight = insightsById[linkedInsightId]
-      if (!showArchivedMarkers && (linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived')) return
+      if (linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived') return
       const inferredType: AIInsightDTO['type'] | undefined =
         message.metadata?.linkedInsightType ||
         linkedInsight?.type ||
@@ -490,7 +476,7 @@ export const MessageList = () => {
     })
 
     return map
-  }, [messages, insightsById, showArchivedMarkers])
+  }, [messages, insightsById])
 
   const markerContextByParentMessageId = useMemo(() => {
     const map: Record<
@@ -515,7 +501,7 @@ export const MessageList = () => {
 
       const markerLabel = message.metadata?.markerLabel?.toLowerCase() || ''
       const linkedInsight = insightsById[linkedInsightId]
-      if (!showArchivedMarkers && (linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived')) return
+      if (linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived') return
       const insightType =
         message.metadata?.linkedInsightType ||
         linkedInsight?.type ||
@@ -558,7 +544,7 @@ export const MessageList = () => {
     })
 
     return map
-  }, [messages, insightsById, showArchivedMarkers])
+  }, [messages, insightsById])
 
   const hiddenMarkerMessageIds = useMemo(() => {
     return computeHiddenMarkerMessageIds(messages, markerContextByParentMessageId)
@@ -1177,7 +1163,7 @@ export const MessageList = () => {
             const linkedInsight = insightId ? insightsById[insightId] : undefined
             const isHiddenInsightMarker =
               linkedInsight?.status === 'dismissed' || linkedInsight?.status === 'archived'
-            if (isHiddenInsightMarker && !showArchivedMarkers) {
+            if (isHiddenInsightMarker) {
               return null
             }
             const inferredInsightType =
